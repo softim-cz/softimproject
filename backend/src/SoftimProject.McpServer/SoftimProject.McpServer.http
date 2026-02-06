@@ -1,0 +1,6 @@
+@SoftimProject.McpServer_HostAddress = http://localhost:5199
+
+GET {{SoftimProject.McpServer_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

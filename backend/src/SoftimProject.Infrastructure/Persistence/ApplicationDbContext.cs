@@ -1,0 +1,42 @@
+using Microsoft.EntityFrameworkCore;
+using SoftimProject.Application.Interfaces;
+using SoftimProject.Domain.Entities;
+
+namespace SoftimProject.Infrastructure.Persistence;
+
+public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
+    : DbContext(options), IApplicationDbContext
+{
+    public DbSet<User> Users => Set<User>();
+    public DbSet<Project> Projects => Set<Project>();
+    public DbSet<ProjectMember> ProjectMembers => Set<ProjectMember>();
+    public DbSet<KanbanBoard> KanbanBoards => Set<KanbanBoard>();
+    public DbSet<KanbanColumn> KanbanColumns => Set<KanbanColumn>();
+    public DbSet<Ticket> Tickets => Set<Ticket>();
+    public DbSet<TicketAttachment> TicketAttachments => Set<TicketAttachment>();
+    public DbSet<ChecklistItem> ChecklistItems => Set<ChecklistItem>();
+    public DbSet<Comment> Comments => Set<Comment>();
+    public DbSet<Worklog> Worklogs => Set<Worklog>();
+    public DbSet<Notification> Notifications => Set<Notification>();
+    public DbSet<AiReport> AiReports => Set<AiReport>();
+    public DbSet<SyncLog> SyncLogs => Set<SyncLog>();
+
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        modelBuilder.ApplyConfigurationsFromAssembly(typeof(ApplicationDbContext).Assembly);
+        base.OnModelCreating(modelBuilder);
+    }
+
+    public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+    {
+        foreach (var entry in ChangeTracker.Entries<Domain.Common.BaseEntity>())
+        {
+            if (entry.State == EntityState.Modified)
+            {
+                entry.Entity.UpdatedAt = DateTime.UtcNow;
+            }
+        }
+
+        return base.SaveChangesAsync(cancellationToken);
+    }
+}

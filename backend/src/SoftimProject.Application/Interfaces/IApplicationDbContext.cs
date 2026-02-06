@@ -1,0 +1,23 @@
+using Microsoft.EntityFrameworkCore;
+using SoftimProject.Domain.Entities;
+
+namespace SoftimProject.Application.Interfaces;
+
+public interface IApplicationDbContext
+{
+    DbSet<User> Users { get; }
+    DbSet<Project> Projects { get; }
+    DbSet<ProjectMember> ProjectMembers { get; }
+    DbSet<KanbanBoard> KanbanBoards { get; }
+    DbSet<KanbanColumn> KanbanColumns { get; }
+    DbSet<Ticket> Tickets { get; }
+    DbSet<TicketAttachment> TicketAttachments { get; }
+    DbSet<ChecklistItem> ChecklistItems { get; }
+    DbSet<Comment> Comments { get; }
+    DbSet<Worklog> Worklogs { get; }
+    DbSet<Notification> Notifications { get; }
+    DbSet<AiReport> AiReports { get; }
+    DbSet<SyncLog> SyncLogs { get; }
+
+    Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
+}
