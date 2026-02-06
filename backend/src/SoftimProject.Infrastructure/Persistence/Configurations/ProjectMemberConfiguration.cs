@@ -15,7 +15,7 @@ public sealed class ProjectMemberConfiguration : IEntityTypeConfiguration<Projec
         builder.Property(pm => pm.HourlyRateOverride).HasPrecision(10, 2);
 
         builder.HasOne(pm => pm.Project).WithMany(p => p.Members).HasForeignKey(pm => pm.ProjectId).OnDelete(DeleteBehavior.Cascade);
-        builder.HasOne(pm => pm.User).WithMany(u => u.ProjectMembers).HasForeignKey(pm => pm.UserId).OnDelete(DeleteBehavior.Cascade);
+        builder.HasOne(pm => pm.User).WithMany(u => u.ProjectMembers).HasForeignKey(pm => pm.UserId).OnDelete(DeleteBehavior.NoAction);
 
         builder.HasIndex(pm => new { pm.ProjectId, pm.UserId }).IsUnique();
     }

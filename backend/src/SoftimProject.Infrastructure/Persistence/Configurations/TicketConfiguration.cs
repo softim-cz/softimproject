@@ -20,7 +20,7 @@ public sealed class TicketConfiguration : IEntityTypeConfiguration<Ticket>
         builder.Property(t => t.AiSummary).HasColumnType("nvarchar(max)");
         builder.Property(t => t.EstimatedHours).HasPrecision(8, 2);
 
-        builder.HasOne(t => t.Project).WithMany(p => p.Tickets).HasForeignKey(t => t.ProjectId).OnDelete(DeleteBehavior.Cascade);
+        builder.HasOne(t => t.Project).WithMany(p => p.Tickets).HasForeignKey(t => t.ProjectId).OnDelete(DeleteBehavior.NoAction);
         builder.HasOne(t => t.Column).WithMany(c => c.Tickets).HasForeignKey(t => t.ColumnId).OnDelete(DeleteBehavior.SetNull);
         builder.HasOne(t => t.Assignee).WithMany().HasForeignKey(t => t.AssigneeId).OnDelete(DeleteBehavior.SetNull);
         builder.HasOne(t => t.Reporter).WithMany().HasForeignKey(t => t.ReporterId).OnDelete(DeleteBehavior.Restrict);

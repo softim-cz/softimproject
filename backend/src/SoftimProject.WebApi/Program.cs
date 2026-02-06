@@ -1,3 +1,5 @@
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.Identity.Web;
 using Serilog;
 using SoftimProject.Infrastructure;
 using SoftimProject.Application;
@@ -23,7 +25,8 @@ try
     builder.Services.AddInfrastructureServices(builder.Configuration);
 
     // Authentication & Authorization
-    builder.Services.AddAuthentication().AddJwtBearer();
+    builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+        .AddMicrosoftIdentityWebApi(builder.Configuration.GetSection("AzureAd"));
     builder.Services.AddAuthorization();
 
     // API
