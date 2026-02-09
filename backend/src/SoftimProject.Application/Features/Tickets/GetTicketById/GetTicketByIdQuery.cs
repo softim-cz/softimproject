@@ -45,6 +45,19 @@ public sealed record TicketDetailDto(
     string ReporterDisplayName,
     DateOnly? DueDate,
     decimal? EstimatedHours,
+    Guid? TaskTypeId,
+    string? TaskTypeName,
+    string? TaskTypeIcon,
+    Guid? TaskStateId,
+    string? TaskStateName,
+    string? TaskStateColor,
+    Guid? ParentTicketId,
+    string? ParentTicketTitle,
+    decimal CumulativeWorkedHours,
+    decimal? ExternalBudget,
+    string? ExternalUser,
+    string? ImplementationNotes,
+    string? LastComment,
     string? AiSummary,
     DateTime CreatedAt,
     DateTime? UpdatedAt,
@@ -62,6 +75,9 @@ public sealed class GetTicketByIdQueryHandler(
         var ticket = await dbContext.Tickets
             .Include(t => t.Assignee)
             .Include(t => t.Reporter)
+            .Include(t => t.TaskType)
+            .Include(t => t.TaskState)
+            .Include(t => t.ParentTicket)
             .Include(t => t.Comments.OrderByDescending(c => c.CreatedAt)).ThenInclude(c => c.Author)
             .Include(t => t.Attachments.OrderByDescending(a => a.CreatedAt))
             .Include(t => t.ChecklistItems.OrderBy(ci => ci.Position))
@@ -83,6 +99,19 @@ public sealed class GetTicketByIdQueryHandler(
             ticket.Reporter.DisplayName,
             ticket.DueDate,
             ticket.EstimatedHours,
+            ticket.TaskTypeId,
+            ticket.TaskType?.Name,
+            ticket.TaskType?.Icon,
+            ticket.TaskStateId,
+            ticket.TaskState?.Name,
+            ticket.TaskState?.Color,
+            ticket.ParentTicketId,
+            ticket.ParentTicket?.Title,
+            ticket.CumulativeWorkedHours,
+            ticket.ExternalBudget,
+            ticket.ExternalUser,
+            ticket.ImplementationNotes,
+            ticket.LastComment,
             ticket.AiSummary,
             ticket.CreatedAt,
             ticket.UpdatedAt,

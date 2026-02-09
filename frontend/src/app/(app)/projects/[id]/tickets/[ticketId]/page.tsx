@@ -1,9 +1,9 @@
 "use client";
 
 import { use, useState } from "react";
-import { useTicket, useUpdateTicket } from "@/queries/tickets";
+import { useTicket } from "@/queries/tickets";
 import { useComments, useCreateComment } from "@/queries/comments";
-import { useProject } from "@/queries/projects";
+import { useAttachments, useDeleteAttachment } from "@/queries/attachments";
 import { PriorityBadge } from "@/components/shared/priority-badge";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { Skeleton } from "@/components/shared/loading-skeleton";
@@ -18,6 +18,9 @@ import {
   CheckSquare,
   Square,
   Send,
+  Download,
+  Trash2,
+  FileText,
 } from "lucide-react";
 import Link from "next/link";
 import { useForm } from "react-hook-form";
@@ -27,7 +30,6 @@ import {
   type CreateCommentInput,
 } from "@/schemas/comment";
 import { toast } from "sonner";
-import { TicketStatus, TicketPriority } from "@/types";
 import type { Comment, ChecklistItem } from "@/types";
 import { format } from "date-fns";
 
@@ -205,13 +207,91 @@ function CommentsSection({
   );
 }
 
+function AttachmentsSection({
+  projectId,
+  ticketId,
+}: {
+  projectId: string;
+  ticketId: string;
+}) {
+  const { data: attachments, isLoading } = useAttachments(projectId, ticketId);
+  const deleteAttachment = useDeleteAttachment();
+
+  const formatFileSize = (bytes: number) => {
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  };
+
+  const handleDelete = async (attachmentId: string) => {
+    try {
+      await deleteAttachment.mutateAsync({ projectId, ticketId, attachmentId });
+      toast.success("Attachment deleted");
+    } catch {
+      toast.error("Failed to delete attachment");
+    }
+  };
+
+  return (
+    <div className="rounded-lg border border-border bg-card p-4">
+      <h3 className="text-sm font-semibold text-foreground flex items-center gap-2 mb-3">
+        <Paperclip className="h-4 w-4" />
+        Attachments
+      </h3>
+
+      {isLoading && <Skeleton className="h-16 w-full" />}
+
+      {attachments && attachments.length === 0 && (
+        <p className="text-sm text-muted-foreground">No attachments yet.</p>
+      )}
+
+      {attachments && attachments.length > 0 && (
+        <div className="space-y-2">
+          {attachments.map((att) => (
+            <div
+              key={att.id}
+              className="flex items-center gap-2 p-2 rounded border border-border bg-muted/30"
+            >
+              <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-foreground truncate">
+                  {att.fileName}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {formatFileSize(att.fileSizeBytes)} &middot;{" "}
+                  {att.uploadedByName}
+                </p>
+              </div>
+              <a
+                href={att.blobUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="p-1 text-muted-foreground hover:text-foreground rounded"
+                title="Download"
+              >
+                <Download className="h-4 w-4" />
+              </a>
+              <button
+                onClick={() => handleDelete(att.id)}
+                className="p-1 text-muted-foreground hover:text-destructive rounded"
+                title="Delete"
+              >
+                <Trash2 className="h-4 w-4" />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function TicketDetailPage({
   params,
 }: {
   params: Promise<{ id: string; ticketId: string }>;
 }) {
   const { id: projectId, ticketId } = use(params);
-  const { data: project } = useProject(projectId);
   const { data: ticket, isLoading, error } = useTicket(projectId, ticketId);
 
   if (isLoading) {
@@ -390,21 +470,7 @@ export default function TicketDetailPage({
           </div>
 
           {/* Attachments section */}
-          <div className="rounded-lg border border-border bg-card p-4">
-            <h3 className="text-sm font-semibold text-foreground flex items-center gap-2 mb-3">
-              <Paperclip className="h-4 w-4" />
-              Attachments ({ticket.attachmentsCount})
-            </h3>
-            {ticket.attachmentsCount === 0 ? (
-              <p className="text-sm text-muted-foreground">
-                No attachments yet.
-              </p>
-            ) : (
-              <p className="text-sm text-muted-foreground">
-                {ticket.attachmentsCount} file(s) attached.
-              </p>
-            )}
-          </div>
+          <AttachmentsSection projectId={projectId} ticketId={ticketId} />
         </div>
       </div>
     </div>

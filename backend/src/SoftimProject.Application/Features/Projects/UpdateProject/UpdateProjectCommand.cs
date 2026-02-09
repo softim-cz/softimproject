@@ -16,7 +16,11 @@ public sealed record UpdateProjectCommand(
     decimal? BudgetAmount,
     DateOnly? StartDate,
     DateOnly? EndDate,
-    DateOnly? DeadlineDate) : IRequest, IRequireProjectAccess
+    DateOnly? DeadlineDate,
+    Guid? CompanyId = null,
+    Guid? ProjectTypeId = null,
+    Guid? ProjectStateId = null,
+    Guid? ParentProjectId = null) : IRequest, IRequireProjectAccess
 {
     public Guid ProjectId => Id;
 }
@@ -49,6 +53,10 @@ public sealed class UpdateProjectCommandHandler(
         project.StartDate = request.StartDate;
         project.EndDate = request.EndDate;
         project.DeadlineDate = request.DeadlineDate;
+        project.CompanyId = request.CompanyId;
+        project.ProjectTypeId = request.ProjectTypeId;
+        project.ProjectStateId = request.ProjectStateId;
+        project.ParentProjectId = request.ParentProjectId;
 
         await dbContext.SaveChangesAsync(cancellationToken);
     }

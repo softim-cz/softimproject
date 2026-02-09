@@ -14,7 +14,12 @@ public sealed record CreateTicketCommand(
     Guid? AssigneeId,
     Guid? ColumnId,
     DateOnly? DueDate,
-    decimal? EstimatedHours) : IRequest<Guid>, IRequireProjectAccess;
+    decimal? EstimatedHours,
+    Guid? TaskTypeId = null,
+    Guid? TaskStateId = null,
+    Guid? ParentTicketId = null,
+    decimal? ExternalBudget = null,
+    string? ExternalUser = null) : IRequest<Guid>, IRequireProjectAccess;
 
 public sealed class CreateTicketCommandValidator : AbstractValidator<CreateTicketCommand>
 {
@@ -46,6 +51,11 @@ public sealed class CreateTicketCommandHandler(
             ReporterId = currentUserService.UserId ?? Guid.Empty,
             DueDate = request.DueDate,
             EstimatedHours = request.EstimatedHours,
+            TaskTypeId = request.TaskTypeId,
+            TaskStateId = request.TaskStateId,
+            ParentTicketId = request.ParentTicketId,
+            ExternalBudget = request.ExternalBudget,
+            ExternalUser = request.ExternalUser,
             Position = 0,
             CreatedAt = DateTime.UtcNow
         };

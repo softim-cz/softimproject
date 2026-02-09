@@ -66,6 +66,34 @@ export interface User {
   avatarUrl?: string;
   globalRole: GlobalRole;
   isActive: boolean;
+  firstName?: string;
+  lastName?: string;
+  corporateRole?: string;
+  companyName?: string;
+}
+
+export interface UserPermissions {
+  projectsCreate: boolean;
+  projectsRead: boolean;
+  projectsUpdate: boolean;
+  projectsDelete: boolean;
+  timeTrackingCreate: boolean;
+  timeTrackingRead: boolean;
+  timeTrackingUpdate: boolean;
+  timeTrackingDelete: boolean;
+  reportsCreate: boolean;
+  reportsRead: boolean;
+  reportsUpdate: boolean;
+  reportsDelete: boolean;
+}
+
+export interface CurrentUser extends User {
+  projectRoles: { projectId: string; projectName: string; role: ProjectRole }[];
+  permissions: UserPermissions;
+}
+
+export interface AdminUser extends User {
+  applicationRoleIds: string[];
 }
 
 export interface Project {
@@ -74,6 +102,15 @@ export interface Project {
   code: string;
   description?: string;
   status: ProjectStatus;
+  companyId?: string;
+  companyName?: string;
+  projectTypeId?: string;
+  projectTypeName?: string;
+  projectStateId?: string;
+  projectStateName?: string;
+  projectStateColor?: string;
+  parentProjectId?: string;
+  parentProjectName?: string;
   budgetHours?: number;
   spentHours: number;
   budgetAmount?: number;
@@ -111,6 +148,8 @@ export interface KanbanColumn {
   position: number;
   wipLimit?: number;
   mapsToStatus: TicketStatus;
+  mapsToTaskStateId?: string;
+  taskStateName?: string;
   tickets: Ticket[];
 }
 
@@ -132,6 +171,18 @@ export interface Ticket {
   aiSummary?: string;
   dueDate?: string;
   estimatedHours?: number;
+  taskTypeId?: string;
+  taskTypeName?: string;
+  taskTypeIcon?: string;
+  taskStateId?: string;
+  taskStateName?: string;
+  taskStateColor?: string;
+  parentTicketId?: string;
+  cumulativeWorkedHours?: number;
+  externalBudget?: number;
+  externalUser?: string;
+  implementationNotes?: string;
+  lastComment?: string;
   checklistItems: ChecklistItem[];
   commentsCount: number;
   attachmentsCount: number;
@@ -160,11 +211,13 @@ export interface ChecklistItem {
 
 export interface Comment {
   id: string;
-  ticketId: string;
+  ticketId?: string;
+  projectId?: string;
   author: User;
   content: string;
   isInternal: boolean;
   source: CommentSource;
+  externalUser?: string;
   createdAt: string;
   updatedAt?: string;
 }
@@ -180,6 +233,8 @@ export interface Worklog {
   description?: string;
   source: WorklogSource;
   isBillable: boolean;
+  aiSummary?: string;
+  invoiced?: string;
 }
 
 export interface Notification {
@@ -190,4 +245,67 @@ export interface Notification {
   referenceId?: string;
   isRead: boolean;
   createdAt: string;
+}
+
+// Lookup types
+
+export interface Company {
+  id: string;
+  name: string;
+  description?: string;
+  isActive: boolean;
+}
+
+export interface ApplicationRoleEntity {
+  id: string;
+  name: string;
+  description?: string;
+  sortOrder: number;
+  projectsCreate: boolean;
+  projectsRead: boolean;
+  projectsUpdate: boolean;
+  projectsDelete: boolean;
+  timeTrackingCreate: boolean;
+  timeTrackingRead: boolean;
+  timeTrackingUpdate: boolean;
+  timeTrackingDelete: boolean;
+  reportsCreate: boolean;
+  reportsRead: boolean;
+  reportsUpdate: boolean;
+  reportsDelete: boolean;
+}
+
+export interface ProjectType {
+  id: string;
+  name: string;
+  description?: string;
+  sortOrder: number;
+  isActive: boolean;
+}
+
+export interface ProjectState {
+  id: string;
+  name: string;
+  color: string;
+  sortOrder: number;
+  isActive: boolean;
+  isDefault: boolean;
+}
+
+export interface TaskType {
+  id: string;
+  name: string;
+  icon?: string;
+  sortOrder: number;
+  isActive: boolean;
+}
+
+export interface TaskState {
+  id: string;
+  name: string;
+  color: string;
+  sortOrder: number;
+  isActive: boolean;
+  isDefault: boolean;
+  isClosedState: boolean;
 }

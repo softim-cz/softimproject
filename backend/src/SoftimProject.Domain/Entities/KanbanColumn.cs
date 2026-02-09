@@ -10,9 +10,11 @@ public class KanbanColumn
     public int Position { get; set; }
     public int? WipLimit { get; set; }
     public TicketStatus MapsToStatus { get; set; }
+    public Guid? MapsToTaskStateId { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     // Navigation properties
     public KanbanBoard Board { get; set; } = null!;
+    public TaskState? MapsToTaskState { get; set; }
     public ICollection<Ticket> Tickets { get; set; } = new List<Ticket>();
 }

@@ -28,6 +28,11 @@ public sealed class MoveTicketCommandHandler(
         ticket.Position = request.Position;
         ticket.Status = column.MapsToStatus;
 
+        if (column.MapsToTaskStateId.HasValue)
+        {
+            ticket.TaskStateId = column.MapsToTaskStateId;
+        }
+
         await dbContext.SaveChangesAsync(cancellationToken);
     }
 }

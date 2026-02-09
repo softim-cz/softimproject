@@ -1,20 +1,23 @@
 "use client";
 
 import { useMsal, useIsAuthenticated } from "@azure/msal-react";
+import { InteractionStatus } from "@azure/msal-browser";
 import { loginRequest } from "./msal-config";
 import { useCallback } from "react";
 
 export function useAuth() {
-  const { instance, accounts } = useMsal();
+  const { instance, accounts, inProgress } = useMsal();
   const isAuthenticated = useIsAuthenticated();
 
   const login = useCallback(async () => {
+    if (inProgress !== InteractionStatus.None) return;
     await instance.loginRedirect(loginRequest);
-  }, [instance]);
+  }, [instance, inProgress]);
 
   const logout = useCallback(async () => {
+    if (inProgress !== InteractionStatus.None) return;
     await instance.logoutRedirect();
-  }, [instance]);
+  }, [instance, inProgress]);
 
   const getAccessToken = useCallback(async (): Promise<string | null> => {
     if (!accounts[0]) return null;
@@ -25,13 +28,16 @@ export function useAuth() {
       });
       return response.accessToken;
     } catch {
-      await instance.acquireTokenRedirect(loginRequest);
+      if (inProgress === InteractionStatus.None) {
+        await instance.acquireTokenRedirect(loginRequest);
+      }
       return null;
     }
-  }, [instance, accounts]);
+  }, [instance, accounts, inProgress]);
 
   return {
     isAuthenticated,
+    inProgress,
     user: accounts[0],
     login,
     logout,

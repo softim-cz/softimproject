@@ -1,6 +1,7 @@
 "use client";
 
 import { useAuth } from "@/lib/auth/use-auth";
+import { InteractionStatus } from "@azure/msal-browser";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { Sidebar } from "@/components/layout/sidebar";
@@ -10,18 +11,20 @@ import { setTokenProvider } from "@/lib/api/client";
 import { SignalRProvider } from "@/lib/signalr/signalr-provider";
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
-  const { isAuthenticated, getAccessToken } = useAuth();
+  const { isAuthenticated, inProgress, getAccessToken } = useAuth();
   const router = useRouter();
   const sidebarCollapsed = useUiStore((s) => s.sidebarCollapsed);
 
   useEffect(() => {
+    if (inProgress !== InteractionStatus.None) return;
     if (!isAuthenticated) router.push("/login");
-  }, [isAuthenticated, router]);
+  }, [isAuthenticated, inProgress, router]);
 
   useEffect(() => {
     setTokenProvider(getAccessToken);
   }, [getAccessToken]);
 
+  if (inProgress !== InteractionStatus.None) return null;
   if (!isAuthenticated) return null;
 
   return (

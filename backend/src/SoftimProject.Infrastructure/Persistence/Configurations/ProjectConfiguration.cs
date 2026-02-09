@@ -28,6 +28,12 @@ public sealed class ProjectConfiguration : IEntityTypeConfiguration<Project>
 
         builder.Property(p => p.ClientAccessToken).HasMaxLength(128);
 
+        // Lookup FK
+        builder.HasOne(p => p.Company).WithMany(c => c.Projects).HasForeignKey(p => p.CompanyId).OnDelete(DeleteBehavior.Restrict);
+        builder.HasOne(p => p.ProjectType).WithMany(pt => pt.Projects).HasForeignKey(p => p.ProjectTypeId).OnDelete(DeleteBehavior.Restrict);
+        builder.HasOne(p => p.ProjectState).WithMany(ps => ps.Projects).HasForeignKey(p => p.ProjectStateId).OnDelete(DeleteBehavior.Restrict);
+        builder.HasOne(p => p.ParentProject).WithMany(p => p.SubProjects).HasForeignKey(p => p.ParentProjectId).OnDelete(DeleteBehavior.Restrict);
+
         builder.HasIndex(p => p.Code).IsUnique();
         builder.HasIndex(p => p.ClientAccessToken).IsUnique().HasFilter("[ClientAccessToken] IS NOT NULL");
     }

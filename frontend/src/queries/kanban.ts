@@ -30,7 +30,7 @@ export function useMoveTicket() {
       position: number;
     }) => {
       await apiClient.put(
-        `/api/v1/projects/${projectId}/board/tickets/${ticketId}/move`,
+        `/api/v1/projects/${projectId}/tickets/${ticketId}/move`,
         { targetColumnId, position }
       );
     },

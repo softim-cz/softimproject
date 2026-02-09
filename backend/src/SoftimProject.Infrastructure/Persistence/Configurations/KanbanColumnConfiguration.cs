@@ -15,5 +15,6 @@ public sealed class KanbanColumnConfiguration : IEntityTypeConfiguration<KanbanC
         builder.Property(kc => kc.MapsToStatus).HasConversion<string>().HasMaxLength(50);
 
         builder.HasOne(kc => kc.Board).WithMany(kb => kb.Columns).HasForeignKey(kc => kc.BoardId).OnDelete(DeleteBehavior.Cascade);
+        builder.HasOne(kc => kc.MapsToTaskState).WithMany(ts => ts.KanbanColumns).HasForeignKey(kc => kc.MapsToTaskStateId).OnDelete(DeleteBehavior.Restrict);
     }
 }

@@ -18,6 +18,15 @@ public interface IApplicationDbContext
     DbSet<Notification> Notifications { get; }
     DbSet<AiReport> AiReports { get; }
     DbSet<SyncLog> SyncLogs { get; }
+    DbSet<Company> Companies { get; }
+    DbSet<ApplicationRole> ApplicationRoles { get; }
+    DbSet<UserApplicationRole> UserApplicationRoles { get; }
+    DbSet<ProjectType> ProjectTypes { get; }
+    DbSet<ProjectState> ProjectStates { get; }
+    DbSet<TaskType> TaskTypes { get; }
+    DbSet<TaskState> TaskStates { get; }
+    DbSet<ViewConfiguration> ViewConfigurations { get; }
+    DbSet<SavedFilter> SavedFilters { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }

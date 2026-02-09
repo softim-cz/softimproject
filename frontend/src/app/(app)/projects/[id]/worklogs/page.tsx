@@ -2,7 +2,6 @@
 
 import { use, useState } from "react";
 import { useWorklogs, useCreateWorklog } from "@/queries/worklogs";
-import { useProject } from "@/queries/projects";
 import { TableSkeleton } from "@/components/shared/loading-skeleton";
 import { EmptyState } from "@/components/shared/empty-state";
 import { Clock, Plus, X } from "lucide-react";
@@ -157,21 +156,15 @@ export default function ProjectWorklogsPage({
   params: Promise<{ id: string }>;
 }) {
   const { id: projectId } = use(params);
-  const { data: project } = useProject(projectId);
   const { data: worklogs, isLoading, error } = useWorklogs({ projectId });
   const [dialogOpen, setDialogOpen] = useState(false);
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">
-            {project?.name} - Worklogs
-          </h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Time entries for this project
-          </p>
-        </div>
+        <p className="text-sm text-muted-foreground">
+          Time entries for this project
+        </p>
         <button
           onClick={() => setDialogOpen(true)}
           className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:opacity-90 transition-opacity"

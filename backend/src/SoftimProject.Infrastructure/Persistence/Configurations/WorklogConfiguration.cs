@@ -15,6 +15,8 @@ public sealed class WorklogConfiguration : IEntityTypeConfiguration<Worklog>
         builder.Property(w => w.Description).HasMaxLength(2000);
         builder.Property(w => w.Source).HasConversion<string>().HasMaxLength(50);
         builder.Property(w => w.HourlyRateSnapshot).HasPrecision(10, 2);
+        builder.Property(w => w.AiSummary).HasColumnType("nvarchar(max)");
+        builder.Property(w => w.Invoiced).HasMaxLength(200);
 
         builder.HasOne(w => w.Project).WithMany(p => p.Worklogs).HasForeignKey(w => w.ProjectId).OnDelete(DeleteBehavior.NoAction);
         builder.HasOne(w => w.Ticket).WithMany(t => t.Worklogs).HasForeignKey(w => w.TicketId).OnDelete(DeleteBehavior.SetNull);

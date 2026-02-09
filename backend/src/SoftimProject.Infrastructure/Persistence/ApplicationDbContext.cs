@@ -20,6 +20,15 @@ public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> 
     public DbSet<Notification> Notifications => Set<Notification>();
     public DbSet<AiReport> AiReports => Set<AiReport>();
     public DbSet<SyncLog> SyncLogs => Set<SyncLog>();
+    public DbSet<Company> Companies => Set<Company>();
+    public DbSet<ApplicationRole> ApplicationRoles => Set<ApplicationRole>();
+    public DbSet<UserApplicationRole> UserApplicationRoles => Set<UserApplicationRole>();
+    public DbSet<ProjectType> ProjectTypes => Set<ProjectType>();
+    public DbSet<ProjectState> ProjectStates => Set<ProjectState>();
+    public DbSet<TaskType> TaskTypes => Set<TaskType>();
+    public DbSet<TaskState> TaskStates => Set<TaskState>();
+    public DbSet<ViewConfiguration> ViewConfigurations => Set<ViewConfiguration>();
+    public DbSet<SavedFilter> SavedFilters => Set<SavedFilter>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

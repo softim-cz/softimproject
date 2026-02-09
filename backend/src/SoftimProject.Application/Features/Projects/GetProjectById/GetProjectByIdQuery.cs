@@ -28,6 +28,15 @@ public sealed record ProjectDetailDto(
     string Code,
     string? Description,
     ProjectStatus Status,
+    Guid? CompanyId,
+    string? CompanyName,
+    Guid? ProjectTypeId,
+    string? ProjectTypeName,
+    Guid? ProjectStateId,
+    string? ProjectStateName,
+    string? ProjectStateColor,
+    Guid? ParentProjectId,
+    string? ParentProjectName,
     decimal? BudgetHours,
     decimal SpentHours,
     decimal? BudgetAmount,
@@ -57,6 +66,10 @@ public sealed class GetProjectByIdQueryHandler(
             .Include(p => p.Members).ThenInclude(m => m.User)
             .Include(p => p.Boards)
             .Include(p => p.Tickets)
+            .Include(p => p.Company)
+            .Include(p => p.ProjectType)
+            .Include(p => p.ProjectState)
+            .Include(p => p.ParentProject)
             .FirstOrDefaultAsync(p => p.Id == request.Id, cancellationToken)
             ?? throw new NotFoundException(nameof(Domain.Entities.Project), request.Id);
 
@@ -81,6 +94,15 @@ public sealed class GetProjectByIdQueryHandler(
             project.Code,
             project.Description,
             project.Status,
+            project.CompanyId,
+            project.Company?.Name,
+            project.ProjectTypeId,
+            project.ProjectType?.Name,
+            project.ProjectStateId,
+            project.ProjectState?.Name,
+            project.ProjectState?.Color,
+            project.ParentProjectId,
+            project.ParentProject?.Name,
             project.BudgetHours,
             project.SpentHours,
             project.BudgetAmount,

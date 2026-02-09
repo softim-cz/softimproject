@@ -17,6 +17,11 @@ public sealed class UserConfiguration : IEntityTypeConfiguration<User>
         builder.Property(u => u.AvatarUrl).HasMaxLength(2048);
         builder.Property(u => u.GlobalRole).HasConversion<string>().HasMaxLength(50);
 
+        builder.Property(u => u.FirstName).HasMaxLength(256);
+        builder.Property(u => u.LastName).HasMaxLength(256);
+        builder.Property(u => u.CorporateRole).HasMaxLength(256);
+        builder.Property(u => u.CompanyName).HasMaxLength(256);
+
         builder.HasIndex(u => u.EntraObjectId).IsUnique();
         builder.HasIndex(u => u.Email).IsUnique();
     }

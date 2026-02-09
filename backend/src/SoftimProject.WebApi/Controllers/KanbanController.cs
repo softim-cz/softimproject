@@ -12,6 +12,12 @@ namespace SoftimProject.WebApi.Controllers;
 [Route("api/v{version:apiVersion}/projects/{projectId:guid}/boards")]
 public class KanbanController : ApiControllerBase
 {
+    [HttpGet("~/api/v{version:apiVersion}/projects/{projectId:guid}/board")]
+    public async Task<ActionResult<BoardDto>> GetDefaultBoard(Guid projectId)
+    {
+        return Ok(await Mediator.Send(new GetDefaultBoardQuery(projectId)));
+    }
+
     [HttpGet("{boardId:guid}")]
     public async Task<ActionResult<BoardDto>> GetBoard(Guid projectId, Guid boardId)
     {

@@ -14,6 +14,8 @@ public class Worklog : BaseEntity
     public WorklogSource Source { get; set; }
     public bool IsBillable { get; set; }
     public decimal? HourlyRateSnapshot { get; set; }
+    public string? AiSummary { get; set; }
+    public string? Invoiced { get; set; }
 
     // Navigation properties
     public Project Project { get; set; } = null!;

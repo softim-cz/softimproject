@@ -14,7 +14,11 @@ public sealed record CreateProjectCommand(
     decimal? BudgetAmount,
     DateOnly? StartDate,
     DateOnly? EndDate,
-    DateOnly? DeadlineDate) : IRequest<Guid>;
+    DateOnly? DeadlineDate,
+    Guid? CompanyId = null,
+    Guid? ProjectTypeId = null,
+    Guid? ProjectStateId = null,
+    Guid? ParentProjectId = null) : IRequest<Guid>;
 
 public sealed class CreateProjectCommandValidator : AbstractValidator<CreateProjectCommand>
 {
@@ -47,6 +51,10 @@ public sealed class CreateProjectCommandHandler(
             StartDate = request.StartDate,
             EndDate = request.EndDate,
             DeadlineDate = request.DeadlineDate,
+            CompanyId = request.CompanyId,
+            ProjectTypeId = request.ProjectTypeId,
+            ProjectStateId = request.ProjectStateId,
+            ParentProjectId = request.ParentProjectId,
             CreatedAt = DateTime.UtcNow
         };
 

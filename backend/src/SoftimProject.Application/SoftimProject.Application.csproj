@@ -6,6 +6,7 @@
     <PackageReference Include="FluentValidation.DependencyInjectionExtensions" />
     <PackageReference Include="Microsoft.Extensions.AI" />
     <PackageReference Include="Microsoft.EntityFrameworkCore" />
+    <PackageReference Include="EPPlus" />
   </ItemGroup>
 
   <ItemGroup>

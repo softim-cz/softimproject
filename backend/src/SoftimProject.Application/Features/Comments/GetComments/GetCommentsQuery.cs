@@ -13,6 +13,9 @@ public sealed record CommentDto(
     string Content,
     bool IsInternal,
     CommentSource Source,
+    string? ExternalUser,
+    Guid? TicketId,
+    Guid? ProjectId,
     DateTime CreatedAt,
     DateTime? UpdatedAt);
 
@@ -34,6 +37,9 @@ public sealed class GetCommentsQueryHandler(
                 c.Content,
                 c.IsInternal,
                 c.Source,
+                c.ExternalUser,
+                c.TicketId,
+                c.ProjectId,
                 c.CreatedAt,
                 c.UpdatedAt))
             .ToListAsync(cancellationToken);

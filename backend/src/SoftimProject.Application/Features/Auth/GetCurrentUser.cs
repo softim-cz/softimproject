@@ -12,12 +12,31 @@ public sealed record CurrentUserDto(
     string DisplayName,
     string? AvatarUrl,
     GlobalRole GlobalRole,
-    List<ProjectRoleDto> ProjectRoles);
+    string? FirstName,
+    string? LastName,
+    string? CorporateRole,
+    string? CompanyName,
+    List<ProjectRoleDto> ProjectRoles,
+    UserPermissionsDto Permissions);
 
 public sealed record ProjectRoleDto(
     Guid ProjectId,
     string ProjectName,
     ProjectRole Role);
+
+public sealed record UserPermissionsDto(
+    bool ProjectsCreate,
+    bool ProjectsRead,
+    bool ProjectsUpdate,
+    bool ProjectsDelete,
+    bool TimeTrackingCreate,
+    bool TimeTrackingRead,
+    bool TimeTrackingUpdate,
+    bool TimeTrackingDelete,
+    bool ReportsCreate,
+    bool ReportsRead,
+    bool ReportsUpdate,
+    bool ReportsDelete);
 
 public sealed record GetCurrentUserQuery : IRequest<CurrentUserDto>;
 
@@ -56,12 +75,48 @@ public sealed class GetCurrentUserQueryHandler(
             .Select(pm => new ProjectRoleDto(pm.ProjectId, pm.Project.Name, pm.Role))
             .ToListAsync(cancellationToken);
 
+        // Aggregate permissions from all assigned application roles
+        var isAdmin = user.GlobalRole == GlobalRole.Admin;
+        UserPermissionsDto permissions;
+
+        if (isAdmin)
+        {
+            // Admin gets all permissions
+            permissions = new UserPermissionsDto(true, true, true, true, true, true, true, true, true, true, true, true);
+        }
+        else
+        {
+            var roles = await dbContext.UserApplicationRoles
+                .Where(uar => uar.UserId == user.Id)
+                .Select(uar => uar.ApplicationRole)
+                .ToListAsync(cancellationToken);
+
+            permissions = new UserPermissionsDto(
+                roles.Any(r => r.ProjectsCreate),
+                roles.Any(r => r.ProjectsRead),
+                roles.Any(r => r.ProjectsUpdate),
+                roles.Any(r => r.ProjectsDelete),
+                roles.Any(r => r.TimeTrackingCreate),
+                roles.Any(r => r.TimeTrackingRead),
+                roles.Any(r => r.TimeTrackingUpdate),
+                roles.Any(r => r.TimeTrackingDelete),
+                roles.Any(r => r.ReportsCreate),
+                roles.Any(r => r.ReportsRead),
+                roles.Any(r => r.ReportsUpdate),
+                roles.Any(r => r.ReportsDelete));
+        }
+
         return new CurrentUserDto(
             user.Id,
             user.Email,
             user.DisplayName,
             user.AvatarUrl,
             user.GlobalRole,
-            projectRoles);
+            user.FirstName,
+            user.LastName,
+            user.CorporateRole,
+            user.CompanyName,
+            projectRoles,
+            permissions);
     }
 }

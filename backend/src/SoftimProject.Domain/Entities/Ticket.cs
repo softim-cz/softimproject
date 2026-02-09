@@ -20,11 +20,27 @@ public class Ticket : BaseEntity
     public DateOnly? DueDate { get; set; }
     public decimal? EstimatedHours { get; set; }
 
+    // Lookup FK
+    public Guid? TaskTypeId { get; set; }
+    public Guid? TaskStateId { get; set; }
+    public Guid? ParentTicketId { get; set; }
+
+    // Extended fields
+    public decimal CumulativeWorkedHours { get; set; }
+    public decimal? ExternalBudget { get; set; }
+    public string? ExternalUser { get; set; }
+    public string? ImplementationNotes { get; set; }
+    public string? LastComment { get; set; }
+
     // Navigation properties
     public Project Project { get; set; } = null!;
     public KanbanColumn? Column { get; set; }
     public User? Assignee { get; set; }
     public User Reporter { get; set; } = null!;
+    public TaskType? TaskType { get; set; }
+    public TaskState? TaskState { get; set; }
+    public Ticket? ParentTicket { get; set; }
+    public ICollection<Ticket> SubTickets { get; set; } = new List<Ticket>();
     public ICollection<TicketAttachment> Attachments { get; set; } = new List<TicketAttachment>();
     public ICollection<ChecklistItem> ChecklistItems { get; set; } = new List<ChecklistItem>();
     public ICollection<Comment> Comments { get; set; } = new List<Comment>();

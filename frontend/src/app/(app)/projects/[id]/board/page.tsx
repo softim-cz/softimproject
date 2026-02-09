@@ -1,11 +1,15 @@
 "use client";
 
-import { use, useState, useCallback } from "react";
+import { use, useState, useCallback, useMemo, useRef } from "react";
 import { useBoard, useMoveTicket } from "@/queries/kanban";
-import { useProject } from "@/queries/projects";
+import {
+  useViewConfiguration,
+  useUpsertViewConfiguration,
+} from "@/queries/view-configurations";
 import { KanbanSkeleton } from "@/components/shared/loading-skeleton";
 import { EmptyState } from "@/components/shared/empty-state";
 import { PriorityBadge } from "@/components/shared/priority-badge";
+import { DynamicStateBadge } from "@/components/shared/status-badge";
 import {
   DndContext,
   DragOverlay,
@@ -31,16 +35,59 @@ import {
   User,
   Calendar,
   LayoutGrid,
+  Settings2,
+  ChevronDown,
+  Clock,
 } from "lucide-react";
-import type { Ticket, KanbanColumn as KanbanColumnType } from "@/types";
+import type {
+  Ticket,
+  KanbanBoard,
+  KanbanColumn as KanbanColumnType,
+} from "@/types";
+
+type GroupBy = "none" | "assignee" | "priority" | "taskType";
+
+interface CardFields {
+  priority: boolean;
+  assignee: boolean;
+  dueDate: boolean;
+  comments: boolean;
+  attachments: boolean;
+  taskType: boolean;
+  taskState: boolean;
+  estimatedHours: boolean;
+}
+
+interface KanbanConfig {
+  groupBy: GroupBy;
+  cardFields: CardFields;
+}
+
+const defaultCardFields: CardFields = {
+  priority: true,
+  assignee: true,
+  dueDate: true,
+  comments: true,
+  attachments: true,
+  taskType: false,
+  taskState: false,
+  estimatedHours: false,
+};
+
+const defaultConfig: KanbanConfig = {
+  groupBy: "none",
+  cardFields: defaultCardFields,
+};
 
 function TicketCard({
   ticket,
   projectId,
+  cardFields,
   isDragging = false,
 }: {
   ticket: Ticket;
   projectId: string;
+  cardFields: CardFields;
   isDragging?: boolean;
 }) {
   return (
@@ -52,27 +99,40 @@ function TicketCard({
       )}
     >
       <p className="text-sm font-medium text-card-foreground mb-2 line-clamp-2">
+        {cardFields.taskType && ticket.taskTypeIcon && (
+          <span className="mr-1">{ticket.taskTypeIcon}</span>
+        )}
         {ticket.title}
       </p>
       <div className="flex items-center justify-between">
-        <PriorityBadge priority={ticket.priority} />
+        {cardFields.priority ? (
+          <PriorityBadge priority={ticket.priority} />
+        ) : (
+          <span />
+        )}
         <div className="flex items-center gap-2 text-muted-foreground">
-          {ticket.commentsCount > 0 && (
+          {cardFields.comments && ticket.commentsCount > 0 && (
             <span className="flex items-center gap-0.5 text-xs">
               <MessageSquare className="h-3 w-3" />
               {ticket.commentsCount}
             </span>
           )}
-          {ticket.attachmentsCount > 0 && (
+          {cardFields.attachments && ticket.attachmentsCount > 0 && (
             <span className="flex items-center gap-0.5 text-xs">
               <Paperclip className="h-3 w-3" />
               {ticket.attachmentsCount}
             </span>
           )}
+          {cardFields.estimatedHours && ticket.estimatedHours != null && (
+            <span className="flex items-center gap-0.5 text-xs">
+              <Clock className="h-3 w-3" />
+              {ticket.estimatedHours}h
+            </span>
+          )}
         </div>
       </div>
-      <div className="flex items-center justify-between mt-2">
-        {ticket.assignee ? (
+      <div className="flex items-center justify-between mt-2 flex-wrap gap-1">
+        {cardFields.assignee && ticket.assignee ? (
           <span className="flex items-center gap-1 text-xs text-muted-foreground">
             <User className="h-3 w-3" />
             {ticket.assignee.displayName}
@@ -80,13 +140,21 @@ function TicketCard({
         ) : (
           <span />
         )}
-        {ticket.dueDate && (
+        {cardFields.dueDate && ticket.dueDate && (
           <span className="flex items-center gap-1 text-xs text-muted-foreground">
             <Calendar className="h-3 w-3" />
             {new Date(ticket.dueDate).toLocaleDateString()}
           </span>
         )}
       </div>
+      {cardFields.taskState && ticket.taskStateName && ticket.taskStateColor && (
+        <div className="mt-2">
+          <DynamicStateBadge
+            name={ticket.taskStateName}
+            color={ticket.taskStateColor}
+          />
+        </div>
+      )}
     </Link>
   );
 }
@@ -94,9 +162,11 @@ function TicketCard({
 function SortableTicketCard({
   ticket,
   projectId,
+  cardFields,
 }: {
   ticket: Ticket;
   projectId: string;
+  cardFields: CardFields;
 }) {
   const {
     attributes,
@@ -115,7 +185,11 @@ function SortableTicketCard({
 
   return (
     <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
-      <TicketCard ticket={ticket} projectId={projectId} />
+      <TicketCard
+        ticket={ticket}
+        projectId={projectId}
+        cardFields={cardFields}
+      />
     </div>
   );
 }
@@ -123,9 +197,11 @@ function SortableTicketCard({
 function KanbanColumn({
   column,
   projectId,
+  cardFields,
 }: {
   column: KanbanColumnType;
   projectId: string;
+  cardFields: CardFields;
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: column.id });
 
@@ -162,6 +238,7 @@ function KanbanColumn({
               key={ticket.id}
               ticket={ticket}
               projectId={projectId}
+              cardFields={cardFields}
             />
           ))}
         </SortableContext>
@@ -175,16 +252,130 @@ function KanbanColumn({
   );
 }
 
+function getSwimlaneName(ticket: Ticket, groupBy: GroupBy): string {
+  switch (groupBy) {
+    case "assignee":
+      return ticket.assignee?.displayName || "Unassigned";
+    case "priority":
+      return ticket.priority;
+    case "taskType":
+      return ticket.taskTypeName || "No type";
+    default:
+      return "";
+  }
+}
+
+function buildSwimlanes(
+  board: KanbanBoard,
+  groupBy: GroupBy
+): { name: string; columns: KanbanColumnType[] }[] {
+  if (groupBy === "none") {
+    return [{ name: "", columns: board.columns }];
+  }
+
+  const allTickets = board.columns.flatMap((c) =>
+    c.tickets.map((t) => ({ ...t, _columnId: c.id }))
+  );
+
+  const groupNames = Array.from(
+    new Set(allTickets.map((t) => getSwimlaneName(t, groupBy)))
+  ).sort();
+
+  return groupNames.map((name) => ({
+    name,
+    columns: board.columns.map((col) => ({
+      ...col,
+      tickets: col.tickets.filter(
+        (t) => getSwimlaneName(t, groupBy) === name
+      ),
+    })),
+  }));
+}
+
+const groupByOptions: { value: GroupBy; label: string }[] = [
+  { value: "none", label: "No grouping" },
+  { value: "assignee", label: "Assignee" },
+  { value: "priority", label: "Priority" },
+  { value: "taskType", label: "Task Type" },
+];
+
+const cardFieldLabels: { key: keyof CardFields; label: string }[] = [
+  { key: "priority", label: "Priority" },
+  { key: "assignee", label: "Assignee" },
+  { key: "dueDate", label: "Due Date" },
+  { key: "comments", label: "Comments" },
+  { key: "attachments", label: "Attachments" },
+  { key: "taskType", label: "Task Type" },
+  { key: "taskState", label: "Task State" },
+  { key: "estimatedHours", label: "Est. Hours" },
+];
+
 export default function BoardPage({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
   const { id: projectId } = use(params);
-  const { data: project } = useProject(projectId);
   const { data: board, isLoading, error } = useBoard(projectId);
+  const { data: viewConfig } = useViewConfiguration("Kanban", projectId);
+  const upsertConfig = useUpsertViewConfiguration();
   const moveTicket = useMoveTicket();
   const [activeTicket, setActiveTicket] = useState<Ticket | null>(null);
+  const [showGroupBy, setShowGroupBy] = useState(false);
+  const [showCardSettings, setShowCardSettings] = useState(false);
+
+  const savedConfig = useMemo<KanbanConfig>(() => {
+    if (!viewConfig?.configurationJson) return defaultConfig;
+    try {
+      const parsed = JSON.parse(viewConfig.configurationJson);
+      return {
+        groupBy: parsed.groupBy ?? "none",
+        cardFields: { ...defaultCardFields, ...parsed.cardFields },
+      };
+    } catch {
+      return defaultConfig;
+    }
+  }, [viewConfig?.configurationJson]);
+
+  const [groupBy, setGroupBy] = useState<GroupBy>(savedConfig.groupBy);
+  const [cardFields, setCardFields] = useState<CardFields>(
+    savedConfig.cardFields
+  );
+
+  const saveTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const persistConfig = useCallback(
+    (config: KanbanConfig) => {
+      if (saveTimeout.current) clearTimeout(saveTimeout.current);
+      saveTimeout.current = setTimeout(() => {
+        upsertConfig.mutate({
+          projectId,
+          viewType: "Kanban",
+          configurationJson: JSON.stringify(config),
+        });
+      }, 1000);
+    },
+    [projectId, upsertConfig]
+  );
+
+  const handleGroupByChange = useCallback(
+    (value: GroupBy) => {
+      setGroupBy(value);
+      setShowGroupBy(false);
+      persistConfig({ groupBy: value, cardFields });
+    },
+    [persistConfig, cardFields]
+  );
+
+  const handleCardFieldToggle = useCallback(
+    (key: keyof CardFields) => {
+      setCardFields((prev) => {
+        const next = { ...prev, [key]: !prev[key] };
+        persistConfig({ groupBy, cardFields: next });
+        return next;
+      });
+    },
+    [persistConfig, groupBy]
+  );
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -212,7 +403,6 @@ export default function BoardPage({
       const ticketId = active.id as string;
       const targetColumnId = over.id as string;
 
-      // Find which column the ticket is being dropped to
       const targetColumn = board.columns.find((c) => c.id === targetColumnId);
       if (!targetColumn) return;
 
@@ -224,6 +414,11 @@ export default function BoardPage({
       });
     },
     [board, projectId, moveTicket]
+  );
+
+  const swimlanes = useMemo(
+    () => (board ? buildSwimlanes(board, groupBy) : []),
+    [board, groupBy]
   );
 
   if (isLoading) {
@@ -254,32 +449,120 @@ export default function BoardPage({
   }
 
   return (
-    <div className="space-y-4">
-      <div>
-        <h1 className="text-2xl font-bold text-foreground">
-          {project?.name || "Board"}
-        </h1>
-        <p className="text-sm text-muted-foreground">
-          {board.name}
-        </p>
+    <div className="space-y-4 h-full flex flex-col">
+      {/* Toolbar */}
+      <div className="flex items-center justify-between flex-shrink-0">
+        <p className="text-sm text-muted-foreground">{board.name}</p>
+        <div className="flex items-center gap-2">
+          {/* Group by dropdown */}
+          <div className="relative">
+            <button
+              onClick={() => {
+                setShowGroupBy((v) => !v);
+                setShowCardSettings(false);
+              }}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground border border-border rounded-lg hover:bg-muted transition-colors"
+            >
+              <ChevronDown className="h-4 w-4" />
+              {groupBy === "none"
+                ? "Group by"
+                : `By ${groupByOptions.find((o) => o.value === groupBy)?.label}`}
+            </button>
+            {showGroupBy && (
+              <div className="absolute right-0 top-full mt-1 z-20 bg-card border border-border rounded-lg shadow-lg py-1 w-44">
+                {groupByOptions.map((opt) => (
+                  <button
+                    key={opt.value}
+                    onClick={() => handleGroupByChange(opt.value)}
+                    className={cn(
+                      "w-full text-left px-3 py-1.5 text-sm hover:bg-muted transition-colors",
+                      groupBy === opt.value &&
+                        "text-primary font-medium bg-muted/50"
+                    )}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Card settings */}
+          <div className="relative">
+            <button
+              onClick={() => {
+                setShowCardSettings((v) => !v);
+                setShowGroupBy(false);
+              }}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground border border-border rounded-lg hover:bg-muted transition-colors"
+            >
+              <Settings2 className="h-4 w-4" />
+              Card fields
+            </button>
+            {showCardSettings && (
+              <div className="absolute right-0 top-full mt-1 z-20 bg-card border border-border rounded-lg shadow-lg p-3 w-48">
+                <p className="text-xs font-medium text-muted-foreground mb-2">
+                  Show on cards
+                </p>
+                {cardFieldLabels.map(({ key, label }) => (
+                  <label
+                    key={key}
+                    className="flex items-center gap-2 py-1 text-sm cursor-pointer"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={cardFields[key]}
+                      onChange={() => handleCardFieldToggle(key)}
+                      className="rounded"
+                    />
+                    {label}
+                  </label>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
       </div>
 
+      {/* Board with swimlanes */}
       <DndContext
         sensors={sensors}
         collisionDetection={closestCorners}
         onDragStart={handleDragStart}
         onDragEnd={handleDragEnd}
       >
-        <div className="flex gap-4 overflow-x-auto pb-4">
-          {board.columns
-            .sort((a, b) => a.position - b.position)
-            .map((column) => (
-              <KanbanColumn
-                key={column.id}
-                column={column}
-                projectId={projectId}
-              />
-            ))}
+        <div className="flex-1 overflow-auto">
+          {swimlanes.map((lane) => (
+            <div key={lane.name || "__default"} className="mb-6">
+              {lane.name && (
+                <div className="flex items-center gap-2 mb-3 sticky left-0">
+                  <h3 className="text-sm font-semibold text-foreground">
+                    {lane.name}
+                  </h3>
+                  <span className="text-xs text-muted-foreground">
+                    (
+                    {lane.columns.reduce(
+                      (sum, c) => sum + c.tickets.length,
+                      0
+                    )}
+                    )
+                  </span>
+                </div>
+              )}
+              <div className="flex gap-4 pb-4">
+                {lane.columns
+                  .sort((a, b) => a.position - b.position)
+                  .map((column) => (
+                    <KanbanColumn
+                      key={`${lane.name}-${column.id}`}
+                      column={column}
+                      projectId={projectId}
+                      cardFields={cardFields}
+                    />
+                  ))}
+              </div>
+            </div>
+          ))}
         </div>
 
         <DragOverlay>
@@ -288,6 +571,7 @@ export default function BoardPage({
               <TicketCard
                 ticket={activeTicket}
                 projectId={projectId}
+                cardFields={cardFields}
                 isDragging
               />
             </div>

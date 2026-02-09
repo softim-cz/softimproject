@@ -1,8 +1,7 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
-import apiClient from "@/lib/api/client";
-import { TableSkeleton, Skeleton } from "@/components/shared/loading-skeleton";
+import { useState } from "react";
+import { TableSkeleton } from "@/components/shared/loading-skeleton";
 import { EmptyState } from "@/components/shared/empty-state";
 import {
   Users,
@@ -11,20 +10,14 @@ import {
   Link2,
   CheckCircle2,
   XCircle,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
-import type { User } from "@/types";
+import type { AdminUser, ApplicationRoleEntity } from "@/types";
 import { GlobalRole } from "@/types";
 import { cn } from "@/lib/utils";
-
-function useUsers() {
-  return useQuery({
-    queryKey: ["admin", "users"],
-    queryFn: async () => {
-      const { data } = await apiClient.get<User[]>("/api/v1/admin/users");
-      return data;
-    },
-  });
-}
+import { useAdminUsers, useUpdateUserRoles } from "@/queries/admin";
+import { useApplicationRoles } from "@/queries/lookups";
 
 const roleColors: Record<GlobalRole, string> = {
   [GlobalRole.Admin]: "bg-red-100 text-red-700",
@@ -33,7 +26,10 @@ const roleColors: Record<GlobalRole, string> = {
 };
 
 function UserManagement() {
-  const { data: users, isLoading, error } = useUsers();
+  const { data: users, isLoading, error } = useAdminUsers();
+  const { data: appRoles } = useApplicationRoles();
+  const updateRoles = useUpdateUserRoles();
+  const [expandedUser, setExpandedUser] = useState<string | null>(null);
 
   if (isLoading) return <TableSkeleton rows={6} />;
 
@@ -54,6 +50,13 @@ function UserManagement() {
     );
   }
 
+  const toggleRole = (user: AdminUser, roleId: string) => {
+    const newIds = user.applicationRoleIds.includes(roleId)
+      ? user.applicationRoleIds.filter((id) => id !== roleId)
+      : [...user.applicationRoleIds, roleId];
+    updateRoles.mutate({ userId: user.id, applicationRoleIds: newIds });
+  };
+
   return (
     <div className="rounded-lg border border-border overflow-hidden">
       <table className="w-full">
@@ -66,57 +69,107 @@ function UserManagement() {
               Email
             </th>
             <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-              Role
+              Company / Role
+            </th>
+            <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+              Global Role
             </th>
             <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
               Status
             </th>
+            <th className="px-4 py-3 w-10" />
           </tr>
         </thead>
         <tbody className="divide-y divide-border">
-          {users.map((user: User) => (
-            <tr key={user.id} className="hover:bg-muted/30">
-              <td className="px-4 py-3">
-                <div className="flex items-center gap-3">
-                  <div className="h-8 w-8 rounded-full bg-primary-navy text-white flex items-center justify-center text-xs font-bold">
-                    {user.displayName
-                      .split(" ")
-                      .map((n) => n[0])
-                      .join("")
-                      .slice(0, 2)}
+          {users.map((user: AdminUser) => (
+            <>
+              <tr key={user.id} className="hover:bg-muted/30">
+                <td className="px-4 py-3">
+                  <div className="flex items-center gap-3">
+                    <div className="h-8 w-8 rounded-full bg-primary-navy text-white flex items-center justify-center text-xs font-bold">
+                      {user.displayName
+                        .split(" ")
+                        .map((n) => n[0])
+                        .join("")
+                        .slice(0, 2)}
+                    </div>
+                    <div>
+                      <span className="text-sm font-medium text-foreground block">
+                        {user.displayName}
+                      </span>
+                      {(user.firstName || user.lastName) && (
+                        <span className="text-xs text-muted-foreground">
+                          {[user.firstName, user.lastName].filter(Boolean).join(" ")}
+                        </span>
+                      )}
+                    </div>
                   </div>
-                  <span className="text-sm font-medium text-foreground">
-                    {user.displayName}
+                </td>
+                <td className="px-4 py-3 text-sm text-muted-foreground">
+                  {user.email}
+                </td>
+                <td className="px-4 py-3 text-sm text-muted-foreground">
+                  {[user.companyName, user.corporateRole].filter(Boolean).join(" / ") || "—"}
+                </td>
+                <td className="px-4 py-3">
+                  <span
+                    className={cn(
+                      "px-2 py-0.5 rounded-full text-xs font-medium",
+                      roleColors[user.globalRole]
+                    )}
+                  >
+                    {user.globalRole}
                   </span>
-                </div>
-              </td>
-              <td className="px-4 py-3 text-sm text-muted-foreground">
-                {user.email}
-              </td>
-              <td className="px-4 py-3">
-                <span
-                  className={cn(
-                    "px-2 py-0.5 rounded-full text-xs font-medium",
-                    roleColors[user.globalRole]
+                </td>
+                <td className="px-4 py-3">
+                  {user.isActive ? (
+                    <span className="flex items-center gap-1 text-xs text-green-600">
+                      <CheckCircle2 className="h-3.5 w-3.5" />
+                      Active
+                    </span>
+                  ) : (
+                    <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                      <XCircle className="h-3.5 w-3.5" />
+                      Inactive
+                    </span>
                   )}
-                >
-                  {user.globalRole}
-                </span>
-              </td>
-              <td className="px-4 py-3">
-                {user.isActive ? (
-                  <span className="flex items-center gap-1 text-xs text-green-600">
-                    <CheckCircle2 className="h-3.5 w-3.5" />
-                    Active
-                  </span>
-                ) : (
-                  <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                    <XCircle className="h-3.5 w-3.5" />
-                    Inactive
-                  </span>
-                )}
-              </td>
-            </tr>
+                </td>
+                <td className="px-4 py-3">
+                  <button
+                    onClick={() => setExpandedUser(expandedUser === user.id ? null : user.id)}
+                    className="p-1 text-muted-foreground hover:text-foreground"
+                  >
+                    {expandedUser === user.id ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                  </button>
+                </td>
+              </tr>
+              {expandedUser === user.id && appRoles && (
+                <tr key={`${user.id}-roles`}>
+                  <td colSpan={6} className="px-4 py-3 bg-muted/20">
+                    <p className="text-xs font-medium text-muted-foreground mb-2">Application Roles</p>
+                    <div className="flex flex-wrap gap-2">
+                      {appRoles.map((role: ApplicationRoleEntity) => (
+                        <button
+                          key={role.id}
+                          onClick={() => toggleRole(user, role.id)}
+                          className={cn(
+                            "px-3 py-1 text-xs rounded-full border font-medium transition-colors",
+                            user.applicationRoleIds.includes(role.id)
+                              ? "bg-accent-orange text-white border-accent-orange"
+                              : "bg-card text-muted-foreground border-border hover:border-accent-orange"
+                          )}
+                        >
+                          {role.name}
+                        </button>
+                      ))}
+                      {appRoles.length === 0 && (
+                        <p className="text-xs text-muted-foreground">No application roles configured. Create them in Lookups.</p>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              )}
+            </>
           ))}
         </tbody>
       </table>

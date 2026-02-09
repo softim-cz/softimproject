@@ -12,8 +12,16 @@ public class User : BaseEntity
     public GlobalRole GlobalRole { get; set; }
     public bool IsActive { get; set; }
 
+    // Entra attributes
+    public string? FirstName { get; set; }
+    public string? LastName { get; set; }
+    public string? CorporateRole { get; set; }
+    public string? CompanyName { get; set; }
+
     // Navigation properties
     public ICollection<ProjectMember> ProjectMembers { get; set; } = new List<ProjectMember>();
     public ICollection<Worklog> Worklogs { get; set; } = new List<Worklog>();
     public ICollection<Notification> Notifications { get; set; } = new List<Notification>();
+    public ICollection<UserApplicationRole> UserApplicationRoles { get; set; } = new List<UserApplicationRole>();
+    public ICollection<ViewConfiguration> ViewConfigurations { get; set; } = new List<ViewConfiguration>();
 }

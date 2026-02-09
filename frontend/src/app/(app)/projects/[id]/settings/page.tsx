@@ -45,14 +45,9 @@ export default function ProjectSettingsPage({
 
   return (
     <div className="space-y-8 max-w-3xl">
-      <div>
-        <h1 className="text-2xl font-bold text-foreground">
-          {project.name} - Settings
-        </h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          Configure project settings and integrations
-        </p>
-      </div>
+      <p className="text-sm text-muted-foreground">
+        Configure project settings and integrations
+      </p>
 
       {/* General settings */}
       <section className="rounded-lg border border-border bg-card p-6 space-y-4">

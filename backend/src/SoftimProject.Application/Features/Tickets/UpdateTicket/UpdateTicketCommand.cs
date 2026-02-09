@@ -16,7 +16,12 @@ public sealed record UpdateTicketCommand(
     TicketStatus Status,
     Guid? AssigneeId,
     DateOnly? DueDate,
-    decimal? EstimatedHours) : IRequest, IRequireProjectAccess;
+    decimal? EstimatedHours,
+    Guid? TaskTypeId = null,
+    Guid? TaskStateId = null,
+    Guid? ParentTicketId = null,
+    decimal? ExternalBudget = null,
+    string? ExternalUser = null) : IRequest, IRequireProjectAccess;
 
 public sealed class UpdateTicketCommandValidator : AbstractValidator<UpdateTicketCommand>
 {
@@ -46,6 +51,11 @@ public sealed class UpdateTicketCommandHandler(
         ticket.AssigneeId = request.AssigneeId;
         ticket.DueDate = request.DueDate;
         ticket.EstimatedHours = request.EstimatedHours;
+        ticket.TaskTypeId = request.TaskTypeId;
+        ticket.TaskStateId = request.TaskStateId;
+        ticket.ParentTicketId = request.ParentTicketId;
+        ticket.ExternalBudget = request.ExternalBudget;
+        ticket.ExternalUser = request.ExternalUser;
 
         await dbContext.SaveChangesAsync(cancellationToken);
     }

@@ -15,7 +15,13 @@ public sealed record BoardTicketDto(
     Guid? AssigneeId,
     string? AssigneeDisplayName,
     DateOnly? DueDate,
-    decimal? EstimatedHours);
+    decimal? EstimatedHours,
+    Guid? TaskTypeId,
+    string? TaskTypeName,
+    string? TaskTypeIcon,
+    Guid? TaskStateId,
+    string? TaskStateName,
+    string? TaskStateColor);
 
 public sealed record BoardColumnDto(
     Guid Id,
@@ -23,6 +29,8 @@ public sealed record BoardColumnDto(
     int Position,
     int? WipLimit,
     TicketStatus MapsToStatus,
+    Guid? MapsToTaskStateId,
+    string? TaskStateName,
     List<BoardTicketDto> Tickets);
 
 public sealed record BoardDto(
@@ -41,8 +49,16 @@ public sealed class GetBoardQueryHandler(
     {
         var board = await dbContext.KanbanBoards
             .Include(b => b.Columns.OrderBy(c => c.Position))
+                .ThenInclude(c => c.MapsToTaskState)
+            .Include(b => b.Columns.OrderBy(c => c.Position))
                 .ThenInclude(c => c.Tickets.OrderBy(t => t.Position))
                     .ThenInclude(t => t.Assignee)
+            .Include(b => b.Columns.OrderBy(c => c.Position))
+                .ThenInclude(c => c.Tickets.OrderBy(t => t.Position))
+                    .ThenInclude(t => t.TaskType)
+            .Include(b => b.Columns.OrderBy(c => c.Position))
+                .ThenInclude(c => c.Tickets.OrderBy(t => t.Position))
+                    .ThenInclude(t => t.TaskState)
             .FirstOrDefaultAsync(b => b.Id == request.BoardId && b.ProjectId == request.ProjectId, cancellationToken)
             ?? throw new NotFoundException(nameof(Domain.Entities.KanbanBoard), request.BoardId);
 
@@ -52,6 +68,8 @@ public sealed class GetBoardQueryHandler(
             c.Position,
             c.WipLimit,
             c.MapsToStatus,
+            c.MapsToTaskStateId,
+            c.MapsToTaskState?.Name,
             c.Tickets.Select(t => new BoardTicketDto(
                 t.Id,
                 t.Title,
@@ -61,7 +79,13 @@ public sealed class GetBoardQueryHandler(
                 t.AssigneeId,
                 t.Assignee?.DisplayName,
                 t.DueDate,
-                t.EstimatedHours)).ToList()
+                t.EstimatedHours,
+                t.TaskTypeId,
+                t.TaskType?.Name,
+                t.TaskType?.Icon,
+                t.TaskStateId,
+                t.TaskState?.Name,
+                t.TaskState?.Color)).ToList()
         )).ToList();
 
         return new BoardDto(

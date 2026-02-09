@@ -8,6 +8,7 @@ import {
   Clock,
   Users,
   Settings,
+  BookOpen,
   ChevronLeft,
   ChevronRight,
   Play,
@@ -25,6 +26,7 @@ const navigation = [
   { name: "Worklogs", href: "/worklogs", icon: Clock },
   { name: "Resources", href: "/resources", icon: Users },
   { name: "Admin", href: "/admin", icon: Settings },
+  { name: "Lookups", href: "/admin/lookups", icon: BookOpen },
 ];
 
 function formatTime(seconds: number) {

@@ -19,6 +19,8 @@ public sealed record WorklogDto(
     WorklogSource Source,
     bool IsBillable,
     decimal? HourlyRateSnapshot,
+    string? AiSummary,
+    string? Invoiced,
     DateTime CreatedAt);
 
 public sealed record GetWorklogsQuery(
@@ -70,6 +72,8 @@ public sealed class GetWorklogsQueryHandler(
                 w.Source,
                 w.IsBillable,
                 w.HourlyRateSnapshot,
+                w.AiSummary,
+                w.Invoiced,
                 w.CreatedAt))
             .ToListAsync(cancellationToken);
     }

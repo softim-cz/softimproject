@@ -15,6 +15,46 @@ export function useComments(projectId: string, ticketId: string) {
   });
 }
 
+// Project-level comments
+export function useProjectComments(projectId: string) {
+  return useQuery({
+    queryKey: ["project-comments", projectId],
+    queryFn: async () => {
+      const { data } = await apiClient.get<Comment[]>(
+        `/api/v1/projects/${projectId}/comments`
+      );
+      return data;
+    },
+    enabled: !!projectId,
+  });
+}
+
+export function useCreateProjectComment() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      projectId,
+      content,
+      isInternal,
+    }: {
+      projectId: string;
+      content: string;
+      isInternal: boolean;
+    }) => {
+      const { data } = await apiClient.post<Comment>(
+        `/api/v1/projects/${projectId}/comments`,
+        { projectId, content, isInternal }
+      );
+      return data;
+    },
+    onSuccess: (_, { projectId }) => {
+      queryClient.invalidateQueries({
+        queryKey: ["project-comments", projectId],
+      });
+    },
+  });
+}
+
 export function useCreateComment() {
   const queryClient = useQueryClient();
   return useMutation({
