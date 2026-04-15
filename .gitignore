@@ -424,3 +424,14 @@ out/
 .env.development.local
 .env.test.local
 .env.production.local
+
+# Local tooling / IDE state
+.claude/
+.dotnet/
+
+# Deployment artifacts
+**/deploy.zip
+**/*-logs.zip
+
+# Windows accidental artifacts
+nul
