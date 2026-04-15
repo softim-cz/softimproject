@@ -7,6 +7,7 @@ public class Project : BaseEntity
 {
     public string Name { get; set; } = string.Empty;
     public string Code { get; set; } = string.Empty; // 2-6 chars uppercase
+    public int NextTicketNumber { get; set; } = 1;
     public string? Description { get; set; }
     public ProjectStatus Status { get; set; }
 
@@ -33,16 +34,22 @@ public class Project : BaseEntity
     public bool IsOverDeadline { get; set; }
 
     // External sync
-    public string? ExternalSystem { get; set; } // e.g. "Jira"
+    public string? ExternalSystem { get; set; } // e.g. "Jira", "GitHub"
     public string? ExternalProjectId { get; set; }
     public string? ExternalBaseUrl { get; set; }
     public string? ExternalApiToken { get; set; }
+    public string? WebhookSecret { get; set; }
+    public Guid? GitHubConnectedByUserId { get; set; }
+
+    // Template
+    public Guid? ProjectTemplateId { get; set; }
 
     // Client access
     public string? ClientAccessToken { get; set; }
     public bool ClientAccessEnabled { get; set; }
 
     // Navigation properties
+    public ProjectTemplate? ProjectTemplate { get; set; }
     public Company? Company { get; set; }
     public ProjectType? ProjectType { get; set; }
     public ProjectState? ProjectState { get; set; }
@@ -56,4 +63,5 @@ public class Project : BaseEntity
     public ICollection<SyncLog> SyncLogs { get; set; } = new List<SyncLog>();
     public ICollection<Comment> Comments { get; set; } = new List<Comment>();
     public ICollection<ViewConfiguration> ViewConfigurations { get; set; } = new List<ViewConfiguration>();
+    public ICollection<ProjectCustomFieldValue> CustomFieldValues { get; set; } = new List<ProjectCustomFieldValue>();
 }

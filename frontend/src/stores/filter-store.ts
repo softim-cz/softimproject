@@ -1,4 +1,7 @@
 import { create } from "zustand";
+import { persist } from "zustand/middleware";
+
+export const EMPTY_FILTERS: FilterCondition[] = [];
 
 export interface FilterCondition {
   field: string;
@@ -15,30 +18,35 @@ interface FilterState {
   clearFilters: (viewKey: string) => void;
 }
 
-export const useFilterStore = create<FilterState>((set) => ({
-  activeFilters: {},
-  setFilters: (viewKey, filters) =>
-    set((state) => ({
-      activeFilters: { ...state.activeFilters, [viewKey]: filters },
-    })),
-  addFilter: (viewKey, filter) =>
-    set((state) => ({
-      activeFilters: {
-        ...state.activeFilters,
-        [viewKey]: [...(state.activeFilters[viewKey] ?? []), filter],
-      },
-    })),
-  removeFilter: (viewKey, index) =>
-    set((state) => ({
-      activeFilters: {
-        ...state.activeFilters,
-        [viewKey]: (state.activeFilters[viewKey] ?? []).filter(
-          (_, i) => i !== index
-        ),
-      },
-    })),
-  clearFilters: (viewKey) =>
-    set((state) => ({
-      activeFilters: { ...state.activeFilters, [viewKey]: [] },
-    })),
-}));
+export const useFilterStore = create<FilterState>()(
+  persist(
+    (set) => ({
+      activeFilters: {},
+      setFilters: (viewKey, filters) =>
+        set((state) => ({
+          activeFilters: { ...state.activeFilters, [viewKey]: filters },
+        })),
+      addFilter: (viewKey, filter) =>
+        set((state) => ({
+          activeFilters: {
+            ...state.activeFilters,
+            [viewKey]: [...(state.activeFilters[viewKey] ?? []), filter],
+          },
+        })),
+      removeFilter: (viewKey, index) =>
+        set((state) => ({
+          activeFilters: {
+            ...state.activeFilters,
+            [viewKey]: (state.activeFilters[viewKey] ?? []).filter(
+              (_, i) => i !== index
+            ),
+          },
+        })),
+      clearFilters: (viewKey) =>
+        set((state) => ({
+          activeFilters: { ...state.activeFilters, [viewKey]: [] },
+        })),
+    }),
+    { name: "softim-filters" }
+  )
+);

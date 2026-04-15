@@ -51,8 +51,7 @@ public sealed class DeadlineNotificationService(IServiceScopeFactory scopeFactor
 
                 // Tickets approaching due date
                 var ticketsNearDue = await dbContext.Tickets
-                    .Where(t => t.Status != TicketStatus.Done
-                        && t.Status != TicketStatus.Closed
+                    .Where(t => !t.TaskState.IsClosedState
                         && t.DueDate.HasValue
                         && t.DueDate.Value <= warningDate
                         && t.DueDate.Value >= today

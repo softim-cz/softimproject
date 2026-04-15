@@ -61,7 +61,10 @@ public sealed record CreateApplicationRoleCommand(
     bool ReportsCreate,
     bool ReportsRead,
     bool ReportsUpdate,
-    bool ReportsDelete) : IRequest<Guid>;
+    bool ReportsDelete) : IRequest<Guid>, IRequireRole
+{
+    public string RequiredRole => "Admin";
+}
 
 public sealed class CreateApplicationRoleCommandValidator : AbstractValidator<CreateApplicationRoleCommand>
 {
@@ -121,7 +124,10 @@ public sealed record UpdateApplicationRoleCommand(
     bool ReportsCreate,
     bool ReportsRead,
     bool ReportsUpdate,
-    bool ReportsDelete) : IRequest;
+    bool ReportsDelete) : IRequest, IRequireRole
+{
+    public string RequiredRole => "Admin";
+}
 
 public sealed class UpdateApplicationRoleCommandValidator : AbstractValidator<UpdateApplicationRoleCommand>
 {
@@ -162,7 +168,10 @@ public sealed class UpdateApplicationRoleCommandHandler(IApplicationDbContext db
 }
 
 // DELETE
-public sealed record DeleteApplicationRoleCommand(Guid Id) : IRequest;
+public sealed record DeleteApplicationRoleCommand(Guid Id) : IRequest, IRequireRole
+{
+    public string RequiredRole => "Admin";
+}
 
 public sealed class DeleteApplicationRoleCommandHandler(IApplicationDbContext dbContext)
     : IRequestHandler<DeleteApplicationRoleCommand>

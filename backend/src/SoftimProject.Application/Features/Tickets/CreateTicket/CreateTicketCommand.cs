@@ -1,8 +1,8 @@
 using FluentValidation;
 using MediatR;
+using Microsoft.EntityFrameworkCore;
 using SoftimProject.Application.Interfaces;
 using SoftimProject.Domain.Entities;
-using SoftimProject.Domain.Enums;
 
 namespace SoftimProject.Application.Features.Tickets.CreateTicket;
 
@@ -10,7 +10,7 @@ public sealed record CreateTicketCommand(
     Guid ProjectId,
     string Title,
     string? Description,
-    TicketPriority Priority,
+    Guid TicketPriorityId,
     Guid? AssigneeId,
     Guid? ColumnId,
     DateOnly? DueDate,
@@ -27,7 +27,7 @@ public sealed class CreateTicketCommandValidator : AbstractValidator<CreateTicke
     {
         RuleFor(x => x.Title).NotEmpty().MaximumLength(500);
         RuleFor(x => x.Description).MaximumLength(10000);
-        RuleFor(x => x.Priority).IsInEnum();
+        RuleFor(x => x.TicketPriorityId).NotEmpty();
         RuleFor(x => x.EstimatedHours).GreaterThan(0).When(x => x.EstimatedHours.HasValue);
     }
 }
@@ -38,21 +38,48 @@ public sealed class CreateTicketCommandHandler(
 {
     public async Task<Guid> Handle(CreateTicketCommand request, CancellationToken cancellationToken)
     {
+        // Load project to assign next ticket number
+        var project = await dbContext.Projects.FindAsync([request.ProjectId], cancellationToken)
+            ?? throw new Common.NotFoundException(nameof(Domain.Entities.Project), request.ProjectId);
+
+        // Resolve TaskStateId: use provided or find default scoped to project's template
+        var taskStateId = request.TaskStateId;
+        if (!taskStateId.HasValue)
+        {
+            var templateId = project.ProjectTemplateId;
+            var query = dbContext.TaskStates.Where(ts => ts.IsActive);
+            if (templateId.HasValue)
+                query = query.Where(ts => ts.ProjectTemplateId == templateId.Value);
+
+            taskStateId = await query
+                .Where(ts => ts.IsDefault)
+                .Select(ts => ts.Id)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (taskStateId == Guid.Empty)
+            {
+                taskStateId = await query
+                    .OrderBy(ts => ts.SortOrder)
+                    .Select(ts => ts.Id)
+                    .FirstAsync(cancellationToken);
+            }
+        }
+
         var ticket = new Ticket
         {
             Id = Guid.NewGuid(),
             ProjectId = request.ProjectId,
+            Number = project.NextTicketNumber++,
             Title = request.Title,
             Description = request.Description,
-            Priority = request.Priority,
-            Status = TicketStatus.Backlog,
+            TicketPriorityId = request.TicketPriorityId,
+            TaskStateId = taskStateId.Value,
             AssigneeId = request.AssigneeId,
             ColumnId = request.ColumnId,
             ReporterId = currentUserService.UserId ?? Guid.Empty,
             DueDate = request.DueDate,
             EstimatedHours = request.EstimatedHours,
             TaskTypeId = request.TaskTypeId,
-            TaskStateId = request.TaskStateId,
             ParentTicketId = request.ParentTicketId,
             ExternalBudget = request.ExternalBudget,
             ExternalUser = request.ExternalUser,

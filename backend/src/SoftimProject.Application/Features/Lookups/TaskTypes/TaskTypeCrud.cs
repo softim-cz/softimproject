@@ -26,7 +26,10 @@ public sealed class GetTaskTypesQueryHandler(IApplicationDbContext dbContext)
 }
 
 // CREATE
-public sealed record CreateTaskTypeCommand(string Name, string? Icon, int SortOrder) : IRequest<Guid>;
+public sealed record CreateTaskTypeCommand(string Name, string? Icon, int SortOrder) : IRequest<Guid>, IRequireRole
+{
+    public string RequiredRole => "Admin";
+}
 
 public sealed class CreateTaskTypeCommandValidator : AbstractValidator<CreateTaskTypeCommand>
 {
@@ -59,7 +62,10 @@ public sealed class CreateTaskTypeCommandHandler(IApplicationDbContext dbContext
 }
 
 // UPDATE
-public sealed record UpdateTaskTypeCommand(Guid Id, string Name, string? Icon, int SortOrder, bool IsActive) : IRequest;
+public sealed record UpdateTaskTypeCommand(Guid Id, string Name, string? Icon, int SortOrder, bool IsActive) : IRequest, IRequireRole
+{
+    public string RequiredRole => "Admin";
+}
 
 public sealed class UpdateTaskTypeCommandValidator : AbstractValidator<UpdateTaskTypeCommand>
 {
@@ -89,7 +95,10 @@ public sealed class UpdateTaskTypeCommandHandler(IApplicationDbContext dbContext
 }
 
 // DELETE
-public sealed record DeleteTaskTypeCommand(Guid Id) : IRequest;
+public sealed record DeleteTaskTypeCommand(Guid Id) : IRequest, IRequireRole
+{
+    public string RequiredRole => "Admin";
+}
 
 public sealed class DeleteTaskTypeCommandHandler(IApplicationDbContext dbContext)
     : IRequestHandler<DeleteTaskTypeCommand>

@@ -22,6 +22,9 @@ public sealed class UserConfiguration : IEntityTypeConfiguration<User>
         builder.Property(u => u.CorporateRole).HasMaxLength(256);
         builder.Property(u => u.CompanyName).HasMaxLength(256);
 
+        builder.Property(u => u.GitHubAccessToken).HasMaxLength(256);
+        builder.Property(u => u.GitHubLogin).HasMaxLength(100);
+
         builder.HasIndex(u => u.EntraObjectId).IsUnique();
         builder.HasIndex(u => u.Email).IsUnique();
     }

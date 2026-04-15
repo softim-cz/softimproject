@@ -13,8 +13,9 @@ public sealed class GetDefaultBoardQueryHandler(
     public async Task<BoardDto> Handle(GetDefaultBoardQuery request, CancellationToken cancellationToken)
     {
         var board = await dbContext.KanbanBoards
+            .Include(b => b.Project)
             .Include(b => b.Columns.OrderBy(c => c.Position))
-                .ThenInclude(c => c.MapsToTaskState)
+                .ThenInclude(c => c.MapsToTaskStates.OrderBy(ts => ts.SortOrder))
             .Include(b => b.Columns.OrderBy(c => c.Position))
                 .ThenInclude(c => c.Tickets.OrderBy(t => t.Position))
                     .ThenInclude(t => t.Assignee)
@@ -24,6 +25,9 @@ public sealed class GetDefaultBoardQueryHandler(
             .Include(b => b.Columns.OrderBy(c => c.Position))
                 .ThenInclude(c => c.Tickets.OrderBy(t => t.Position))
                     .ThenInclude(t => t.TaskState)
+            .Include(b => b.Columns.OrderBy(c => c.Position))
+                .ThenInclude(c => c.Tickets.OrderBy(t => t.Position))
+                    .ThenInclude(t => t.TicketPriority)
             .Where(b => b.ProjectId == request.ProjectId)
             .OrderByDescending(b => b.IsDefault)
             .ThenBy(b => b.CreatedAt)
@@ -35,14 +39,19 @@ public sealed class GetDefaultBoardQueryHandler(
             c.Name,
             c.Position,
             c.WipLimit,
-            c.MapsToStatus,
-            c.MapsToTaskStateId,
-            c.MapsToTaskState?.Name,
+            c.Color,
+            c.MapsToTaskStates.Select(ts => new BoardColumnTaskStateDto(
+                ts.Id,
+                ts.Name,
+                ts.Color)).ToList(),
             c.Tickets.Select(t => new BoardTicketDto(
                 t.Id,
+                t.Number,
+                board.Project.Code + "-" + t.Number,
                 t.Title,
-                t.Priority,
-                t.Status,
+                t.TicketPriorityId,
+                t.TicketPriority.Name,
+                t.TicketPriority.Color,
                 t.Position,
                 t.AssigneeId,
                 t.Assignee?.DisplayName,
@@ -52,8 +61,8 @@ public sealed class GetDefaultBoardQueryHandler(
                 t.TaskType?.Name,
                 t.TaskType?.Icon,
                 t.TaskStateId,
-                t.TaskState?.Name,
-                t.TaskState?.Color)).ToList()
+                t.TaskState.Name,
+                t.TaskState.Color)).ToList()
         )).ToList();
 
         return new BoardDto(

@@ -3,7 +3,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using SoftimProject.Application.Interfaces;
-using SoftimProject.Domain.Enums;
 
 namespace SoftimProject.Infrastructure.BackgroundServices;
 
@@ -24,20 +23,32 @@ public sealed class AiSummarizationService(IServiceScopeFactory scopeFactory, IL
 
                 var ticketsToSummarize = await dbContext.Tickets
                     .Include(t => t.Comments)
-                    .Where(t => t.Status != TicketStatus.Closed
+                    .Include(t => t.TaskState)
+                    .Where(t => !t.TaskState.IsClosedState
                         && t.Comments.Count >= 3
                         && (t.AiSummary == null || t.Comments.Any(c => c.CreatedAt > t.UpdatedAt)))
                     .Take(50)
                     .ToListAsync(stoppingToken);
 
+                var summarizedCount = 0;
                 foreach (var ticket in ticketsToSummarize)
                 {
                     try
                     {
                         var comments = ticket.Comments.OrderBy(c => c.CreatedAt).Select(c => c.Content);
                         var (summary, _) = await aiService.SummarizeTicketAsync(
-                            ticket.Title, ticket.Description ?? "", comments, stoppingToken);
+                            ticket.Title,
+                            ticket.Description ?? string.Empty,
+                            comments,
+                            stoppingToken);
+
+                        if (string.IsNullOrWhiteSpace(summary))
+                        {
+                            continue;
+                        }
+
                         ticket.AiSummary = summary;
+                        summarizedCount++;
                     }
                     catch (Exception ex)
                     {
@@ -45,8 +56,12 @@ public sealed class AiSummarizationService(IServiceScopeFactory scopeFactory, IL
                     }
                 }
 
-                await dbContext.SaveChangesAsync(stoppingToken);
-                logger.LogInformation("AI summarization completed for {Count} tickets", ticketsToSummarize.Count);
+                if (summarizedCount > 0)
+                {
+                    await dbContext.SaveChangesAsync(stoppingToken);
+                }
+
+                logger.LogInformation("AI summarization completed for {Count} tickets", summarizedCount);
             }
             catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
             {

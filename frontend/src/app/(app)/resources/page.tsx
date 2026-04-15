@@ -9,11 +9,8 @@ import {
   format,
   startOfWeek,
   addDays,
-  addWeeks,
-  subWeeks,
-} from "date-fns";
+  addWeeks,} from "date-fns";
 import { cn } from "@/lib/utils";
-import type { Worklog } from "@/types";
 
 function getHeatColor(hours: number, maxHours: number = 8): string {
   if (hours === 0) return "bg-gray-100";
@@ -226,3 +223,5 @@ export default function ResourcesPage() {
     </div>
   );
 }
+
+

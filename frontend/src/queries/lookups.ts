@@ -6,7 +6,10 @@ import type {
   ProjectState,
   TaskType,
   TaskState,
+  TicketPriorityLookup,
   ApplicationRoleEntity,
+  CustomFieldDefinition,
+  ProjectTemplate,
 } from "@/types";
 
 // === Companies ===
@@ -183,11 +186,12 @@ export function useDeleteTaskType() {
 
 // === Task States ===
 
-export function useTaskStates() {
+export function useTaskStates(templateId?: string) {
   return useQuery({
-    queryKey: ["lookups", "task-states"],
+    queryKey: ["lookups", "task-states", templateId ?? "all"],
     queryFn: async () => {
-      const { data } = await apiClient.get<TaskState[]>("/api/v1/lookups/task-states");
+      const params = templateId ? `?templateId=${templateId}` : "";
+      const { data } = await apiClient.get<TaskState[]>(`/api/v1/lookups/task-states${params}`);
       return data;
     },
   });
@@ -196,7 +200,7 @@ export function useTaskStates() {
 export function useCreateTaskState() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (body: { name: string; color: string; sortOrder: number; isDefault: boolean; isClosedState: boolean }) => {
+    mutationFn: async (body: { name: string; color: string; sortOrder: number; isDefault: boolean; isClosedState: boolean; projectTemplateId: string }) => {
       const { data } = await apiClient.post<string>("/api/v1/lookups/task-states", body);
       return data;
     },
@@ -264,5 +268,146 @@ export function useDeleteApplicationRole() {
       await apiClient.delete(`/api/v1/lookups/application-roles/${id}`);
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["lookups", "application-roles"] }),
+  });
+}
+
+// === Custom Field Definitions ===
+
+export function useCustomFieldDefinitions() {
+  return useQuery({
+    queryKey: ["lookups", "custom-field-definitions"],
+    queryFn: async () => {
+      const { data } = await apiClient.get<CustomFieldDefinition[]>("/api/v1/lookups/custom-field-definitions");
+      return data;
+    },
+  });
+}
+
+export function useCreateCustomFieldDefinition() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (body: { name: string; description?: string; fieldType: string; isRequired: boolean; options?: string; sortOrder: number }) => {
+      const { data } = await apiClient.post<string>("/api/v1/lookups/custom-field-definitions", body);
+      return data;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["lookups", "custom-field-definitions"] }),
+  });
+}
+
+export function useUpdateCustomFieldDefinition() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (body: CustomFieldDefinition) => {
+      await apiClient.put(`/api/v1/lookups/custom-field-definitions/${body.id}`, body);
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["lookups", "custom-field-definitions"] }),
+  });
+}
+
+export function useDeleteCustomFieldDefinition() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      await apiClient.delete(`/api/v1/lookups/custom-field-definitions/${id}`);
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["lookups", "custom-field-definitions"] }),
+  });
+}
+
+// === Project Templates ===
+
+export function useProjectTemplates() {
+  return useQuery({
+    queryKey: ["lookups", "project-templates"],
+    queryFn: async () => {
+      const { data } = await apiClient.get<ProjectTemplate[]>("/api/v1/lookups/project-templates");
+      return data;
+    },
+  });
+}
+
+export function useCreateProjectTemplate() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (body: { name: string; description?: string; customFieldDefinitionIds: string[] }) => {
+      const { data } = await apiClient.post<string>("/api/v1/lookups/project-templates", body);
+      return data;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["lookups", "project-templates"] }),
+  });
+}
+
+export function useUpdateProjectTemplate() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (body: { id: string; name: string; description?: string; isActive: boolean; customFieldDefinitionIds: string[] }) => {
+      await apiClient.put(`/api/v1/lookups/project-templates/${body.id}`, body);
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["lookups", "project-templates"] }),
+  });
+}
+
+export function useDeleteProjectTemplate() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      await apiClient.delete(`/api/v1/lookups/project-templates/${id}`);
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["lookups", "project-templates"] }),
+  });
+}
+
+export function useDuplicateProjectTemplate() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (body: { id: string; newName: string }) => {
+      const { data } = await apiClient.post<string>(`/api/v1/lookups/project-templates/${body.id}/duplicate`, { newName: body.newName });
+      return data;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["lookups", "project-templates"] }),
+  });
+}
+
+// === Ticket Priorities ===
+
+export function useTicketPriorities(templateId?: string) {
+  return useQuery({
+    queryKey: ["lookups", "ticket-priorities", templateId ?? "all"],
+    queryFn: async () => {
+      const params = templateId ? `?templateId=${templateId}` : "";
+      const { data } = await apiClient.get<TicketPriorityLookup[]>(`/api/v1/lookups/ticket-priorities${params}`);
+      return data;
+    },
+  });
+}
+
+export function useCreateTicketPriority() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (body: { name: string; color: string; sortOrder: number; isDefault: boolean; projectTemplateId: string }) => {
+      const { data } = await apiClient.post<string>("/api/v1/lookups/ticket-priorities", body);
+      return data;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["lookups", "ticket-priorities"] }),
+  });
+}
+
+export function useUpdateTicketPriority() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (body: TicketPriorityLookup) => {
+      await apiClient.put(`/api/v1/lookups/ticket-priorities/${body.id}`, body);
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["lookups", "ticket-priorities"] }),
+  });
+}
+
+export function useDeleteTicketPriority() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      await apiClient.delete(`/api/v1/lookups/ticket-priorities/${id}`);
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["lookups", "ticket-priorities"] }),
   });
 }

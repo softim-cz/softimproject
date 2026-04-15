@@ -8,7 +8,6 @@ using SoftimProject.Domain.Enums;
 
 namespace SoftimProject.Application.Features.Comments.ProjectComments;
 
-// GET project comments
 public sealed record GetProjectCommentsQuery(Guid ProjectId) : IRequest<List<CommentDto>>, IRequireProjectAccess;
 
 public sealed class GetProjectCommentsQueryHandler(
@@ -17,13 +16,12 @@ public sealed class GetProjectCommentsQueryHandler(
     public async Task<List<CommentDto>> Handle(GetProjectCommentsQuery request, CancellationToken cancellationToken)
     {
         return await dbContext.Comments
+            .AsNoTracking()
             .Where(c => c.ProjectId == request.ProjectId && c.TicketId == null)
             .OrderByDescending(c => c.CreatedAt)
             .Select(c => new CommentDto(
                 c.Id,
-                c.AuthorId,
-                c.Author.DisplayName,
-                c.Author.AvatarUrl,
+                new CommentAuthorDto(c.AuthorId, c.Author.DisplayName, c.Author.AvatarUrl),
                 c.Content,
                 c.IsInternal,
                 c.Source,
@@ -36,7 +34,6 @@ public sealed class GetProjectCommentsQueryHandler(
     }
 }
 
-// CREATE project comment
 public sealed record CreateProjectCommentCommand(
     Guid ProjectId,
     string Content,
@@ -56,12 +53,15 @@ public sealed class CreateProjectCommentCommandHandler(
 {
     public async Task<Guid> Handle(CreateProjectCommentCommand request, CancellationToken cancellationToken)
     {
+        var authorId = currentUserService.UserId
+            ?? throw new UnauthorizedAccessException("Current user is not initialized.");
+
         var comment = new Comment
         {
             Id = Guid.NewGuid(),
             ProjectId = request.ProjectId,
             TicketId = null,
-            AuthorId = currentUserService.UserId ?? Guid.Empty,
+            AuthorId = authorId,
             Content = request.Content,
             IsInternal = request.IsInternal,
             Source = CommentSource.Manual,

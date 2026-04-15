@@ -3,11 +3,19 @@
 import { useMsal, useIsAuthenticated } from "@azure/msal-react";
 import { InteractionStatus } from "@azure/msal-browser";
 import { loginRequest } from "./msal-config";
-import { useCallback } from "react";
+import { useCallback, useRef, useEffect } from "react";
 
 export function useAuth() {
   const { instance, accounts, inProgress } = useMsal();
   const isAuthenticated = useIsAuthenticated();
+
+  // Keep refs so getAccessToken callback identity stays stable
+  const instanceRef = useRef(instance);
+  const accountsRef = useRef(accounts);
+  useEffect(() => {
+    instanceRef.current = instance;
+    accountsRef.current = accounts;
+  }, [instance, accounts]);
 
   const login = useCallback(async () => {
     if (inProgress !== InteractionStatus.None) return;
@@ -19,21 +27,20 @@ export function useAuth() {
     await instance.logoutRedirect();
   }, [instance, inProgress]);
 
+  // Stable reference — never triggers redirect, returns null on failure
   const getAccessToken = useCallback(async (): Promise<string | null> => {
-    if (!accounts[0]) return null;
+    const account = accountsRef.current[0];
+    if (!account) return null;
     try {
-      const response = await instance.acquireTokenSilent({
+      const response = await instanceRef.current.acquireTokenSilent({
         ...loginRequest,
-        account: accounts[0],
+        account,
       });
       return response.accessToken;
     } catch {
-      if (inProgress === InteractionStatus.None) {
-        await instance.acquireTokenRedirect(loginRequest);
-      }
       return null;
     }
-  }, [instance, accounts, inProgress]);
+  }, []);
 
   return {
     isAuthenticated,

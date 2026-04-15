@@ -1,16 +1,16 @@
 using SoftimProject.Domain.Common;
-using SoftimProject.Domain.Enums;
 
 namespace SoftimProject.Domain.Entities;
 
 public class Ticket : BaseEntity
 {
     public Guid ProjectId { get; set; }
+    public int Number { get; set; }
     public Guid? ColumnId { get; set; }
     public string Title { get; set; } = string.Empty;
     public string? Description { get; set; } // Markdown
-    public TicketPriority Priority { get; set; }
-    public TicketStatus Status { get; set; }
+    public Guid TicketPriorityId { get; set; }
+    public Guid TaskStateId { get; set; }
     public double Position { get; set; } // For drag-drop ordering
     public Guid? AssigneeId { get; set; }
     public Guid ReporterId { get; set; }
@@ -22,7 +22,6 @@ public class Ticket : BaseEntity
 
     // Lookup FK
     public Guid? TaskTypeId { get; set; }
-    public Guid? TaskStateId { get; set; }
     public Guid? ParentTicketId { get; set; }
 
     // Extended fields
@@ -38,11 +37,13 @@ public class Ticket : BaseEntity
     public User? Assignee { get; set; }
     public User Reporter { get; set; } = null!;
     public TaskType? TaskType { get; set; }
-    public TaskState? TaskState { get; set; }
+    public TaskState TaskState { get; set; } = null!;
+    public TicketPriority TicketPriority { get; set; } = null!;
     public Ticket? ParentTicket { get; set; }
     public ICollection<Ticket> SubTickets { get; set; } = new List<Ticket>();
     public ICollection<TicketAttachment> Attachments { get; set; } = new List<TicketAttachment>();
     public ICollection<ChecklistItem> ChecklistItems { get; set; } = new List<ChecklistItem>();
     public ICollection<Comment> Comments { get; set; } = new List<Comment>();
     public ICollection<Worklog> Worklogs { get; set; } = new List<Worklog>();
+    public ICollection<TicketCustomFieldValue> CustomFieldValues { get; set; } = new List<TicketCustomFieldValue>();
 }

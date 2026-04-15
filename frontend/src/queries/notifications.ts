@@ -11,6 +11,7 @@ export function useNotifications() {
       );
       return data;
     },
+    staleTime: 30000,
     refetchInterval: 30000,
   });
 }

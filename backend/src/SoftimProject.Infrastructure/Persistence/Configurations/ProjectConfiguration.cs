@@ -21,10 +21,15 @@ public sealed class ProjectConfiguration : IEntityTypeConfiguration<Project>
         builder.Property(p => p.BudgetAmount).HasPrecision(14, 2);
         builder.Property(p => p.SpentAmount).HasPrecision(14, 2);
 
+        builder.Property(p => p.NextTicketNumber).IsRequired().HasDefaultValue(1);
+
         builder.Property(p => p.ExternalSystem).HasMaxLength(50);
         builder.Property(p => p.ExternalProjectId).HasMaxLength(200);
         builder.Property(p => p.ExternalBaseUrl).HasMaxLength(2048);
         builder.Property(p => p.ExternalApiToken).HasMaxLength(1024);
+        builder.Property(p => p.WebhookSecret).HasMaxLength(256);
+
+        builder.Property(p => p.GitHubConnectedByUserId);
 
         builder.Property(p => p.ClientAccessToken).HasMaxLength(128);
 
@@ -33,6 +38,8 @@ public sealed class ProjectConfiguration : IEntityTypeConfiguration<Project>
         builder.HasOne(p => p.ProjectType).WithMany(pt => pt.Projects).HasForeignKey(p => p.ProjectTypeId).OnDelete(DeleteBehavior.Restrict);
         builder.HasOne(p => p.ProjectState).WithMany(ps => ps.Projects).HasForeignKey(p => p.ProjectStateId).OnDelete(DeleteBehavior.Restrict);
         builder.HasOne(p => p.ParentProject).WithMany(p => p.SubProjects).HasForeignKey(p => p.ParentProjectId).OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasOne(p => p.ProjectTemplate).WithMany(t => t.Projects).HasForeignKey(p => p.ProjectTemplateId).OnDelete(DeleteBehavior.SetNull);
 
         builder.HasIndex(p => p.Code).IsUnique();
         builder.HasIndex(p => p.ClientAccessToken).IsUnique().HasFilter("[ClientAccessToken] IS NOT NULL");

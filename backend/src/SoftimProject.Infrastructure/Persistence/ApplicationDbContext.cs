@@ -29,6 +29,13 @@ public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> 
     public DbSet<TaskState> TaskStates => Set<TaskState>();
     public DbSet<ViewConfiguration> ViewConfigurations => Set<ViewConfiguration>();
     public DbSet<SavedFilter> SavedFilters => Set<SavedFilter>();
+    public DbSet<CustomFieldDefinition> CustomFieldDefinitions => Set<CustomFieldDefinition>();
+    public DbSet<ProjectCustomFieldValue> ProjectCustomFieldValues => Set<ProjectCustomFieldValue>();
+    public DbSet<ProjectTemplate> ProjectTemplates => Set<ProjectTemplate>();
+    public DbSet<ProjectTemplateField> ProjectTemplateFields => Set<ProjectTemplateField>();
+    public DbSet<MigrationJob> MigrationJobs => Set<MigrationJob>();
+    public DbSet<TicketCustomFieldValue> TicketCustomFieldValues => Set<TicketCustomFieldValue>();
+    public DbSet<TicketPriority> TicketPriorities => Set<TicketPriority>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

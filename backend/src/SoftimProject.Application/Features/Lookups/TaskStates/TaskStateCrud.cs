@@ -8,25 +8,33 @@ using SoftimProject.Domain.Entities;
 namespace SoftimProject.Application.Features.Lookups.TaskStates;
 
 // DTO
-public sealed record TaskStateDto(Guid Id, string Name, string Color, int SortOrder, bool IsActive, bool IsDefault, bool IsClosedState);
+public sealed record TaskStateDto(Guid Id, string Name, string Color, int SortOrder, bool IsActive, bool IsDefault, bool IsClosedState, Guid ProjectTemplateId);
 
 // GET ALL
-public sealed record GetTaskStatesQuery : IRequest<List<TaskStateDto>>;
+public sealed record GetTaskStatesQuery(Guid? ProjectTemplateId = null) : IRequest<List<TaskStateDto>>;
 
 public sealed class GetTaskStatesQueryHandler(IApplicationDbContext dbContext)
     : IRequestHandler<GetTaskStatesQuery, List<TaskStateDto>>
 {
     public async Task<List<TaskStateDto>> Handle(GetTaskStatesQuery request, CancellationToken cancellationToken)
     {
-        return await dbContext.TaskStates
+        var query = dbContext.TaskStates.AsQueryable();
+
+        if (request.ProjectTemplateId.HasValue)
+            query = query.Where(ts => ts.ProjectTemplateId == request.ProjectTemplateId.Value);
+
+        return await query
             .OrderBy(ts => ts.SortOrder).ThenBy(ts => ts.Name)
-            .Select(ts => new TaskStateDto(ts.Id, ts.Name, ts.Color, ts.SortOrder, ts.IsActive, ts.IsDefault, ts.IsClosedState))
+            .Select(ts => new TaskStateDto(ts.Id, ts.Name, ts.Color, ts.SortOrder, ts.IsActive, ts.IsDefault, ts.IsClosedState, ts.ProjectTemplateId))
             .ToListAsync(cancellationToken);
     }
 }
 
 // CREATE
-public sealed record CreateTaskStateCommand(string Name, string Color, int SortOrder, bool IsDefault, bool IsClosedState) : IRequest<Guid>;
+public sealed record CreateTaskStateCommand(string Name, string Color, int SortOrder, bool IsDefault, bool IsClosedState, Guid ProjectTemplateId) : IRequest<Guid>, IRequireRole
+{
+    public string RequiredRole => "Admin";
+}
 
 public sealed class CreateTaskStateCommandValidator : AbstractValidator<CreateTaskStateCommand>
 {
@@ -34,6 +42,7 @@ public sealed class CreateTaskStateCommandValidator : AbstractValidator<CreateTa
     {
         RuleFor(x => x.Name).NotEmpty().MaximumLength(200);
         RuleFor(x => x.Color).NotEmpty().MaximumLength(50);
+        RuleFor(x => x.ProjectTemplateId).NotEmpty();
     }
 }
 
@@ -51,6 +60,7 @@ public sealed class CreateTaskStateCommandHandler(IApplicationDbContext dbContex
             IsActive = true,
             IsDefault = request.IsDefault,
             IsClosedState = request.IsClosedState,
+            ProjectTemplateId = request.ProjectTemplateId,
             CreatedAt = DateTime.UtcNow
         };
 
@@ -61,7 +71,10 @@ public sealed class CreateTaskStateCommandHandler(IApplicationDbContext dbContex
 }
 
 // UPDATE
-public sealed record UpdateTaskStateCommand(Guid Id, string Name, string Color, int SortOrder, bool IsActive, bool IsDefault, bool IsClosedState) : IRequest;
+public sealed record UpdateTaskStateCommand(Guid Id, string Name, string Color, int SortOrder, bool IsActive, bool IsDefault, bool IsClosedState) : IRequest, IRequireRole
+{
+    public string RequiredRole => "Admin";
+}
 
 public sealed class UpdateTaskStateCommandValidator : AbstractValidator<UpdateTaskStateCommand>
 {
@@ -93,7 +106,10 @@ public sealed class UpdateTaskStateCommandHandler(IApplicationDbContext dbContex
 }
 
 // DELETE
-public sealed record DeleteTaskStateCommand(Guid Id) : IRequest;
+public sealed record DeleteTaskStateCommand(Guid Id) : IRequest, IRequireRole
+{
+    public string RequiredRole => "Admin";
+}
 
 public sealed class DeleteTaskStateCommandHandler(IApplicationDbContext dbContext)
     : IRequestHandler<DeleteTaskStateCommand>

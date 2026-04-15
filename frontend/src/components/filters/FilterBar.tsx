@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { X, Filter, Save, ChevronDown } from "lucide-react";
-import { cn } from "@/lib/utils";
 import {
   useFilterStore,
   type FilterCondition,
@@ -215,3 +214,5 @@ export function FilterBar({
     </div>
   );
 }
+
+

@@ -26,7 +26,10 @@ public sealed class GetProjectStatesQueryHandler(IApplicationDbContext dbContext
 }
 
 // CREATE
-public sealed record CreateProjectStateCommand(string Name, string Color, int SortOrder, bool IsDefault) : IRequest<Guid>;
+public sealed record CreateProjectStateCommand(string Name, string Color, int SortOrder, bool IsDefault) : IRequest<Guid>, IRequireRole
+{
+    public string RequiredRole => "Admin";
+}
 
 public sealed class CreateProjectStateCommandValidator : AbstractValidator<CreateProjectStateCommand>
 {
@@ -60,7 +63,10 @@ public sealed class CreateProjectStateCommandHandler(IApplicationDbContext dbCon
 }
 
 // UPDATE
-public sealed record UpdateProjectStateCommand(Guid Id, string Name, string Color, int SortOrder, bool IsActive, bool IsDefault) : IRequest;
+public sealed record UpdateProjectStateCommand(Guid Id, string Name, string Color, int SortOrder, bool IsActive, bool IsDefault) : IRequest, IRequireRole
+{
+    public string RequiredRole => "Admin";
+}
 
 public sealed class UpdateProjectStateCommandValidator : AbstractValidator<UpdateProjectStateCommand>
 {
@@ -91,7 +97,10 @@ public sealed class UpdateProjectStateCommandHandler(IApplicationDbContext dbCon
 }
 
 // DELETE
-public sealed record DeleteProjectStateCommand(Guid Id) : IRequest;
+public sealed record DeleteProjectStateCommand(Guid Id) : IRequest, IRequireRole
+{
+    public string RequiredRole => "Admin";
+}
 
 public sealed class DeleteProjectStateCommandHandler(IApplicationDbContext dbContext)
     : IRequestHandler<DeleteProjectStateCommand>

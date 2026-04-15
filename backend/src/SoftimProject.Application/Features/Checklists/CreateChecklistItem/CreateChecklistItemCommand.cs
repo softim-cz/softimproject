@@ -1,5 +1,6 @@
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using SoftimProject.Application.Common;
 using SoftimProject.Application.Interfaces;
 using SoftimProject.Domain.Entities;
 
@@ -15,6 +16,8 @@ public sealed class CreateChecklistItemCommandHandler(
 {
     public async Task<Guid> Handle(CreateChecklistItemCommand request, CancellationToken cancellationToken)
     {
+        await dbContext.GetTicketForProjectAsync(request.ProjectId, request.TicketId, cancellationToken);
+
         var maxPosition = await dbContext.ChecklistItems
             .Where(ci => ci.TicketId == request.TicketId)
             .Select(ci => (int?)ci.Position)

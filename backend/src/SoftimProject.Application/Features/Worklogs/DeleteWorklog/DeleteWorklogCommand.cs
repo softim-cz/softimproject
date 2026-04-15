@@ -1,5 +1,4 @@
 using MediatR;
-using Microsoft.EntityFrameworkCore;
 using SoftimProject.Application.Common;
 using SoftimProject.Application.Interfaces;
 
@@ -14,9 +13,7 @@ public sealed class DeleteWorklogCommandHandler(
 {
     public async Task Handle(DeleteWorklogCommand request, CancellationToken cancellationToken)
     {
-        var worklog = await dbContext.Worklogs
-            .FirstOrDefaultAsync(w => w.Id == request.WorklogId && w.ProjectId == request.ProjectId, cancellationToken)
-            ?? throw new NotFoundException(nameof(Domain.Entities.Worklog), request.WorklogId);
+        var worklog = await dbContext.GetWorklogForProjectAsync(request.ProjectId, request.WorklogId, cancellationToken);
 
         dbContext.Worklogs.Remove(worklog);
         await dbContext.SaveChangesAsync(cancellationToken);

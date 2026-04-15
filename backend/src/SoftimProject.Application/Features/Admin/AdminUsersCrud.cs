@@ -22,7 +22,10 @@ public sealed record AdminUserDto(
     List<Guid> ApplicationRoleIds);
 
 // GET ALL USERS
-public sealed record GetAdminUsersQuery : IRequest<List<AdminUserDto>>;
+public sealed record GetAdminUsersQuery : IRequest<List<AdminUserDto>>, IRequireRole
+{
+    public string RequiredRole => "Admin";
+}
 
 public sealed class GetAdminUsersQueryHandler(IApplicationDbContext dbContext)
     : IRequestHandler<GetAdminUsersQuery, List<AdminUserDto>>
@@ -47,7 +50,10 @@ public sealed class GetAdminUsersQueryHandler(IApplicationDbContext dbContext)
 }
 
 // UPDATE USER ROLES
-public sealed record UpdateUserRolesCommand(Guid UserId, List<Guid> ApplicationRoleIds) : IRequest;
+public sealed record UpdateUserRolesCommand(Guid UserId, List<Guid> ApplicationRoleIds) : IRequest, IRequireRole
+{
+    public string RequiredRole => "Admin";
+}
 
 public sealed class UpdateUserRolesCommandHandler(IApplicationDbContext dbContext)
     : IRequestHandler<UpdateUserRolesCommand>

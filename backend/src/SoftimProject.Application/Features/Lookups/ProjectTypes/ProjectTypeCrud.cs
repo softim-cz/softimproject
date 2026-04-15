@@ -26,7 +26,10 @@ public sealed class GetProjectTypesQueryHandler(IApplicationDbContext dbContext)
 }
 
 // CREATE
-public sealed record CreateProjectTypeCommand(string Name, string? Description, int SortOrder) : IRequest<Guid>;
+public sealed record CreateProjectTypeCommand(string Name, string? Description, int SortOrder) : IRequest<Guid>, IRequireRole
+{
+    public string RequiredRole => "Admin";
+}
 
 public sealed class CreateProjectTypeCommandValidator : AbstractValidator<CreateProjectTypeCommand>
 {
@@ -59,7 +62,10 @@ public sealed class CreateProjectTypeCommandHandler(IApplicationDbContext dbCont
 }
 
 // UPDATE
-public sealed record UpdateProjectTypeCommand(Guid Id, string Name, string? Description, int SortOrder, bool IsActive) : IRequest;
+public sealed record UpdateProjectTypeCommand(Guid Id, string Name, string? Description, int SortOrder, bool IsActive) : IRequest, IRequireRole
+{
+    public string RequiredRole => "Admin";
+}
 
 public sealed class UpdateProjectTypeCommandValidator : AbstractValidator<UpdateProjectTypeCommand>
 {
@@ -89,7 +95,10 @@ public sealed class UpdateProjectTypeCommandHandler(IApplicationDbContext dbCont
 }
 
 // DELETE
-public sealed record DeleteProjectTypeCommand(Guid Id) : IRequest;
+public sealed record DeleteProjectTypeCommand(Guid Id) : IRequest, IRequireRole
+{
+    public string RequiredRole => "Admin";
+}
 
 public sealed class DeleteProjectTypeCommandHandler(IApplicationDbContext dbContext)
     : IRequestHandler<DeleteProjectTypeCommand>

@@ -17,21 +17,6 @@ export enum ProjectStatus {
   Archived = 'Archived',
 }
 
-export enum TicketStatus {
-  Backlog = 'Backlog',
-  Todo = 'Todo',
-  InProgress = 'InProgress',
-  Review = 'Review',
-  Done = 'Done',
-  Closed = 'Closed',
-}
-
-export enum TicketPriority {
-  Low = 'Low',
-  Medium = 'Medium',
-  High = 'High',
-  Critical = 'Critical',
-}
 
 export enum CommentSource {
   Manual = 'Manual',
@@ -39,6 +24,8 @@ export enum CommentSource {
   Redmine = 'Redmine',
   Email = 'Email',
   AI = 'AI',
+  GitHub = 'GitHub',
+  EasyProject = 'EasyProject',
 }
 
 export enum WorklogSource {
@@ -122,15 +109,39 @@ export interface Project {
   isOverBudget: boolean;
   isOverDeadline: boolean;
   clientAccessEnabled: boolean;
+  externalSystem?: string;
+  externalProjectId?: string;
+  gitHubConnectedByUserId?: string;
+  projectTemplateId?: string;
+  projectTemplateName?: string;
+  members?: ProjectMember[];
+  memberCount?: number;
+  ticketCount?: number;
+  boards?: ProjectBoard[];
+}
+
+export interface ProjectBoard {
+  id: string;
+  name: string;
+  isDefault: boolean;
+}
+
+export interface UserOption {
+  id: string;
+  displayName: string;
+  email: string;
+  avatarUrl?: string;
 }
 
 export interface ProjectMember {
   id: string;
-  projectId: string;
   userId: string;
-  user: User;
+  displayName: string;
+  email: string;
+  avatarUrl?: string;
   role: ProjectRole;
   hourlyRateOverride?: number;
+  joinedAt: string;
 }
 
 export interface KanbanBoard {
@@ -147,20 +158,25 @@ export interface KanbanColumn {
   name: string;
   position: number;
   wipLimit?: number;
-  mapsToStatus: TicketStatus;
-  mapsToTaskStateId?: string;
-  taskStateName?: string;
+  color?: string;
+  taskStates: { id: string; name: string; color: string }[];
   tickets: Ticket[];
 }
 
 export interface Ticket {
   id: string;
+  number: number;
+  key: string;
   projectId: string;
   columnId?: string;
   title: string;
   description?: string;
-  priority: TicketPriority;
-  status: TicketStatus;
+  ticketPriorityId: string;
+  ticketPriorityName: string;
+  ticketPriorityColor: string;
+  taskStateId: string;
+  taskStateName: string;
+  taskStateColor: string;
   position: number;
   assigneeId?: string;
   assignee?: User;
@@ -174,9 +190,6 @@ export interface Ticket {
   taskTypeId?: string;
   taskTypeName?: string;
   taskTypeIcon?: string;
-  taskStateId?: string;
-  taskStateName?: string;
-  taskStateColor?: string;
   parentTicketId?: string;
   cumulativeWorkedHours?: number;
   externalBudget?: number;
@@ -308,4 +321,153 @@ export interface TaskState {
   isActive: boolean;
   isDefault: boolean;
   isClosedState: boolean;
+  projectTemplateId: string;
+}
+
+export interface TicketPriorityLookup {
+  id: string;
+  name: string;
+  color: string;
+  sortOrder: number;
+  isActive: boolean;
+  isDefault: boolean;
+  projectTemplateId: string;
+}
+
+export enum CustomFieldType {
+  Text = 'Text',
+  Number = 'Number',
+  Date = 'Date',
+  Select = 'Select',
+}
+
+export interface CustomFieldDefinition {
+  id: string;
+  name: string;
+  description?: string;
+  fieldType: string;
+  isRequired: boolean;
+  options?: string;
+  sortOrder: number;
+  isActive: boolean;
+}
+
+export interface ProjectCustomFieldValue {
+  customFieldDefinitionId: string;
+  fieldName: string;
+  fieldType: string;
+  description?: string;
+  isRequired: boolean;
+  options?: string;
+  value?: string;
+}
+
+export interface ProjectTemplateField {
+  customFieldDefinitionId: string;
+  customFieldName: string;
+  sortOrder: number;
+}
+
+export interface GitHubStatus {
+  connected: boolean;
+  login?: string;
+}
+
+export interface GitHubRepo {
+  fullName: string;
+  description?: string;
+  isPrivate: boolean;
+}
+
+export interface ProjectTemplate {
+  id: string;
+  name: string;
+  description?: string;
+  isActive: boolean;
+  fields: ProjectTemplateField[];
+  taskStates: TaskState[];
+  ticketPriorities: TicketPriorityLookup[];
+}
+
+// Migration types
+
+export interface EpProjectPreview {
+  epId: number;
+  name: string;
+  description?: string;
+  status: number;
+  parentName?: string;
+  issueCount: number;
+  alreadyImported: boolean;
+}
+
+export interface EpTrackerMapping {
+  epId: number;
+  epName: string;
+  suggestedTaskTypeId?: string;
+  suggestedTaskTypeName?: string;
+}
+
+export interface EpStatusMapping {
+  epId: number;
+  epName: string;
+  isClosed: boolean;
+  suggestedTaskStateId?: string;
+  suggestedTaskStateName?: string;
+}
+
+export interface EpPriorityMapping {
+  epId: number;
+  epName: string;
+  suggestedTicketPriorityId?: string;
+  suggestedTicketPriorityName?: string;
+}
+
+export interface EpUserMapping {
+  epId: number;
+  epName: string;
+  epEmail?: string;
+  matchedUserId?: string;
+  matchedUserName?: string;
+}
+
+export interface EpLookupsResult {
+  trackers: EpTrackerMapping[];
+  statuses: EpStatusMapping[];
+  priorities: EpPriorityMapping[];
+}
+
+export interface MigrationProgress {
+  jobId: string;
+  status: string;
+  currentPhase: string;
+  projectsTotal: number;
+  projectsMigrated: number;
+  ticketsTotal: number;
+  ticketsMigrated: number;
+  commentsTotal: number;
+  commentsMigrated: number;
+  worklogsTotal: number;
+  worklogsMigrated: number;
+  attachmentsTotal: number;
+  attachmentsMigrated: number;
+  errorCount: number;
+  itemsCreated: number;
+  itemsUpdated: number;
+  itemsSkipped: number;
+  recentErrors: string[];
+  recentLog: string[];
+  overallPercent: number;
+}
+
+export interface MigrationJob {
+  id: string;
+  sourceSystem: string;
+  sourceBaseUrl: string;
+  status: string;
+  startedAt: string;
+  completedAt?: string;
+  projectsMigrated: number;
+  ticketsMigrated: number;
+  itemsFailed: number;
 }

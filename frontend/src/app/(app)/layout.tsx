@@ -16,13 +16,13 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const sidebarCollapsed = useUiStore((s) => s.sidebarCollapsed);
 
   useEffect(() => {
+    setTokenProvider(isAuthenticated ? getAccessToken : async () => null);
+  }, [isAuthenticated, getAccessToken]);
+
+  useEffect(() => {
     if (inProgress !== InteractionStatus.None) return;
     if (!isAuthenticated) router.push("/login");
   }, [isAuthenticated, inProgress, router]);
-
-  useEffect(() => {
-    setTokenProvider(getAccessToken);
-  }, [getAccessToken]);
 
   if (inProgress !== InteractionStatus.None) return null;
   if (!isAuthenticated) return null;

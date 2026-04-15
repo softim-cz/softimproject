@@ -12,6 +12,7 @@ public sealed class ChecklistItemConfiguration : IEntityTypeConfiguration<Checkl
         builder.HasKey(ci => ci.Id);
 
         builder.Property(ci => ci.Text).HasMaxLength(1000).IsRequired();
+        builder.Property(ci => ci.ExternalId).HasMaxLength(100);
 
         builder.HasOne(ci => ci.Ticket).WithMany(t => t.ChecklistItems).HasForeignKey(ci => ci.TicketId).OnDelete(DeleteBehavior.Cascade);
     }

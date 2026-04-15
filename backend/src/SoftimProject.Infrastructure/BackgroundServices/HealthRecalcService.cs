@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -18,6 +19,8 @@ public sealed class HealthRecalcService(IServiceScopeFactory scopeFactory, ILogg
         {
             try
             {
+                var sw = Stopwatch.StartNew();
+
                 using var scope = scopeFactory.CreateScope();
                 var dbContext = scope.ServiceProvider.GetRequiredService<IApplicationDbContext>();
 
@@ -25,7 +28,34 @@ public sealed class HealthRecalcService(IServiceScopeFactory scopeFactory, ILogg
                     .Where(p => p.Status == ProjectStatus.Active)
                     .ToListAsync(stoppingToken);
 
+                if (projects.Count == 0) continue;
+
+                var projectIds = projects.Select(p => p.Id).ToList();
                 var today = DateOnly.FromDateTime(DateTime.UtcNow);
+                var staleThreshold = DateTime.UtcNow.AddDays(-7);
+
+                // Batch: stale ticket counts per project (single query)
+                var staleTicketCounts = await dbContext.Tickets
+                    .Where(t => projectIds.Contains(t.ProjectId)
+                        && !t.TaskState.IsClosedState
+                        && t.UpdatedAt < staleThreshold)
+                    .GroupBy(t => t.ProjectId)
+                    .Select(g => new { ProjectId = g.Key, Count = g.Count() })
+                    .ToDictionaryAsync(x => x.ProjectId, x => x.Count, stoppingToken);
+
+                // Batch: spent hours per project (single query)
+                var spentHours = await dbContext.Worklogs
+                    .Where(w => projectIds.Contains(w.ProjectId))
+                    .GroupBy(w => w.ProjectId)
+                    .Select(g => new { ProjectId = g.Key, Total = g.Sum(w => w.Hours) })
+                    .ToDictionaryAsync(x => x.ProjectId, x => x.Total, stoppingToken);
+
+                // Batch: spent amount per project (single query)
+                var spentAmounts = await dbContext.Worklogs
+                    .Where(w => projectIds.Contains(w.ProjectId) && w.IsBillable && w.HourlyRateSnapshot.HasValue)
+                    .GroupBy(w => w.ProjectId)
+                    .Select(g => new { ProjectId = g.Key, Total = g.Sum(w => w.Hours * w.HourlyRateSnapshot!.Value) })
+                    .ToDictionaryAsync(x => x.ProjectId, x => x.Total, stoppingToken);
 
                 foreach (var project in projects)
                 {
@@ -53,30 +83,19 @@ public sealed class HealthRecalcService(IServiceScopeFactory scopeFactory, ILogg
                         else if (daysLeft < 7) score -= 5;
                     }
 
-                    // Ticket health (30 points) - check for stale tickets
-                    var staleTickets = await dbContext.Tickets
-                        .CountAsync(t => t.ProjectId == project.Id
-                            && t.Status == TicketStatus.InProgress
-                            && t.UpdatedAt < DateTime.UtcNow.AddDays(-7), stoppingToken);
+                    // Ticket health (30 points)
+                    var staleCount = staleTicketCounts.GetValueOrDefault(project.Id);
+                    if (staleCount > 5) score -= 30;
+                    else if (staleCount > 2) score -= 15;
+                    else if (staleCount > 0) score -= 5;
 
-                    if (staleTickets > 5) score -= 30;
-                    else if (staleTickets > 2) score -= 15;
-                    else if (staleTickets > 0) score -= 5;
-
-                    // Recalculate spent hours
-                    project.SpentHours = await dbContext.Worklogs
-                        .Where(w => w.ProjectId == project.Id)
-                        .SumAsync(w => w.Hours, stoppingToken);
-
-                    project.SpentAmount = await dbContext.Worklogs
-                        .Where(w => w.ProjectId == project.Id && w.IsBillable && w.HourlyRateSnapshot.HasValue)
-                        .SumAsync(w => w.Hours * w.HourlyRateSnapshot!.Value, stoppingToken);
-
+                    project.SpentHours = spentHours.GetValueOrDefault(project.Id);
+                    project.SpentAmount = spentAmounts.GetValueOrDefault(project.Id);
                     project.HealthScore = Math.Max(0, score);
                 }
 
                 await dbContext.SaveChangesAsync(stoppingToken);
-                logger.LogInformation("Health recalculated for {Count} projects", projects.Count);
+                logger.LogInformation("Health recalculated for {Count} projects in {Ms}ms", projects.Count, sw.ElapsedMilliseconds);
             }
             catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
             {

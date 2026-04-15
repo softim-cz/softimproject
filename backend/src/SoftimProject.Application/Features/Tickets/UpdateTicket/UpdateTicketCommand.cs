@@ -3,7 +3,6 @@ using MediatR;
 using Microsoft.EntityFrameworkCore;
 using SoftimProject.Application.Common;
 using SoftimProject.Application.Interfaces;
-using SoftimProject.Domain.Enums;
 
 namespace SoftimProject.Application.Features.Tickets.UpdateTicket;
 
@@ -12,13 +11,12 @@ public sealed record UpdateTicketCommand(
     Guid TicketId,
     string Title,
     string? Description,
-    TicketPriority Priority,
-    TicketStatus Status,
+    Guid TicketPriorityId,
+    Guid TaskStateId,
     Guid? AssigneeId,
     DateOnly? DueDate,
     decimal? EstimatedHours,
     Guid? TaskTypeId = null,
-    Guid? TaskStateId = null,
     Guid? ParentTicketId = null,
     decimal? ExternalBudget = null,
     string? ExternalUser = null) : IRequest, IRequireProjectAccess;
@@ -29,8 +27,8 @@ public sealed class UpdateTicketCommandValidator : AbstractValidator<UpdateTicke
     {
         RuleFor(x => x.Title).NotEmpty().MaximumLength(500);
         RuleFor(x => x.Description).MaximumLength(10000);
-        RuleFor(x => x.Priority).IsInEnum();
-        RuleFor(x => x.Status).IsInEnum();
+        RuleFor(x => x.TicketPriorityId).NotEmpty();
+        RuleFor(x => x.TaskStateId).NotEmpty();
         RuleFor(x => x.EstimatedHours).GreaterThan(0).When(x => x.EstimatedHours.HasValue);
     }
 }
@@ -46,13 +44,12 @@ public sealed class UpdateTicketCommandHandler(
 
         ticket.Title = request.Title;
         ticket.Description = request.Description;
-        ticket.Priority = request.Priority;
-        ticket.Status = request.Status;
+        ticket.TicketPriorityId = request.TicketPriorityId;
+        ticket.TaskStateId = request.TaskStateId;
         ticket.AssigneeId = request.AssigneeId;
         ticket.DueDate = request.DueDate;
         ticket.EstimatedHours = request.EstimatedHours;
         ticket.TaskTypeId = request.TaskTypeId;
-        ticket.TaskStateId = request.TaskStateId;
         ticket.ParentTicketId = request.ParentTicketId;
         ticket.ExternalBudget = request.ExternalBudget;
         ticket.ExternalUser = request.ExternalUser;

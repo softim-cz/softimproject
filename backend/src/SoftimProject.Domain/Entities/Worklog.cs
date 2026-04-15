@@ -16,6 +16,7 @@ public class Worklog : BaseEntity
     public decimal? HourlyRateSnapshot { get; set; }
     public string? AiSummary { get; set; }
     public string? Invoiced { get; set; }
+    public string? ExternalId { get; set; }
 
     // Navigation properties
     public Project Project { get; set; } = null!;

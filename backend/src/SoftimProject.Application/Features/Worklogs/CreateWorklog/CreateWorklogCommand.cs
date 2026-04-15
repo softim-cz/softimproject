@@ -1,5 +1,6 @@
 using FluentValidation;
 using MediatR;
+using SoftimProject.Application.Common;
 using SoftimProject.Application.Interfaces;
 using SoftimProject.Domain.Entities;
 using SoftimProject.Domain.Enums;
@@ -30,12 +31,20 @@ public sealed class CreateWorklogCommandHandler(
 {
     public async Task<Guid> Handle(CreateWorklogCommand request, CancellationToken cancellationToken)
     {
+        if (request.TicketId.HasValue)
+        {
+            await dbContext.GetTicketForProjectAsync(request.ProjectId, request.TicketId.Value, cancellationToken);
+        }
+
+        var userId = currentUserService.UserId
+            ?? throw new UnauthorizedAccessException("Current user is not initialized.");
+
         var worklog = new Worklog
         {
             Id = Guid.NewGuid(),
             ProjectId = request.ProjectId,
             TicketId = request.TicketId,
-            UserId = currentUserService.UserId ?? Guid.Empty,
+            UserId = userId,
             Date = request.Date,
             Hours = request.Hours,
             Description = request.Description,

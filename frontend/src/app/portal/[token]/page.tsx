@@ -9,9 +9,7 @@ import { PriorityBadge } from "@/components/shared/priority-badge";
 import { StatusBadge } from "@/components/shared/status-badge";
 import {
   LayoutGrid,
-  Clock,
-  MessageSquare,
-  User,
+  Clock,  User,
   Calendar,
 } from "lucide-react";
 import type {
@@ -22,10 +20,15 @@ import type {
   Project,
 } from "@/types";
 
-const portalClient = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL || "https://localhost:7001",
-  headers: { "Content-Type": "application/json" },
-});
+function createPortalClient(token: string) {
+  return axios.create({
+    baseURL: process.env.NEXT_PUBLIC_API_URL || "http://localhost:5249",
+    headers: {
+      "Content-Type": "application/json",
+      "X-Portal-Token": token,
+    },
+  });
+}
 
 interface PortalData {
   project: Project;
@@ -38,7 +41,8 @@ function usePortalData(token: string) {
   return useQuery({
     queryKey: ["portal", token],
     queryFn: async () => {
-      const { data } = await portalClient.get<PortalData>(
+      const client = createPortalClient(token);
+      const { data } = await client.get<PortalData>(
         `/api/v1/portal/${token}`
       );
       return data;
@@ -68,8 +72,8 @@ function PortalKanbanColumn({ column }: { column: KanbanColumn }) {
               {ticket.title}
             </p>
             <div className="flex items-center justify-between">
-              <PriorityBadge priority={ticket.priority} />
-              <StatusBadge status={ticket.status} />
+              <PriorityBadge name={ticket.ticketPriorityName} color={ticket.ticketPriorityColor} />
+              <StatusBadge name={ticket.taskStateName} color={ticket.taskStateColor} />
             </div>
             {ticket.assignee && (
               <div className="flex items-center gap-1 text-xs text-muted-foreground mt-2">
@@ -240,3 +244,5 @@ export default function PortalPage({
     </div>
   );
 }
+
+

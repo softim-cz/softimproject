@@ -1,9 +1,12 @@
 using Microsoft.AspNetCore.Mvc;
 using SoftimProject.Application.Features.Lookups.ApplicationRoles;
 using SoftimProject.Application.Features.Lookups.Companies;
+using SoftimProject.Application.Features.Lookups.CustomFieldDefinitions;
 using SoftimProject.Application.Features.Lookups.ProjectStates;
+using SoftimProject.Application.Features.Lookups.ProjectTemplates;
 using SoftimProject.Application.Features.Lookups.ProjectTypes;
 using SoftimProject.Application.Features.Lookups.TaskStates;
+using SoftimProject.Application.Features.Lookups.TicketPriorities;
 using SoftimProject.Application.Features.Lookups.TaskTypes;
 
 namespace SoftimProject.WebApi.Controllers;
@@ -114,8 +117,8 @@ public class LookupsController : ApiControllerBase
     // === Task States ===
 
     [HttpGet("task-states")]
-    public async Task<ActionResult<List<TaskStateDto>>> GetTaskStates()
-        => Ok(await Mediator.Send(new GetTaskStatesQuery()));
+    public async Task<ActionResult<List<TaskStateDto>>> GetTaskStates([FromQuery] Guid? templateId)
+        => Ok(await Mediator.Send(new GetTaskStatesQuery(templateId)));
 
     [HttpPost("task-states")]
     public async Task<ActionResult<Guid>> CreateTaskState(CreateTaskStateCommand command)
@@ -160,4 +163,85 @@ public class LookupsController : ApiControllerBase
         await Mediator.Send(new DeleteApplicationRoleCommand(id));
         return NoContent();
     }
+
+    // === Custom Field Definitions ===
+
+    [HttpGet("custom-field-definitions")]
+    public async Task<ActionResult<List<CustomFieldDefinitionDto>>> GetCustomFieldDefinitions()
+        => Ok(await Mediator.Send(new GetCustomFieldDefinitionsQuery()));
+
+    [HttpPost("custom-field-definitions")]
+    public async Task<ActionResult<Guid>> CreateCustomFieldDefinition(CreateCustomFieldDefinitionCommand command)
+        => CreatedAtAction(nameof(GetCustomFieldDefinitions), await Mediator.Send(command));
+
+    [HttpPut("custom-field-definitions/{id:guid}")]
+    public async Task<IActionResult> UpdateCustomFieldDefinition(Guid id, UpdateCustomFieldDefinitionCommand command)
+    {
+        if (id != command.Id) return BadRequest("Route id does not match command id.");
+        await Mediator.Send(command);
+        return NoContent();
+    }
+
+    [HttpDelete("custom-field-definitions/{id:guid}")]
+    public async Task<IActionResult> DeleteCustomFieldDefinition(Guid id)
+    {
+        await Mediator.Send(new DeleteCustomFieldDefinitionCommand(id));
+        return NoContent();
+    }
+
+    // === Project Templates ===
+
+    [HttpGet("project-templates")]
+    public async Task<ActionResult<List<ProjectTemplateDto>>> GetProjectTemplates()
+        => Ok(await Mediator.Send(new GetProjectTemplatesQuery()));
+
+    [HttpPost("project-templates")]
+    public async Task<ActionResult<Guid>> CreateProjectTemplate(CreateProjectTemplateCommand command)
+        => CreatedAtAction(nameof(GetProjectTemplates), await Mediator.Send(command));
+
+    [HttpPut("project-templates/{id:guid}")]
+    public async Task<IActionResult> UpdateProjectTemplate(Guid id, UpdateProjectTemplateCommand command)
+    {
+        if (id != command.Id) return BadRequest("Route id does not match command id.");
+        await Mediator.Send(command);
+        return NoContent();
+    }
+
+    [HttpDelete("project-templates/{id:guid}")]
+    public async Task<IActionResult> DeleteProjectTemplate(Guid id)
+    {
+        await Mediator.Send(new DeleteProjectTemplateCommand(id));
+        return NoContent();
+    }
+
+    [HttpPost("project-templates/{id:guid}/duplicate")]
+    public async Task<ActionResult<Guid>> DuplicateProjectTemplate(Guid id, [FromBody] DuplicateProjectTemplateRequest request)
+        => CreatedAtAction(nameof(GetProjectTemplates), await Mediator.Send(new DuplicateProjectTemplateCommand(id, request.NewName)));
+
+    // === Ticket Priorities ===
+
+    [HttpGet("ticket-priorities")]
+    public async Task<ActionResult<List<TicketPriorityDto>>> GetTicketPriorities([FromQuery] Guid? templateId)
+        => Ok(await Mediator.Send(new GetTicketPrioritiesQuery(templateId)));
+
+    [HttpPost("ticket-priorities")]
+    public async Task<ActionResult<Guid>> CreateTicketPriority(CreateTicketPriorityCommand command)
+        => CreatedAtAction(nameof(GetTicketPriorities), await Mediator.Send(command));
+
+    [HttpPut("ticket-priorities/{id:guid}")]
+    public async Task<IActionResult> UpdateTicketPriority(Guid id, UpdateTicketPriorityCommand command)
+    {
+        if (id != command.Id) return BadRequest("Route id does not match command id.");
+        await Mediator.Send(command);
+        return NoContent();
+    }
+
+    [HttpDelete("ticket-priorities/{id:guid}")]
+    public async Task<IActionResult> DeleteTicketPriority(Guid id)
+    {
+        await Mediator.Send(new DeleteTicketPriorityCommand(id));
+        return NoContent();
+    }
 }
+
+public sealed record DuplicateProjectTemplateRequest(string NewName);

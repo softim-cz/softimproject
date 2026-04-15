@@ -1,4 +1,5 @@
 using MediatR;
+using SoftimProject.Application.Common;
 using SoftimProject.Application.Interfaces;
 using SoftimProject.Domain.Entities;
 
@@ -19,6 +20,11 @@ public sealed class UploadAttachmentCommandHandler(
 {
     public async Task<Guid> Handle(UploadAttachmentCommand request, CancellationToken cancellationToken)
     {
+        await dbContext.GetTicketForProjectAsync(request.ProjectId, request.TicketId, cancellationToken);
+
+        var uploadedById = currentUserService.UserId
+            ?? throw new UnauthorizedAccessException("Current user is not initialized.");
+
         var blobName = $"{request.ProjectId}/{request.TicketId}/{Guid.NewGuid()}/{request.FileName}";
         var blobUrl = await blobStorageService.UploadAsync(
             "ticket-attachments",
@@ -35,7 +41,7 @@ public sealed class UploadAttachmentCommandHandler(
             BlobUrl = blobUrl,
             ContentType = request.ContentType,
             FileSizeBytes = request.FileSizeBytes,
-            UploadedById = currentUserService.UserId ?? Guid.Empty,
+            UploadedById = uploadedById,
             CreatedAt = DateTime.UtcNow
         };
 

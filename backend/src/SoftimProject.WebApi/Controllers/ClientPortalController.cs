@@ -42,8 +42,16 @@ public class ClientPortalController(IApplicationDbContext dbContext) : Controlle
 
         var board = await dbContext.KanbanBoards
             .Include(b => b.Columns.OrderBy(c => c.Position))
+                .ThenInclude(c => c.MapsToTaskStates)
+            .Include(b => b.Columns.OrderBy(c => c.Position))
                 .ThenInclude(c => c.Tickets.OrderBy(t => t.Position))
                     .ThenInclude(t => t.Assignee)
+            .Include(b => b.Columns)
+                .ThenInclude(c => c.Tickets)
+                    .ThenInclude(t => t.TaskState)
+            .Include(b => b.Columns)
+                .ThenInclude(c => c.Tickets)
+                    .ThenInclude(t => t.TicketPriority)
             .FirstOrDefaultAsync(b => b.ProjectId == project.Id && b.IsDefault)
             ?? throw new NotFoundException("KanbanBoard", project.Id);
 
@@ -51,14 +59,16 @@ public class ClientPortalController(IApplicationDbContext dbContext) : Controlle
             c.Id,
             c.Name,
             c.Position,
-            c.MapsToStatus,
+            string.Join(", ", c.MapsToTaskStates.Select(ts => ts.Name)),
             c.Tickets
                 .Where(t => t.Comments.All(co => !co.IsInternal))
                 .Select(t => new ClientBoardTicketDto(
                     t.Id,
                     t.Title,
-                    t.Priority,
-                    t.Status,
+                    t.TicketPriority.Name,
+                    t.TicketPriority.Color,
+                    t.TaskState.Name,
+                    t.TaskState.Color,
                     t.Assignee?.DisplayName,
                     t.DueDate))
                 .ToList()
@@ -114,14 +124,16 @@ public sealed record ClientBoardColumnDto(
     Guid Id,
     string Name,
     int Position,
-    TicketStatus MapsToStatus,
+    string TaskStateName,
     List<ClientBoardTicketDto> Tickets);
 
 public sealed record ClientBoardTicketDto(
     Guid Id,
     string Title,
-    TicketPriority Priority,
-    TicketStatus Status,
+    string PriorityName,
+    string PriorityColor,
+    string StatusName,
+    string StatusColor,
     string? AssigneeDisplayName,
     DateOnly? DueDate);
 

@@ -77,7 +77,7 @@ function NotificationBell() {
     notifications?.filter((n) => !n.isRead).length ?? 0;
 
   return (
-    <button className="relative p-2 rounded-lg hover:bg-muted transition-colors">
+    <button className="relative p-2 rounded-lg hover:bg-muted transition-colors" aria-label="Notifications">
       <Bell className="h-5 w-5 text-muted-foreground" />
       {unreadCount > 0 && (
         <span className="absolute -top-0.5 -right-0.5 h-4 min-w-[16px] rounded-full bg-accent-orange text-white text-[10px] font-bold flex items-center justify-center px-1">

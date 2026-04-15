@@ -5,7 +5,6 @@ using Microsoft.Extensions.Logging;
 using SoftimProject.Application.Interfaces;
 using SoftimProject.Domain.Entities;
 using SoftimProject.Domain.Enums;
-
 namespace SoftimProject.Infrastructure.BackgroundServices;
 
 public sealed class WeeklyReportService(IServiceScopeFactory scopeFactory, ILogger<WeeklyReportService> logger)
@@ -46,7 +45,7 @@ public sealed class WeeklyReportService(IServiceScopeFactory scopeFactory, ILogg
                             .CountAsync(t => t.ProjectId == project.Id && t.CreatedAt >= now.AddDays(-7), stoppingToken);
 
                         var ticketsClosed = await dbContext.Tickets
-                            .CountAsync(t => t.ProjectId == project.Id && t.Status == TicketStatus.Done && t.UpdatedAt >= now.AddDays(-7), stoppingToken);
+                            .CountAsync(t => t.ProjectId == project.Id && t.TaskState.IsClosedState && t.UpdatedAt >= now.AddDays(-7), stoppingToken);
 
                         var data = $"""
                             Hours logged: {worklogs.Sum(w => w.Hours):F1}

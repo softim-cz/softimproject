@@ -2,15 +2,17 @@ using MediatR;
 using Microsoft.EntityFrameworkCore;
 using SoftimProject.Application.Common;
 using SoftimProject.Application.Interfaces;
-using SoftimProject.Domain.Enums;
 
 namespace SoftimProject.Application.Features.Kanban.GetBoard;
 
 public sealed record BoardTicketDto(
     Guid Id,
+    int Number,
+    string Key,
     string Title,
-    TicketPriority Priority,
-    TicketStatus Status,
+    Guid TicketPriorityId,
+    string TicketPriorityName,
+    string TicketPriorityColor,
     double Position,
     Guid? AssigneeId,
     string? AssigneeDisplayName,
@@ -19,18 +21,22 @@ public sealed record BoardTicketDto(
     Guid? TaskTypeId,
     string? TaskTypeName,
     string? TaskTypeIcon,
-    Guid? TaskStateId,
-    string? TaskStateName,
-    string? TaskStateColor);
+    Guid TaskStateId,
+    string TaskStateName,
+    string TaskStateColor);
+
+public sealed record BoardColumnTaskStateDto(
+    Guid Id,
+    string Name,
+    string Color);
 
 public sealed record BoardColumnDto(
     Guid Id,
     string Name,
     int Position,
     int? WipLimit,
-    TicketStatus MapsToStatus,
-    Guid? MapsToTaskStateId,
-    string? TaskStateName,
+    string? Color,
+    List<BoardColumnTaskStateDto> TaskStates,
     List<BoardTicketDto> Tickets);
 
 public sealed record BoardDto(
@@ -48,51 +54,46 @@ public sealed class GetBoardQueryHandler(
     public async Task<BoardDto> Handle(GetBoardQuery request, CancellationToken cancellationToken)
     {
         var board = await dbContext.KanbanBoards
-            .Include(b => b.Columns.OrderBy(c => c.Position))
-                .ThenInclude(c => c.MapsToTaskState)
-            .Include(b => b.Columns.OrderBy(c => c.Position))
-                .ThenInclude(c => c.Tickets.OrderBy(t => t.Position))
-                    .ThenInclude(t => t.Assignee)
-            .Include(b => b.Columns.OrderBy(c => c.Position))
-                .ThenInclude(c => c.Tickets.OrderBy(t => t.Position))
-                    .ThenInclude(t => t.TaskType)
-            .Include(b => b.Columns.OrderBy(c => c.Position))
-                .ThenInclude(c => c.Tickets.OrderBy(t => t.Position))
-                    .ThenInclude(t => t.TaskState)
-            .FirstOrDefaultAsync(b => b.Id == request.BoardId && b.ProjectId == request.ProjectId, cancellationToken)
+            .AsNoTracking()
+            .Where(b => b.Id == request.BoardId && b.ProjectId == request.ProjectId)
+            .Select(b => new BoardDto(
+                b.Id,
+                b.Name,
+                b.IsDefault,
+                b.ProjectId,
+                b.Columns.OrderBy(c => c.Position).Select(c => new BoardColumnDto(
+                    c.Id,
+                    c.Name,
+                    c.Position,
+                    c.WipLimit,
+                    c.Color,
+                    c.MapsToTaskStates.OrderBy(ts => ts.SortOrder).Select(ts => new BoardColumnTaskStateDto(
+                        ts.Id,
+                        ts.Name,
+                        ts.Color)).ToList(),
+                    c.Tickets.OrderBy(t => t.Position).Select(t => new BoardTicketDto(
+                        t.Id,
+                        t.Number,
+                        t.Project.Code + "-" + t.Number,
+                        t.Title,
+                        t.TicketPriorityId,
+                        t.TicketPriority.Name,
+                        t.TicketPriority.Color,
+                        t.Position,
+                        t.AssigneeId,
+                        t.Assignee != null ? t.Assignee.DisplayName : null,
+                        t.DueDate,
+                        t.EstimatedHours,
+                        t.TaskTypeId,
+                        t.TaskType != null ? t.TaskType.Name : null,
+                        t.TaskType != null ? t.TaskType.Icon : null,
+                        t.TaskStateId,
+                        t.TaskState.Name,
+                        t.TaskState.Color)).ToList()
+                )).ToList()))
+            .FirstOrDefaultAsync(cancellationToken)
             ?? throw new NotFoundException(nameof(Domain.Entities.KanbanBoard), request.BoardId);
 
-        var columns = board.Columns.Select(c => new BoardColumnDto(
-            c.Id,
-            c.Name,
-            c.Position,
-            c.WipLimit,
-            c.MapsToStatus,
-            c.MapsToTaskStateId,
-            c.MapsToTaskState?.Name,
-            c.Tickets.Select(t => new BoardTicketDto(
-                t.Id,
-                t.Title,
-                t.Priority,
-                t.Status,
-                t.Position,
-                t.AssigneeId,
-                t.Assignee?.DisplayName,
-                t.DueDate,
-                t.EstimatedHours,
-                t.TaskTypeId,
-                t.TaskType?.Name,
-                t.TaskType?.Icon,
-                t.TaskStateId,
-                t.TaskState?.Name,
-                t.TaskState?.Color)).ToList()
-        )).ToList();
-
-        return new BoardDto(
-            board.Id,
-            board.Name,
-            board.IsDefault,
-            board.ProjectId,
-            columns);
+        return board;
     }
 }

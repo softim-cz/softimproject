@@ -1,5 +1,6 @@
 using FluentValidation;
 using MediatR;
+using SoftimProject.Application.Common;
 using SoftimProject.Application.Interfaces;
 using SoftimProject.Domain.Entities;
 using SoftimProject.Domain.Enums;
@@ -26,16 +27,25 @@ public sealed class CreateCommentCommandHandler(
 {
     public async Task<Guid> Handle(CreateCommentCommand request, CancellationToken cancellationToken)
     {
+        var ticket = await dbContext.GetTicketForProjectAsync(request.ProjectId, request.TicketId, cancellationToken);
+        var authorId = currentUserService.UserId
+            ?? throw new UnauthorizedAccessException("Current user is not initialized.");
+
         var comment = new Comment
         {
             Id = Guid.NewGuid(),
+            ProjectId = request.ProjectId,
             TicketId = request.TicketId,
-            AuthorId = currentUserService.UserId ?? Guid.Empty,
+            AuthorId = authorId,
             Content = request.Content,
             IsInternal = request.IsInternal,
             Source = CommentSource.Manual,
             CreatedAt = DateTime.UtcNow
         };
+
+        ticket.LastComment = request.Content.Length <= 2000
+            ? request.Content
+            : request.Content[..2000];
 
         dbContext.Comments.Add(comment);
         await dbContext.SaveChangesAsync(cancellationToken);

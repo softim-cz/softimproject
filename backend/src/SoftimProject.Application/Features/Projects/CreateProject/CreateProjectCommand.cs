@@ -1,5 +1,6 @@
 using FluentValidation;
 using MediatR;
+using Microsoft.EntityFrameworkCore;
 using SoftimProject.Application.Interfaces;
 using SoftimProject.Domain.Entities;
 using SoftimProject.Domain.Enums;
@@ -8,7 +9,7 @@ namespace SoftimProject.Application.Features.Projects.CreateProject;
 
 public sealed record CreateProjectCommand(
     string Name,
-    string Code,
+    string? Code,
     string? Description,
     decimal? BudgetHours,
     decimal? BudgetAmount,
@@ -18,15 +19,17 @@ public sealed record CreateProjectCommand(
     Guid? CompanyId = null,
     Guid? ProjectTypeId = null,
     Guid? ProjectStateId = null,
-    Guid? ParentProjectId = null) : IRequest<Guid>;
+    Guid? ParentProjectId = null,
+    Guid? ProjectTemplateId = null) : IRequest<Guid>;
 
 public sealed class CreateProjectCommandValidator : AbstractValidator<CreateProjectCommand>
 {
     public CreateProjectCommandValidator()
     {
         RuleFor(x => x.Name).NotEmpty().MaximumLength(200);
-        RuleFor(x => x.Code).NotEmpty().MinimumLength(2).MaximumLength(6)
-            .Matches("^[A-Z]+$").WithMessage("Code must be uppercase letters only.");
+        RuleFor(x => x.Code).MinimumLength(2).MaximumLength(6)
+            .Matches("^[A-Z]+$").WithMessage("Code must be uppercase letters only.")
+            .When(x => !string.IsNullOrEmpty(x.Code));
         RuleFor(x => x.Description).MaximumLength(2000);
         RuleFor(x => x.BudgetHours).GreaterThan(0).When(x => x.BudgetHours.HasValue);
         RuleFor(x => x.BudgetAmount).GreaterThan(0).When(x => x.BudgetAmount.HasValue);
@@ -39,11 +42,17 @@ public sealed class CreateProjectCommandHandler(
 {
     public async Task<Guid> Handle(CreateProjectCommand request, CancellationToken cancellationToken)
     {
+        var code = string.IsNullOrWhiteSpace(request.Code)
+            ? GenerateCode(request.Name)
+            : request.Code;
+
+        code = await EnsureUniqueCode(code, cancellationToken);
+
         var project = new Project
         {
             Id = Guid.NewGuid(),
             Name = request.Name,
-            Code = request.Code,
+            Code = code,
             Description = request.Description,
             Status = ProjectStatus.Active,
             BudgetHours = request.BudgetHours,
@@ -55,10 +64,31 @@ public sealed class CreateProjectCommandHandler(
             ProjectTypeId = request.ProjectTypeId,
             ProjectStateId = request.ProjectStateId,
             ParentProjectId = request.ParentProjectId,
+            ProjectTemplateId = request.ProjectTemplateId,
             CreatedAt = DateTime.UtcNow
         };
 
         dbContext.Projects.Add(project);
+
+        // Seed custom field values from template
+        if (request.ProjectTemplateId.HasValue)
+        {
+            var templateFields = await dbContext.ProjectTemplateFields
+                .Where(f => f.ProjectTemplateId == request.ProjectTemplateId.Value)
+                .ToListAsync(cancellationToken);
+
+            foreach (var field in templateFields)
+            {
+                dbContext.ProjectCustomFieldValues.Add(new ProjectCustomFieldValue
+                {
+                    Id = Guid.NewGuid(),
+                    ProjectId = project.Id,
+                    CustomFieldDefinitionId = field.CustomFieldDefinitionId,
+                    Value = null,
+                    CreatedAt = DateTime.UtcNow
+                });
+            }
+        }
 
         // Add creator as ProjectManager
         if (currentUserService.UserId.HasValue)
@@ -85,30 +115,61 @@ public sealed class CreateProjectCommandHandler(
         };
         dbContext.KanbanBoards.Add(board);
 
-        // Create default columns
-        var defaultColumns = new[]
-        {
-            (Name: "Backlog", Position: 0, Status: TicketStatus.Backlog),
-            (Name: "To Do", Position: 1, Status: TicketStatus.Todo),
-            (Name: "In Progress", Position: 2, Status: TicketStatus.InProgress),
-            (Name: "Review", Position: 3, Status: TicketStatus.Review),
-            (Name: "Done", Position: 4, Status: TicketStatus.Done)
-        };
+        // Create default columns from active TaskStates
+        var taskStates = await dbContext.TaskStates
+            .Where(ts => ts.IsActive)
+            .OrderBy(ts => ts.SortOrder)
+            .ToListAsync(cancellationToken);
 
-        foreach (var col in defaultColumns)
+        for (var i = 0; i < taskStates.Count; i++)
         {
-            dbContext.KanbanColumns.Add(new KanbanColumn
+            var column = new KanbanColumn
             {
                 Id = Guid.NewGuid(),
                 BoardId = board.Id,
-                Name = col.Name,
-                Position = col.Position,
-                MapsToStatus = col.Status,
+                Name = taskStates[i].Name,
+                Position = i,
                 CreatedAt = DateTime.UtcNow
-            });
+            };
+            column.MapsToTaskStates.Add(taskStates[i]);
+            dbContext.KanbanColumns.Add(column);
         }
 
         await dbContext.SaveChangesAsync(cancellationToken);
         return project.Id;
+    }
+
+    private static string GenerateCode(string name)
+    {
+        var words = name.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+
+        if (words.Length == 1)
+        {
+            // Single word: take first 3 chars
+            return words[0][..Math.Min(3, words[0].Length)].ToUpperInvariant();
+        }
+
+        // Multiple words: take first letter of each word, max 6
+        var initials = string.Concat(words.Take(6).Select(w => char.ToUpperInvariant(w[0])));
+        return initials;
+    }
+
+    private async Task<string> EnsureUniqueCode(string baseCode, CancellationToken cancellationToken)
+    {
+        if (!await dbContext.Projects.AnyAsync(p => p.Code == baseCode, cancellationToken))
+            return baseCode;
+
+        for (var i = 2; i <= 99; i++)
+        {
+            var candidate = $"{baseCode}{i}";
+            if (candidate.Length > 6)
+                candidate = $"{baseCode[..Math.Max(2, 6 - i.ToString().Length)]}{i}";
+
+            if (!await dbContext.Projects.AnyAsync(p => p.Code == candidate, cancellationToken))
+                return candidate;
+        }
+
+        // Fallback: should never happen in practice
+        return $"{baseCode[..2]}{Guid.NewGuid().ToString()[..4].ToUpperInvariant()}";
     }
 }

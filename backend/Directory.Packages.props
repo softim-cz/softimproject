@@ -46,6 +46,12 @@
     <!-- Excel -->
     <PackageVersion Include="EPPlus" Version="7.7.0" />
 
+    <!-- HTTP Resilience (Polly) -->
+    <PackageVersion Include="Microsoft.Extensions.Http.Resilience" Version="9.6.0" />
+
+    <!-- GitHub -->
+    <PackageVersion Include="Octokit" Version="14.0.0" />
+
     <!-- Microsoft Graph (Teams notifications) -->
     <PackageVersion Include="Microsoft.Graph" Version="5.68.0" />
 

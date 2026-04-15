@@ -1,5 +1,4 @@
 using MediatR;
-using Microsoft.EntityFrameworkCore;
 using SoftimProject.Application.Common;
 using SoftimProject.Application.Interfaces;
 
@@ -18,9 +17,11 @@ public sealed class UpdateChecklistItemCommandHandler(
 {
     public async Task Handle(UpdateChecklistItemCommand request, CancellationToken cancellationToken)
     {
-        var item = await dbContext.ChecklistItems
-            .FirstOrDefaultAsync(ci => ci.Id == request.ItemId && ci.TicketId == request.TicketId, cancellationToken)
-            ?? throw new NotFoundException(nameof(Domain.Entities.ChecklistItem), request.ItemId);
+        var item = await dbContext.GetChecklistItemForProjectAsync(
+            request.ProjectId,
+            request.TicketId,
+            request.ItemId,
+            cancellationToken);
 
         item.Text = request.Text;
         item.IsCompleted = request.IsCompleted;

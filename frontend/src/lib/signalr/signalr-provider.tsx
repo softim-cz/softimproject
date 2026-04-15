@@ -4,6 +4,7 @@ import {
   createContext,
   useContext,
   useEffect,
+  useRef,
   useState,
   ReactNode,
 } from "react";
@@ -11,8 +12,10 @@ import {
   HubConnectionBuilder,
   HubConnection,
   HubConnectionState,
+  LogLevel,
 } from "@microsoft/signalr";
 import { useAuth } from "@/lib/auth/use-auth";
+import { InteractionStatus } from "@azure/msal-browser";
 import { useQueryClient } from "@tanstack/react-query";
 
 interface SignalRContextType {
@@ -28,7 +31,7 @@ const SignalRContext = createContext<SignalRContextType>({
 });
 
 export function SignalRProvider({ children }: { children: ReactNode }) {
-  const { getAccessToken, isAuthenticated } = useAuth();
+  const { getAccessToken, isAuthenticated, inProgress } = useAuth();
   const queryClient = useQueryClient();
   const [kanbanConnection, setKanbanConnection] =
     useState<HubConnection | null>(null);
@@ -38,35 +41,73 @@ export function SignalRProvider({ children }: { children: ReactNode }) {
     HubConnectionState.Disconnected
   );
 
+  // Stable ref — getAccessToken is already stable from useAuth, but ref ensures
+  // the useEffect below never re-runs due to reference changes
+  const getAccessTokenRef = useRef(getAccessToken);
   useEffect(() => {
-    if (!isAuthenticated) return;
+    getAccessTokenRef.current = getAccessToken;
+  }, [getAccessToken]);
+
+  const disposedRef = useRef(false);
+
+  useEffect(() => {
+    if (!isAuthenticated || inProgress !== InteractionStatus.None) return;
+
+    disposedRef.current = false;
 
     const baseUrl =
-      process.env.NEXT_PUBLIC_SIGNALR_URL || "https://localhost:7001/hubs";
+      process.env.NEXT_PUBLIC_SIGNALR_URL || "http://localhost:5249/hubs";
 
     const buildConnection = (hub: string) =>
       new HubConnectionBuilder()
         .withUrl(`${baseUrl}/${hub}`, {
-          accessTokenFactory: async () => (await getAccessToken()) || "",
+          accessTokenFactory: async () =>
+            (await getAccessTokenRef.current()) || "",
         })
         .withAutomaticReconnect([0, 2000, 5000, 10000, 30000])
+        .configureLogging(LogLevel.Warning)
         .build();
 
     const kanban = buildConnection("kanban");
     const notifications = buildConnection("notifications");
 
-    // Kanban events -> invalidate queries
-    kanban.on("TicketMoved", () =>
-      queryClient.invalidateQueries({ queryKey: ["kanban"] })
-    );
-    kanban.on("TicketCreated", () =>
-      queryClient.invalidateQueries({ queryKey: ["kanban"] })
-    );
-    kanban.on("TicketUpdated", () =>
-      queryClient.invalidateQueries({ queryKey: ["tickets"] })
-    );
-    kanban.on("CommentAdded", () =>
-      queryClient.invalidateQueries({ queryKey: ["comments"] })
+    // Derive aggregate state from both connections
+    const updateState = () => {
+      if (disposedRef.current) return;
+      const k = kanban.state;
+      const n = notifications.state;
+      if (
+        k === HubConnectionState.Reconnecting ||
+        n === HubConnectionState.Reconnecting
+      ) {
+        setConnectionState(HubConnectionState.Reconnecting);
+      } else if (
+        k === HubConnectionState.Connected &&
+        n === HubConnectionState.Connected
+      ) {
+        setConnectionState(HubConnectionState.Connected);
+      } else {
+        setConnectionState(HubConnectionState.Disconnected);
+      }
+    };
+
+    // Kanban events -> invalidate queries (scoped by projectId from server)
+    kanban.on("TicketMoved", (projectId: string) => {
+      queryClient.invalidateQueries({ queryKey: ["kanban", projectId] });
+      queryClient.invalidateQueries({ queryKey: ["tickets", projectId] });
+    });
+    kanban.on("TicketCreated", (projectId: string) => {
+      queryClient.invalidateQueries({ queryKey: ["kanban", projectId] });
+      queryClient.invalidateQueries({ queryKey: ["tickets", projectId] });
+    });
+    kanban.on("TicketUpdated", (projectId: string) => {
+      queryClient.invalidateQueries({ queryKey: ["tickets", projectId] });
+      queryClient.invalidateQueries({ queryKey: ["kanban", projectId] });
+    });
+    kanban.on("CommentAdded", (projectId: string, ticketId: string) =>
+      queryClient.invalidateQueries({
+        queryKey: ["comments", projectId, ticketId],
+      })
     );
 
     // Notification events
@@ -74,26 +115,38 @@ export function SignalRProvider({ children }: { children: ReactNode }) {
       queryClient.invalidateQueries({ queryKey: ["notifications"] })
     );
 
-    kanban.onreconnecting(() =>
-      setConnectionState(HubConnectionState.Reconnecting)
-    );
-    kanban.onreconnected(() =>
-      setConnectionState(HubConnectionState.Connected)
-    );
-    kanban.onclose(() => setConnectionState(HubConnectionState.Disconnected));
+    // Wire reconnect/close events on BOTH connections
+    for (const conn of [kanban, notifications]) {
+      conn.onreconnecting(() => updateState());
+      conn.onreconnected(() => updateState());
+      conn.onclose(() => updateState());
+    }
 
-    Promise.all([kanban.start(), notifications.start()])
-      .then(() => setConnectionState(HubConnectionState.Connected))
-      .catch(console.error);
+    // Start each connection independently (no Promise.all)
+    const startConnection = async (conn: HubConnection, name: string) => {
+      try {
+        await conn.start();
+        updateState();
+      } catch (err: unknown) {
+        if (!disposedRef.current) {
+          const msg = err instanceof Error ? err.message : String(err);
+          console.warn(`SignalR ${name} connection failed:`, msg);
+          updateState();
+        }
+      }
+    };
+    startConnection(kanban, "kanban");
+    startConnection(notifications, "notifications");
 
     setKanbanConnection(kanban);
     setNotificationConnection(notifications);
 
     return () => {
+      disposedRef.current = true;
       kanban.stop();
       notifications.stop();
     };
-  }, [isAuthenticated, getAccessToken, queryClient]);
+  }, [isAuthenticated, inProgress, queryClient]);
 
   return (
     <SignalRContext.Provider

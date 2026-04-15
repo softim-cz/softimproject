@@ -1,12 +1,17 @@
 using Microsoft.AspNetCore.Mvc;
 using SoftimProject.Application.Features.Projects.CreateProject;
+using SoftimProject.Application.Features.Projects.CustomFields;
 using SoftimProject.Application.Features.Projects.DeleteProject;
+using SoftimProject.Application.Features.Projects.GetProjectByCode;
 using SoftimProject.Application.Features.Projects.GetProjectById;
 using SoftimProject.Application.Features.Projects.GetProjects;
+using SoftimProject.Application.Features.Projects.GitHub;
 using SoftimProject.Application.Features.Projects.Members.AddProjectMember;
+using SoftimProject.Application.Features.Projects.Members.GetUsers;
 using SoftimProject.Application.Features.Projects.Members.RemoveProjectMember;
 using SoftimProject.Application.Features.Projects.Members.UpdateProjectMember;
 using SoftimProject.Application.Features.Projects.UpdateProject;
+using SoftimProject.Application.Features.Projects;
 
 namespace SoftimProject.WebApi.Controllers;
 
@@ -22,6 +27,12 @@ public class ProjectsController : ApiControllerBase
     public async Task<ActionResult<ProjectDetailDto>> GetById(Guid id)
     {
         return Ok(await Mediator.Send(new GetProjectByIdQuery(id)));
+    }
+
+    [HttpGet("by-code/{code}")]
+    public async Task<ActionResult<ProjectDetailDto>> GetByCode(string code)
+    {
+        return Ok(await Mediator.Send(new GetProjectByCodeQuery(code)));
     }
 
     [HttpPost]
@@ -48,6 +59,12 @@ public class ProjectsController : ApiControllerBase
 
     // --- Members ---
 
+    [HttpGet("users")]
+    public async Task<ActionResult<List<UserOptionDto>>> GetUsers()
+    {
+        return Ok(await Mediator.Send(new GetUsersQuery()));
+    }
+
     [HttpPost("{projectId:guid}/members")]
     public async Task<IActionResult> AddMember(Guid projectId, AddProjectMemberCommand command)
     {
@@ -71,4 +88,53 @@ public class ProjectsController : ApiControllerBase
         await Mediator.Send(new RemoveProjectMemberCommand(projectId, memberId));
         return NoContent();
     }
+
+    // --- Custom Fields ---
+
+    [HttpGet("{projectId:guid}/custom-fields")]
+    public async Task<ActionResult<List<ProjectCustomFieldValueDto>>> GetCustomFields(Guid projectId)
+    {
+        return Ok(await Mediator.Send(new GetProjectCustomFieldValuesQuery(projectId)));
+    }
+
+    [HttpPut("{projectId:guid}/custom-fields")]
+    public async Task<IActionResult> SaveCustomFields(Guid projectId, SaveProjectCustomFieldValuesCommand command)
+    {
+        if (projectId != command.ProjectId) return BadRequest("Route projectId does not match command projectId.");
+        await Mediator.Send(command);
+        return NoContent();
+    }
+
+    // --- GitHub Integration ---
+
+    [HttpPost("{projectId:guid}/github/link")]
+    public async Task<IActionResult> LinkGitHubRepo(Guid projectId, LinkGitHubRepoCommand command)
+    {
+        if (projectId != command.ProjectId) return BadRequest("Route projectId does not match command projectId.");
+        await Mediator.Send(command);
+        return NoContent();
+    }
+
+    [HttpPost("{projectId:guid}/github/unlink")]
+    public async Task<IActionResult> UnlinkGitHubRepo(Guid projectId)
+    {
+        await Mediator.Send(new UnlinkGitHubRepoCommand(projectId));
+        return NoContent();
+    }
+
+    [HttpPost("{projectId:guid}/github/test")]
+    public async Task<ActionResult<TestGitHubConnectionResult>> TestGitHubConnection(Guid projectId)
+    {
+        var result = await Mediator.Send(new TestGitHubConnectionQuery(projectId));
+        return result.Success ? Ok(result) : BadRequest(result);
+    }
+
+    [HttpPost("{projectId:guid}/github/sync")]
+    public async Task<ActionResult<TriggerGitHubSyncResult>> TriggerGitHubSync(Guid projectId)
+    {
+        var result = await Mediator.Send(new TriggerGitHubSyncCommand(projectId));
+        return result.Error == null ? Ok(result) : BadRequest(result);
+    }
 }
+
+

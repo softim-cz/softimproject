@@ -18,6 +18,10 @@ public class User : BaseEntity
     public string? CorporateRole { get; set; }
     public string? CompanyName { get; set; }
 
+    // GitHub OAuth
+    public string? GitHubAccessToken { get; set; }
+    public string? GitHubLogin { get; set; }
+
     // Navigation properties
     public ICollection<ProjectMember> ProjectMembers { get; set; } = new List<ProjectMember>();
     public ICollection<Worklog> Worklogs { get; set; } = new List<Worklog>();

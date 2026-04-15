@@ -1,16 +1,28 @@
+using MediatR;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Identity.Web;
+using SoftimProject.Application;
+using SoftimProject.Application.Features.Worklogs.CreateWorklog;
 using SoftimProject.Application.Interfaces;
-using SoftimProject.Infrastructure;
 using SoftimProject.Infrastructure.Persistence;
+using SoftimProject.Infrastructure.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddOpenApi();
+builder.Services.AddApplicationServices();
 
-// Add infrastructure for DB access
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 builder.Services.AddScoped<IApplicationDbContext>(provider => provider.GetRequiredService<ApplicationDbContext>());
+
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
+
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddMicrosoftIdentityWebApi(builder.Configuration.GetSection("AzureAd"));
+builder.Services.AddAuthorization();
 
 var app = builder.Build();
 
@@ -19,62 +31,123 @@ if (app.Environment.IsDevelopment())
     app.MapOpenApi();
 }
 
-// MCP-compatible tool endpoints for AI assistants
+app.UseAuthentication();
+app.UseAuthorization();
+app.Use(async (context, next) =>
+{
+    if (context.User.Identity?.IsAuthenticated == true)
+    {
+        var currentUserService = context.RequestServices.GetRequiredService<ICurrentUserService>();
+        await currentUserService.InitializeAsync(context.RequestAborted);
+    }
 
-// List projects
-app.MapGet("/tools/projects", async (IApplicationDbContext db, CancellationToken ct) =>
+    await next();
+});
+
+var tools = app.MapGroup("/tools").RequireAuthorization();
+
+tools.MapGet("/projects", async (IApplicationDbContext db, CancellationToken ct) =>
 {
     var projects = await db.Projects
-        .Select(p => new { p.Id, p.Name, p.Code, Status = p.Status.ToString(), p.SpentHours, p.BudgetHours, p.HealthScore })
+        .AsNoTracking()
+        .Select(p => new
+        {
+            p.Id,
+            p.Name,
+            p.Code,
+            Status = p.Status.ToString(),
+            p.SpentHours,
+            p.BudgetHours,
+            p.HealthScore
+        })
         .ToListAsync(ct);
+
     return Results.Ok(projects);
 }).WithName("ListProjects").WithDescription("List all projects with their status and health");
 
-// Get project tickets
-app.MapGet("/tools/projects/{projectId:guid}/tickets", async (Guid projectId, IApplicationDbContext db, CancellationToken ct) =>
+tools.MapGet("/projects/{projectId:guid}/tickets", async (Guid projectId, IApplicationDbContext db, ICurrentUserService currentUserService, CancellationToken ct) =>
 {
+    if (!await currentUserService.HasProjectAccessAsync(projectId, ct))
+    {
+        return Results.Forbid();
+    }
+
     var tickets = await db.Tickets
+        .AsNoTracking()
         .Where(t => t.ProjectId == projectId)
-        .Select(t => new { t.Id, t.Title, Status = t.Status.ToString(), Priority = t.Priority.ToString(), Assignee = t.Assignee != null ? t.Assignee.DisplayName : null, t.DueDate })
+        .Select(t => new
+        {
+            t.Id,
+            t.Title,
+            Status = t.TaskState.Name,
+            Priority = t.TicketPriority.Name,
+            Assignee = t.Assignee != null ? t.Assignee.DisplayName : null,
+            t.DueDate
+        })
         .ToListAsync(ct);
+
     return Results.Ok(tickets);
 }).WithName("GetProjectTickets").WithDescription("Get all tickets for a specific project");
 
-// Get ticket details
-app.MapGet("/tools/tickets/{ticketId:guid}", async (Guid ticketId, IApplicationDbContext db, CancellationToken ct) =>
+tools.MapGet("/tickets/{ticketId:guid}", async (Guid ticketId, IApplicationDbContext db, ICurrentUserService currentUserService, CancellationToken ct) =>
 {
     var ticket = await db.Tickets
+        .AsNoTracking()
         .Where(t => t.Id == ticketId)
-        .Select(t => new { t.Id, t.Title, t.Description, Status = t.Status.ToString(), Priority = t.Priority.ToString(), t.AiSummary, Assignee = t.Assignee != null ? t.Assignee.DisplayName : null })
+        .Select(t => new
+        {
+            t.Id,
+            t.Title,
+            t.Description,
+            Status = t.TaskState.Name,
+            Priority = t.TicketPriority.Name,
+            t.AiSummary,
+            Assignee = t.Assignee != null ? t.Assignee.DisplayName : null,
+            t.ProjectId
+        })
         .FirstOrDefaultAsync(ct);
-    return ticket is not null ? Results.Ok(ticket) : Results.NotFound();
+
+    if (ticket is null)
+    {
+        return Results.NotFound();
+    }
+
+    if (!await currentUserService.HasProjectAccessAsync(ticket.ProjectId, ct))
+    {
+        return Results.Forbid();
+    }
+
+    return Results.Ok(ticket);
 }).WithName("GetTicketDetails").WithDescription("Get detailed information about a specific ticket");
 
-// Log worklog
-app.MapPost("/tools/worklogs", async (CreateWorklogRequest request, IApplicationDbContext db, CancellationToken ct) =>
+tools.MapPost("/worklogs", async (CreateWorklogRequest request, IMediator mediator, ICurrentUserService currentUserService, CancellationToken ct) =>
 {
-    var worklog = new SoftimProject.Domain.Entities.Worklog
+    if (!await currentUserService.HasProjectAccessAsync(request.ProjectId, ct))
     {
-        Id = Guid.NewGuid(),
-        ProjectId = request.ProjectId,
-        TicketId = request.TicketId,
-        UserId = request.UserId,
-        Date = DateOnly.Parse(request.Date),
-        Hours = request.Hours,
-        Description = request.Description,
-        Source = SoftimProject.Domain.Enums.WorklogSource.Sync,
-        IsBillable = true,
-        CreatedAt = DateTime.UtcNow
-    };
-    db.Worklogs.Add(worklog);
-    await db.SaveChangesAsync(ct);
-    return Results.Created($"/tools/worklogs/{worklog.Id}", new { worklog.Id });
+        return Results.Forbid();
+    }
+
+    var id = await mediator.Send(
+        new CreateWorklogCommand(
+            request.ProjectId,
+            request.TicketId,
+            DateOnly.Parse(request.Date),
+            request.Hours,
+            request.Description,
+            request.IsBillable),
+        ct);
+
+    return Results.Created($"/tools/worklogs/{id}", new { Id = id });
 }).WithName("LogWorklog").WithDescription("Create a worklog entry for a project");
 
-// Get worklogs summary
-app.MapGet("/tools/projects/{projectId:guid}/worklogs", async (Guid projectId, string? from, string? to, IApplicationDbContext db, CancellationToken ct) =>
+tools.MapGet("/projects/{projectId:guid}/worklogs", async (Guid projectId, string? from, string? to, IApplicationDbContext db, ICurrentUserService currentUserService, CancellationToken ct) =>
 {
-    var query = db.Worklogs.Where(w => w.ProjectId == projectId);
+    if (!await currentUserService.HasProjectAccessAsync(projectId, ct))
+    {
+        return Results.Forbid();
+    }
+
+    var query = db.Worklogs.AsNoTracking().Where(w => w.ProjectId == projectId);
 
     if (DateOnly.TryParse(from, out var fromDate))
         query = query.Where(w => w.Date >= fromDate);
@@ -91,4 +164,6 @@ app.MapGet("/tools/projects/{projectId:guid}/worklogs", async (Guid projectId, s
 
 app.Run();
 
-record CreateWorklogRequest(Guid ProjectId, Guid? TicketId, Guid UserId, string Date, decimal Hours, string? Description);
+record CreateWorklogRequest(Guid ProjectId, Guid? TicketId, string Date, decimal Hours, string? Description, bool IsBillable);
+
+

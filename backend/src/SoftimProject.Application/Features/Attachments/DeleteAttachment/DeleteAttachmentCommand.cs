@@ -1,5 +1,4 @@
 using MediatR;
-using Microsoft.EntityFrameworkCore;
 using SoftimProject.Application.Common;
 using SoftimProject.Application.Interfaces;
 
@@ -16,11 +15,12 @@ public sealed class DeleteAttachmentCommandHandler(
 {
     public async Task Handle(DeleteAttachmentCommand request, CancellationToken cancellationToken)
     {
-        var attachment = await dbContext.TicketAttachments
-            .FirstOrDefaultAsync(a => a.Id == request.AttachmentId && a.TicketId == request.TicketId, cancellationToken)
-            ?? throw new NotFoundException(nameof(Domain.Entities.TicketAttachment), request.AttachmentId);
+        var attachment = await dbContext.GetTicketAttachmentForProjectAsync(
+            request.ProjectId,
+            request.TicketId,
+            request.AttachmentId,
+            cancellationToken);
 
-        // Extract blob name from URL for deletion
         var blobName = new Uri(attachment.BlobUrl).AbsolutePath.TrimStart('/');
         await blobStorageService.DeleteAsync("ticket-attachments", blobName, cancellationToken);
 

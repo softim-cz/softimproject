@@ -10,6 +10,7 @@ namespace SoftimProject.Application.Features.Projects.UpdateProject;
 public sealed record UpdateProjectCommand(
     Guid Id,
     string Name,
+    string? Code,
     string? Description,
     ProjectStatus Status,
     decimal? BudgetHours,
@@ -20,7 +21,12 @@ public sealed record UpdateProjectCommand(
     Guid? CompanyId = null,
     Guid? ProjectTypeId = null,
     Guid? ProjectStateId = null,
-    Guid? ParentProjectId = null) : IRequest, IRequireProjectAccess
+    Guid? ParentProjectId = null,
+    string? ExternalSystem = null,
+    string? ExternalProjectId = null,
+    string? ExternalApiToken = null,
+    string? WebhookSecret = null,
+    bool? ClientAccessEnabled = null) : IRequest, IRequireProjectAccess
 {
     public Guid ProjectId => Id;
 }
@@ -30,6 +36,9 @@ public sealed class UpdateProjectCommandValidator : AbstractValidator<UpdateProj
     public UpdateProjectCommandValidator()
     {
         RuleFor(x => x.Name).NotEmpty().MaximumLength(200);
+        RuleFor(x => x.Code).MinimumLength(2).MaximumLength(6)
+            .Matches("^[A-Z]+$").WithMessage("Code must be uppercase letters only.")
+            .When(x => !string.IsNullOrEmpty(x.Code));
         RuleFor(x => x.Description).MaximumLength(2000);
         RuleFor(x => x.BudgetHours).GreaterThan(0).When(x => x.BudgetHours.HasValue);
         RuleFor(x => x.BudgetAmount).GreaterThan(0).When(x => x.BudgetAmount.HasValue);
@@ -57,6 +66,30 @@ public sealed class UpdateProjectCommandHandler(
         project.ProjectTypeId = request.ProjectTypeId;
         project.ProjectStateId = request.ProjectStateId;
         project.ParentProjectId = request.ParentProjectId;
+        project.ExternalSystem = request.ExternalSystem;
+        project.ExternalProjectId = request.ExternalProjectId;
+        project.ExternalApiToken = request.ExternalApiToken;
+        project.WebhookSecret = request.WebhookSecret;
+
+        if (!string.IsNullOrEmpty(request.Code) && request.Code != project.Code)
+        {
+            var codeExists = await dbContext.Projects
+                .AnyAsync(p => p.Code == request.Code && p.Id != request.Id, cancellationToken);
+            if (codeExists)
+                throw new ValidationException("Code is already in use by another project.");
+
+            project.Code = request.Code;
+        }
+
+        if (request.ClientAccessEnabled.HasValue)
+        {
+            project.ClientAccessEnabled = request.ClientAccessEnabled.Value;
+
+            if (request.ClientAccessEnabled.Value && string.IsNullOrEmpty(project.ClientAccessToken))
+            {
+                project.ClientAccessToken = Guid.NewGuid().ToString("N");
+            }
+        }
 
         await dbContext.SaveChangesAsync(cancellationToken);
     }

@@ -5,11 +5,14 @@ using SoftimProject.Domain.Enums;
 
 namespace SoftimProject.Application.Features.Comments.GetComments;
 
+public sealed record CommentAuthorDto(
+    Guid Id,
+    string DisplayName,
+    string? AvatarUrl);
+
 public sealed record CommentDto(
     Guid Id,
-    Guid AuthorId,
-    string AuthorDisplayName,
-    string? AuthorAvatarUrl,
+    CommentAuthorDto Author,
     string Content,
     bool IsInternal,
     CommentSource Source,
@@ -27,13 +30,12 @@ public sealed class GetCommentsQueryHandler(
     public async Task<List<CommentDto>> Handle(GetCommentsQuery request, CancellationToken cancellationToken)
     {
         return await dbContext.Comments
-            .Where(c => c.TicketId == request.TicketId)
+            .AsNoTracking()
+            .Where(c => c.TicketId == request.TicketId && c.Ticket != null && c.Ticket.ProjectId == request.ProjectId)
             .OrderByDescending(c => c.CreatedAt)
             .Select(c => new CommentDto(
                 c.Id,
-                c.AuthorId,
-                c.Author.DisplayName,
-                c.Author.AvatarUrl,
+                new CommentAuthorDto(c.AuthorId, c.Author.DisplayName, c.Author.AvatarUrl),
                 c.Content,
                 c.IsInternal,
                 c.Source,

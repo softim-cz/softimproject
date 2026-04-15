@@ -2,10 +2,11 @@ using Microsoft.AspNetCore.Mvc;
 using SoftimProject.Application.Features.Tickets.CreateTicket;
 using SoftimProject.Application.Features.Tickets.DeleteTicket;
 using SoftimProject.Application.Features.Tickets.GetTicketById;
+using SoftimProject.Application.Features.Tickets.GetTicketByNumber;
 using SoftimProject.Application.Features.Tickets.GetTickets;
 using SoftimProject.Application.Features.Tickets.MoveTicket;
 using SoftimProject.Application.Features.Tickets.UpdateTicket;
-using SoftimProject.Domain.Enums;
+using SoftimProject.Application.Features.Tickets;
 
 namespace SoftimProject.WebApi.Controllers;
 
@@ -15,18 +16,41 @@ public class TicketsController : ApiControllerBase
     [HttpGet]
     public async Task<ActionResult<List<TicketListItemDto>>> GetAll(
         Guid projectId,
-        [FromQuery] TicketStatus? status = null,
-        [FromQuery] TicketPriority? priority = null,
+        [FromQuery] Guid? taskStateId = null,
+        [FromQuery] Guid? ticketPriorityId = null,
         [FromQuery] Guid? assigneeId = null,
-        [FromQuery] string? search = null)
+        [FromQuery] string? search = null,
+        [FromQuery] Guid? taskTypeId = null,
+        [FromQuery] string? taskStateName = null,
+        [FromQuery] string? ticketPriorityName = null,
+        [FromQuery] string? assignee = null,
+        [FromQuery] string? taskTypeName = null,
+        [FromQuery] DateOnly? dueDate = null)
     {
-        return Ok(await Mediator.Send(new GetTicketsQuery(projectId, status, priority, assigneeId, search)));
+        return Ok(await Mediator.Send(new GetTicketsQuery(
+            projectId,
+            taskStateId,
+            ticketPriorityId,
+            assigneeId,
+            search,
+            taskTypeId,
+            taskStateName,
+            ticketPriorityName,
+            assignee,
+            taskTypeName,
+            dueDate)));
     }
 
     [HttpGet("{ticketId:guid}")]
     public async Task<ActionResult<TicketDetailDto>> GetById(Guid projectId, Guid ticketId)
     {
         return Ok(await Mediator.Send(new GetTicketByIdQuery(projectId, ticketId)));
+    }
+
+    [HttpGet("by-number/{number:int}")]
+    public async Task<ActionResult<TicketDetailDto>> GetByNumber(Guid projectId, int number)
+    {
+        return Ok(await Mediator.Send(new GetTicketByNumberQuery(projectId, number)));
     }
 
     [HttpPost]
@@ -62,3 +86,5 @@ public class TicketsController : ApiControllerBase
         return NoContent();
     }
 }
+
+

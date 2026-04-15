@@ -11,6 +11,10 @@ public class TaskState : BaseEntity
     public bool IsDefault { get; set; }
     public bool IsClosedState { get; set; }
 
+    // Template FK
+    public Guid ProjectTemplateId { get; set; }
+    public ProjectTemplate ProjectTemplate { get; set; } = null!;
+
     // Navigation properties
     public ICollection<Ticket> Tickets { get; set; } = new List<Ticket>();
     public ICollection<KanbanColumn> KanbanColumns { get; set; } = new List<KanbanColumn>();

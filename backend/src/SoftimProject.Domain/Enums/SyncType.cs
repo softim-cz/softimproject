@@ -4,5 +4,7 @@ public enum SyncType
 {
     Jira,
     Redmine,
-    Email
+    Email,
+    GitHub,
+    EasyProject
 }

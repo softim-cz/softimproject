@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useWorklogs, useCreateWorklog } from "@/queries/worklogs";
 import { useProjects } from "@/queries/projects";
 import { useTimerStore } from "@/stores/timer-store";
@@ -16,14 +16,7 @@ import {
 import { toast } from "sonner";
 import { format, startOfWeek, endOfWeek } from "date-fns";
 import type { Worklog, Project } from "@/types";
-import { useEffect } from "react";
-
-function formatElapsed(seconds: number) {
-  const h = Math.floor(seconds / 3600);
-  const m = Math.floor((seconds % 3600) / 60);
-  const s = seconds % 60;
-  return `${h.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
-}
+import { formatElapsedTime } from "@/lib/utils";
 
 function TimerDisplay() {
   const {
@@ -34,17 +27,11 @@ function TimerDisplay() {
     stop,
     reset,
     description,
-    projectId,
   } = useTimerStore();
   const { data: projects } = useProjects();
   const createWorklog = useCreateWorklog();
   const [timerProjectId, setTimerProjectId] = useState("");
   const [timerDescription, setTimerDescription] = useState("");
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
 
   useEffect(() => {
     if (!isRunning) return;
@@ -78,8 +65,6 @@ function TimerDisplay() {
       }
     }
   };
-
-  if (!mounted) return null;
 
   return (
     <div className="rounded-lg border border-border bg-card p-5">
@@ -123,7 +108,7 @@ function TimerDisplay() {
             {description || "Timer running..."}
           </p>
           <p className="text-3xl font-mono font-bold text-accent-orange">
-            {formatElapsed(elapsed)}
+            {formatElapsedTime(elapsed)}
           </p>
           <button
             onClick={handleStop}
@@ -313,12 +298,10 @@ export default function WorklogsPage() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Timer */}
         <div className="lg:col-span-1">
           <TimerDisplay />
         </div>
 
-        {/* Stats */}
         <div className="lg:col-span-2">
           <div className="rounded-lg border border-border bg-card p-5">
             <div className="flex items-center justify-between mb-4">
@@ -330,7 +313,6 @@ export default function WorklogsPage() {
               </p>
             </div>
 
-            {/* Date range filter */}
             <div className="flex gap-3 mb-4">
               <div>
                 <label className="block text-xs text-muted-foreground mb-1">

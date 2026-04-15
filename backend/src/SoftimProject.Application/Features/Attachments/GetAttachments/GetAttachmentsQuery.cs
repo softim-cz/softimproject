@@ -22,11 +22,18 @@ public sealed class GetAttachmentsQueryHandler(IApplicationDbContext dbContext)
     public async Task<List<AttachmentDto>> Handle(GetAttachmentsQuery request, CancellationToken cancellationToken)
     {
         return await dbContext.TicketAttachments
-            .Where(a => a.TicketId == request.TicketId)
+            .AsNoTracking()
+            .Where(a => a.TicketId == request.TicketId && a.Ticket.ProjectId == request.ProjectId)
             .OrderByDescending(a => a.CreatedAt)
             .Select(a => new AttachmentDto(
-                a.Id, a.TicketId, a.FileName, a.BlobUrl, a.ContentType,
-                a.FileSizeBytes, a.UploadedBy.DisplayName, a.CreatedAt))
+                a.Id,
+                a.TicketId,
+                a.FileName,
+                a.BlobUrl,
+                a.ContentType,
+                a.FileSizeBytes,
+                a.UploadedBy.DisplayName,
+                a.CreatedAt))
             .ToListAsync(cancellationToken);
     }
 }

@@ -3,16 +3,14 @@
 import { X, ExternalLink } from "lucide-react";
 import Link from "next/link";
 import { PriorityBadge } from "@/components/shared/priority-badge";
-import { StatusBadge, DynamicStateBadge } from "@/components/shared/status-badge";
+import { StatusBadge } from "@/components/shared/status-badge";
 import type { Ticket } from "@/types";
 
 export function TaskPreviewSidebar({
-  ticket,
-  projectId,
+  ticket,  code,
   onClose,
 }: {
-  ticket: Ticket | null;
-  projectId: string;
+  ticket: Ticket | null;  code: string;
   onClose: () => void;
 }) {
   if (!ticket) return null;
@@ -22,11 +20,12 @@ export function TaskPreviewSidebar({
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-border">
         <h3 className="text-sm font-semibold text-foreground truncate flex-1">
+          <span className="font-mono text-muted-foreground mr-1">{ticket.key}</span>
           {ticket.title}
         </h3>
         <div className="flex items-center gap-1 ml-2">
           <Link
-            href={`/projects/${projectId}/tickets/${ticket.id}`}
+            href={`/projects/${code}/tickets/${ticket.key}`}
             className="p-1 text-muted-foreground hover:text-foreground rounded"
           >
             <ExternalLink className="h-4 w-4" />
@@ -44,11 +43,8 @@ export function TaskPreviewSidebar({
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
         {/* Status & Priority */}
         <div className="flex items-center gap-2 flex-wrap">
-          <StatusBadge status={ticket.status} />
-          <PriorityBadge priority={ticket.priority} />
-          {ticket.taskStateName && ticket.taskStateColor && (
-            <DynamicStateBadge name={ticket.taskStateName} color={ticket.taskStateColor} />
-          )}
+          <StatusBadge name={ticket.taskStateName} color={ticket.taskStateColor} />
+          <PriorityBadge name={ticket.ticketPriorityName} color={ticket.ticketPriorityColor} />
         </div>
 
         {/* Task Type */}
@@ -121,3 +117,5 @@ export function TaskPreviewSidebar({
     </div>
   );
 }
+
+

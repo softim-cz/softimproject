@@ -1,0 +1,19 @@
+using SoftimProject.Domain.Common;
+
+namespace SoftimProject.Domain.Entities;
+
+public class TicketPriority : BaseEntity
+{
+    public string Name { get; set; } = string.Empty;
+    public string Color { get; set; } = string.Empty;
+    public int SortOrder { get; set; }
+    public bool IsActive { get; set; } = true;
+    public bool IsDefault { get; set; }
+
+    // Template FK
+    public Guid ProjectTemplateId { get; set; }
+    public ProjectTemplate ProjectTemplate { get; set; } = null!;
+
+    // Navigation properties
+    public ICollection<Ticket> Tickets { get; set; } = new List<Ticket>();
+}

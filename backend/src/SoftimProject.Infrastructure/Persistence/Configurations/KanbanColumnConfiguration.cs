@@ -12,9 +12,14 @@ public sealed class KanbanColumnConfiguration : IEntityTypeConfiguration<KanbanC
         builder.HasKey(kc => kc.Id);
 
         builder.Property(kc => kc.Name).HasMaxLength(200).IsRequired();
-        builder.Property(kc => kc.MapsToStatus).HasConversion<string>().HasMaxLength(50);
+
+        builder.Property(kc => kc.Color).HasMaxLength(9);
 
         builder.HasOne(kc => kc.Board).WithMany(kb => kb.Columns).HasForeignKey(kc => kc.BoardId).OnDelete(DeleteBehavior.Cascade);
-        builder.HasOne(kc => kc.MapsToTaskState).WithMany(ts => ts.KanbanColumns).HasForeignKey(kc => kc.MapsToTaskStateId).OnDelete(DeleteBehavior.Restrict);
+        builder.HasMany(kc => kc.MapsToTaskStates)
+            .WithMany(ts => ts.KanbanColumns)
+            .UsingEntity("KanbanColumnTaskState",
+                l => l.HasOne(typeof(TaskState)).WithMany().HasForeignKey("TaskStateId").OnDelete(DeleteBehavior.Cascade),
+                r => r.HasOne(typeof(KanbanColumn)).WithMany().HasForeignKey("KanbanColumnId").OnDelete(DeleteBehavior.Cascade));
     }
 }

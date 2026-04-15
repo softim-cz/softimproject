@@ -6,5 +6,7 @@ public enum CommentSource
     Jira,
     Redmine,
     Email,
-    AI
+    AI,
+    GitHub,
+    EasyProject
 }

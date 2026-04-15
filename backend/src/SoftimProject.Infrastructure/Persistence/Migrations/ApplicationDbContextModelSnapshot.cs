@@ -22,6 +22,21 @@ namespace SoftimProject.Infrastructure.Persistence.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
+            modelBuilder.Entity("KanbanColumnTaskState", b =>
+                {
+                    b.Property<Guid>("KanbanColumnId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("TaskStateId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("KanbanColumnId", "TaskStateId");
+
+                    b.HasIndex("TaskStateId");
+
+                    b.ToTable("KanbanColumnTaskState");
+                });
+
             modelBuilder.Entity("SoftimProject.Domain.Entities.AiReport", b =>
                 {
                     b.Property<Guid>("Id")
@@ -136,6 +151,10 @@ namespace SoftimProject.Infrastructure.Persistence.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
+                    b.Property<string>("ExternalId")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
                     b.Property<bool>("IsCompleted")
                         .HasColumnType("bit");
 
@@ -247,6 +266,57 @@ namespace SoftimProject.Infrastructure.Persistence.Migrations
                     b.ToTable("Companies", (string)null);
                 });
 
+            modelBuilder.Entity("SoftimProject.Domain.Entities.CustomFieldDefinition", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("AppliesTo")
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<string>("FieldType")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsRequired")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("Options")
+                        .HasMaxLength(4000)
+                        .HasColumnType("nvarchar(4000)");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Name")
+                        .IsUnique();
+
+                    b.ToTable("CustomFieldDefinitions", (string)null);
+                });
+
             modelBuilder.Entity("SoftimProject.Domain.Entities.KanbanBoard", b =>
                 {
                     b.Property<Guid>("Id")
@@ -286,16 +356,12 @@ namespace SoftimProject.Infrastructure.Persistence.Migrations
                     b.Property<Guid>("BoardId")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<string>("Color")
+                        .HasMaxLength(9)
+                        .HasColumnType("nvarchar(9)");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
-
-                    b.Property<string>("MapsToStatus")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.Property<Guid?>("MapsToTaskStateId")
-                        .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -312,9 +378,98 @@ namespace SoftimProject.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("BoardId");
 
-                    b.HasIndex("MapsToTaskStateId");
-
                     b.ToTable("KanbanColumns", (string)null);
+                });
+
+            modelBuilder.Entity("SoftimProject.Domain.Entities.MigrationJob", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("AttachmentsMigrated")
+                        .HasColumnType("int");
+
+                    b.Property<int>("AttachmentsTotal")
+                        .HasColumnType("int");
+
+                    b.Property<int>("CommentsMigrated")
+                        .HasColumnType("int");
+
+                    b.Property<int>("CommentsTotal")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("CompletedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Configuration")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("ErrorLog")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<Guid>("InitiatedByUserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("ItemsCreated")
+                        .HasColumnType("int");
+
+                    b.Property<int>("ItemsFailed")
+                        .HasColumnType("int");
+
+                    b.Property<int>("ItemsSkipped")
+                        .HasColumnType("int");
+
+                    b.Property<int>("ItemsUpdated")
+                        .HasColumnType("int");
+
+                    b.Property<int>("ProjectsMigrated")
+                        .HasColumnType("int");
+
+                    b.Property<int>("ProjectsTotal")
+                        .HasColumnType("int");
+
+                    b.Property<string>("SourceBaseUrl")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("SourceSystem")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<DateTime>("StartedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<int>("TicketsMigrated")
+                        .HasColumnType("int");
+
+                    b.Property<int>("TicketsTotal")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("WorklogsMigrated")
+                        .HasColumnType("int");
+
+                    b.Property<int>("WorklogsTotal")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("InitiatedByUserId");
+
+                    b.ToTable("MigrationJobs", (string)null);
                 });
 
             modelBuilder.Entity("SoftimProject.Domain.Entities.Notification", b =>
@@ -418,6 +573,9 @@ namespace SoftimProject.Infrastructure.Persistence.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
 
+                    b.Property<Guid?>("GitHubConnectedByUserId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<int>("HealthScore")
                         .HasColumnType("int");
 
@@ -432,10 +590,18 @@ namespace SoftimProject.Infrastructure.Persistence.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
 
+                    b.Property<int>("NextTicketNumber")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(1);
+
                     b.Property<Guid?>("ParentProjectId")
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<Guid?>("ProjectStateId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("ProjectTemplateId")
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<Guid?>("ProjectTypeId")
@@ -460,6 +626,10 @@ namespace SoftimProject.Infrastructure.Persistence.Migrations
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime2");
 
+                    b.Property<string>("WebhookSecret")
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
                     b.HasKey("Id");
 
                     b.HasIndex("ClientAccessToken")
@@ -475,9 +645,43 @@ namespace SoftimProject.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("ProjectStateId");
 
+                    b.HasIndex("ProjectTemplateId");
+
                     b.HasIndex("ProjectTypeId");
 
                     b.ToTable("Projects", (string)null);
+                });
+
+            modelBuilder.Entity("SoftimProject.Domain.Entities.ProjectCustomFieldValue", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("CustomFieldDefinitionId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("ProjectId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Value")
+                        .HasMaxLength(4000)
+                        .HasColumnType("nvarchar(4000)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CustomFieldDefinitionId");
+
+                    b.HasIndex("ProjectId", "CustomFieldDefinitionId")
+                        .IsUnique();
+
+                    b.ToTable("ProjectCustomFieldValues", (string)null);
                 });
 
             modelBuilder.Entity("SoftimProject.Domain.Entities.ProjectMember", b =>
@@ -551,6 +755,69 @@ namespace SoftimProject.Infrastructure.Persistence.Migrations
                         .IsUnique();
 
                     b.ToTable("ProjectStates", (string)null);
+                });
+
+            modelBuilder.Entity("SoftimProject.Domain.Entities.ProjectTemplate", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Name")
+                        .IsUnique();
+
+                    b.ToTable("ProjectTemplates", (string)null);
+                });
+
+            modelBuilder.Entity("SoftimProject.Domain.Entities.ProjectTemplateField", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("CustomFieldDefinitionId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("ProjectTemplateId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CustomFieldDefinitionId");
+
+                    b.HasIndex("ProjectTemplateId", "CustomFieldDefinitionId")
+                        .IsUnique();
+
+                    b.ToTable("ProjectTemplateFields", (string)null);
                 });
 
             modelBuilder.Entity("SoftimProject.Domain.Entities.ProjectType", b =>
@@ -705,6 +972,9 @@ namespace SoftimProject.Infrastructure.Persistence.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
 
+                    b.Property<Guid>("ProjectTemplateId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<int>("SortOrder")
                         .HasColumnType("int");
 
@@ -713,7 +983,7 @@ namespace SoftimProject.Infrastructure.Persistence.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("Name")
+                    b.HasIndex("ProjectTemplateId", "Name")
                         .IsUnique();
 
                     b.ToTable("TaskStates", (string)null);
@@ -809,16 +1079,14 @@ namespace SoftimProject.Infrastructure.Persistence.Migrations
                         .HasMaxLength(2000)
                         .HasColumnType("nvarchar(2000)");
 
+                    b.Property<int>("Number")
+                        .HasColumnType("int");
+
                     b.Property<Guid?>("ParentTicketId")
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<double>("Position")
                         .HasColumnType("float");
-
-                    b.Property<string>("Priority")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
 
                     b.Property<Guid>("ProjectId")
                         .HasColumnType("uniqueidentifier");
@@ -826,15 +1094,13 @@ namespace SoftimProject.Infrastructure.Persistence.Migrations
                     b.Property<Guid>("ReporterId")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.Property<Guid?>("TaskStateId")
+                    b.Property<Guid>("TaskStateId")
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<Guid?>("TaskTypeId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("TicketPriorityId")
                         .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("Title")
@@ -861,7 +1127,12 @@ namespace SoftimProject.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("TaskTypeId");
 
-                    b.HasIndex("ProjectId", "Status");
+                    b.HasIndex("TicketPriorityId");
+
+                    b.HasIndex("ProjectId", "Number")
+                        .IsUnique();
+
+                    b.HasIndex("ProjectId", "TaskStateId");
 
                     b.ToTable("Tickets", (string)null);
                 });
@@ -908,6 +1179,80 @@ namespace SoftimProject.Infrastructure.Persistence.Migrations
                     b.ToTable("TicketAttachments", (string)null);
                 });
 
+            modelBuilder.Entity("SoftimProject.Domain.Entities.TicketCustomFieldValue", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("CustomFieldDefinitionId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("TicketId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Value")
+                        .HasMaxLength(4000)
+                        .HasColumnType("nvarchar(4000)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CustomFieldDefinitionId");
+
+                    b.HasIndex("TicketId", "CustomFieldDefinitionId")
+                        .IsUnique();
+
+                    b.ToTable("TicketCustomFieldValues", (string)null);
+                });
+
+            modelBuilder.Entity("SoftimProject.Domain.Entities.TicketPriority", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Color")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsDefault")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<Guid>("ProjectTemplateId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProjectTemplateId", "Name")
+                        .IsUnique();
+
+                    b.ToTable("TicketPriorities", (string)null);
+                });
+
             modelBuilder.Entity("SoftimProject.Domain.Entities.User", b =>
                 {
                     b.Property<Guid>("Id")
@@ -947,6 +1292,14 @@ namespace SoftimProject.Infrastructure.Persistence.Migrations
                     b.Property<string>("FirstName")
                         .HasMaxLength(256)
                         .HasColumnType("nvarchar(256)");
+
+                    b.Property<string>("GitHubAccessToken")
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.Property<string>("GitHubLogin")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
 
                     b.Property<string>("GlobalRole")
                         .IsRequired()
@@ -1053,6 +1406,10 @@ namespace SoftimProject.Infrastructure.Persistence.Migrations
                         .HasMaxLength(2000)
                         .HasColumnType("nvarchar(2000)");
 
+                    b.Property<string>("ExternalId")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
                     b.Property<decimal?>("HourlyRateSnapshot")
                         .HasPrecision(10, 2)
                         .HasColumnType("decimal(10,2)");
@@ -1094,6 +1451,21 @@ namespace SoftimProject.Infrastructure.Persistence.Migrations
                     b.HasIndex("UserId", "Date");
 
                     b.ToTable("Worklogs", (string)null);
+                });
+
+            modelBuilder.Entity("KanbanColumnTaskState", b =>
+                {
+                    b.HasOne("SoftimProject.Domain.Entities.KanbanColumn", null)
+                        .WithMany()
+                        .HasForeignKey("KanbanColumnId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("SoftimProject.Domain.Entities.TaskState", null)
+                        .WithMany()
+                        .HasForeignKey("TaskStateId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("SoftimProject.Domain.Entities.AiReport", b =>
@@ -1162,14 +1534,18 @@ namespace SoftimProject.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("SoftimProject.Domain.Entities.TaskState", "MapsToTaskState")
-                        .WithMany("KanbanColumns")
-                        .HasForeignKey("MapsToTaskStateId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
                     b.Navigation("Board");
+                });
 
-                    b.Navigation("MapsToTaskState");
+            modelBuilder.Entity("SoftimProject.Domain.Entities.MigrationJob", b =>
+                {
+                    b.HasOne("SoftimProject.Domain.Entities.User", "InitiatedBy")
+                        .WithMany()
+                        .HasForeignKey("InitiatedByUserId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
+                    b.Navigation("InitiatedBy");
                 });
 
             modelBuilder.Entity("SoftimProject.Domain.Entities.Notification", b =>
@@ -1200,6 +1576,11 @@ namespace SoftimProject.Infrastructure.Persistence.Migrations
                         .HasForeignKey("ProjectStateId")
                         .OnDelete(DeleteBehavior.Restrict);
 
+                    b.HasOne("SoftimProject.Domain.Entities.ProjectTemplate", "ProjectTemplate")
+                        .WithMany("Projects")
+                        .HasForeignKey("ProjectTemplateId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.HasOne("SoftimProject.Domain.Entities.ProjectType", "ProjectType")
                         .WithMany("Projects")
                         .HasForeignKey("ProjectTypeId")
@@ -1211,7 +1592,28 @@ namespace SoftimProject.Infrastructure.Persistence.Migrations
 
                     b.Navigation("ProjectState");
 
+                    b.Navigation("ProjectTemplate");
+
                     b.Navigation("ProjectType");
+                });
+
+            modelBuilder.Entity("SoftimProject.Domain.Entities.ProjectCustomFieldValue", b =>
+                {
+                    b.HasOne("SoftimProject.Domain.Entities.CustomFieldDefinition", "CustomFieldDefinition")
+                        .WithMany("Values")
+                        .HasForeignKey("CustomFieldDefinitionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("SoftimProject.Domain.Entities.Project", "Project")
+                        .WithMany("CustomFieldValues")
+                        .HasForeignKey("ProjectId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("CustomFieldDefinition");
+
+                    b.Navigation("Project");
                 });
 
             modelBuilder.Entity("SoftimProject.Domain.Entities.ProjectMember", b =>
@@ -1231,6 +1633,25 @@ namespace SoftimProject.Infrastructure.Persistence.Migrations
                     b.Navigation("Project");
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("SoftimProject.Domain.Entities.ProjectTemplateField", b =>
+                {
+                    b.HasOne("SoftimProject.Domain.Entities.CustomFieldDefinition", "CustomFieldDefinition")
+                        .WithMany("TemplateFields")
+                        .HasForeignKey("CustomFieldDefinitionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("SoftimProject.Domain.Entities.ProjectTemplate", "ProjectTemplate")
+                        .WithMany("Fields")
+                        .HasForeignKey("ProjectTemplateId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("CustomFieldDefinition");
+
+                    b.Navigation("ProjectTemplate");
                 });
 
             modelBuilder.Entity("SoftimProject.Domain.Entities.SavedFilter", b =>
@@ -1259,6 +1680,17 @@ namespace SoftimProject.Infrastructure.Persistence.Migrations
                         .IsRequired();
 
                     b.Navigation("Project");
+                });
+
+            modelBuilder.Entity("SoftimProject.Domain.Entities.TaskState", b =>
+                {
+                    b.HasOne("SoftimProject.Domain.Entities.ProjectTemplate", "ProjectTemplate")
+                        .WithMany("TaskStates")
+                        .HasForeignKey("ProjectTemplateId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("ProjectTemplate");
                 });
 
             modelBuilder.Entity("SoftimProject.Domain.Entities.Ticket", b =>
@@ -1293,12 +1725,19 @@ namespace SoftimProject.Infrastructure.Persistence.Migrations
                     b.HasOne("SoftimProject.Domain.Entities.TaskState", "TaskState")
                         .WithMany("Tickets")
                         .HasForeignKey("TaskStateId")
-                        .OnDelete(DeleteBehavior.Restrict);
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
 
                     b.HasOne("SoftimProject.Domain.Entities.TaskType", "TaskType")
                         .WithMany("Tickets")
                         .HasForeignKey("TaskTypeId")
                         .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("SoftimProject.Domain.Entities.TicketPriority", "TicketPriority")
+                        .WithMany("Tickets")
+                        .HasForeignKey("TicketPriorityId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
 
                     b.Navigation("Assignee");
 
@@ -1313,6 +1752,8 @@ namespace SoftimProject.Infrastructure.Persistence.Migrations
                     b.Navigation("TaskState");
 
                     b.Navigation("TaskType");
+
+                    b.Navigation("TicketPriority");
                 });
 
             modelBuilder.Entity("SoftimProject.Domain.Entities.TicketAttachment", b =>
@@ -1332,6 +1773,36 @@ namespace SoftimProject.Infrastructure.Persistence.Migrations
                     b.Navigation("Ticket");
 
                     b.Navigation("UploadedBy");
+                });
+
+            modelBuilder.Entity("SoftimProject.Domain.Entities.TicketCustomFieldValue", b =>
+                {
+                    b.HasOne("SoftimProject.Domain.Entities.CustomFieldDefinition", "CustomFieldDefinition")
+                        .WithMany("TicketValues")
+                        .HasForeignKey("CustomFieldDefinitionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("SoftimProject.Domain.Entities.Ticket", "Ticket")
+                        .WithMany("CustomFieldValues")
+                        .HasForeignKey("TicketId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("CustomFieldDefinition");
+
+                    b.Navigation("Ticket");
+                });
+
+            modelBuilder.Entity("SoftimProject.Domain.Entities.TicketPriority", b =>
+                {
+                    b.HasOne("SoftimProject.Domain.Entities.ProjectTemplate", "ProjectTemplate")
+                        .WithMany("TicketPriorities")
+                        .HasForeignKey("ProjectTemplateId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("ProjectTemplate");
                 });
 
             modelBuilder.Entity("SoftimProject.Domain.Entities.UserApplicationRole", b =>
@@ -1407,6 +1878,15 @@ namespace SoftimProject.Infrastructure.Persistence.Migrations
                     b.Navigation("Projects");
                 });
 
+            modelBuilder.Entity("SoftimProject.Domain.Entities.CustomFieldDefinition", b =>
+                {
+                    b.Navigation("TemplateFields");
+
+                    b.Navigation("TicketValues");
+
+                    b.Navigation("Values");
+                });
+
             modelBuilder.Entity("SoftimProject.Domain.Entities.KanbanBoard", b =>
                 {
                     b.Navigation("Columns");
@@ -1424,6 +1904,8 @@ namespace SoftimProject.Infrastructure.Persistence.Migrations
                     b.Navigation("Boards");
 
                     b.Navigation("Comments");
+
+                    b.Navigation("CustomFieldValues");
 
                     b.Navigation("Members");
 
@@ -1443,6 +1925,17 @@ namespace SoftimProject.Infrastructure.Persistence.Migrations
                     b.Navigation("Projects");
                 });
 
+            modelBuilder.Entity("SoftimProject.Domain.Entities.ProjectTemplate", b =>
+                {
+                    b.Navigation("Fields");
+
+                    b.Navigation("Projects");
+
+                    b.Navigation("TaskStates");
+
+                    b.Navigation("TicketPriorities");
+                });
+
             modelBuilder.Entity("SoftimProject.Domain.Entities.ProjectType", b =>
                 {
                     b.Navigation("Projects");
@@ -1450,8 +1943,6 @@ namespace SoftimProject.Infrastructure.Persistence.Migrations
 
             modelBuilder.Entity("SoftimProject.Domain.Entities.TaskState", b =>
                 {
-                    b.Navigation("KanbanColumns");
-
                     b.Navigation("Tickets");
                 });
 
@@ -1468,9 +1959,16 @@ namespace SoftimProject.Infrastructure.Persistence.Migrations
 
                     b.Navigation("Comments");
 
+                    b.Navigation("CustomFieldValues");
+
                     b.Navigation("SubTickets");
 
                     b.Navigation("Worklogs");
+                });
+
+            modelBuilder.Entity("SoftimProject.Domain.Entities.TicketPriority", b =>
+                {
+                    b.Navigation("Tickets");
                 });
 
             modelBuilder.Entity("SoftimProject.Domain.Entities.User", b =>

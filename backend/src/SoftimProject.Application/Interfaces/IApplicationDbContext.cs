@@ -27,6 +27,13 @@ public interface IApplicationDbContext
     DbSet<TaskState> TaskStates { get; }
     DbSet<ViewConfiguration> ViewConfigurations { get; }
     DbSet<SavedFilter> SavedFilters { get; }
+    DbSet<CustomFieldDefinition> CustomFieldDefinitions { get; }
+    DbSet<ProjectCustomFieldValue> ProjectCustomFieldValues { get; }
+    DbSet<ProjectTemplate> ProjectTemplates { get; }
+    DbSet<ProjectTemplateField> ProjectTemplateFields { get; }
+    DbSet<MigrationJob> MigrationJobs { get; }
+    DbSet<TicketCustomFieldValue> TicketCustomFieldValues { get; }
+    DbSet<TicketPriority> TicketPriorities { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }

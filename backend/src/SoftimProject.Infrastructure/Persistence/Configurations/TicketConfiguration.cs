@@ -13,8 +13,6 @@ public sealed class TicketConfiguration : IEntityTypeConfiguration<Ticket>
 
         builder.Property(t => t.Title).HasMaxLength(500).IsRequired();
         builder.Property(t => t.Description).HasColumnType("nvarchar(max)");
-        builder.Property(t => t.Priority).HasConversion<string>().HasMaxLength(50);
-        builder.Property(t => t.Status).HasConversion<string>().HasMaxLength(50);
         builder.Property(t => t.ExternalId).HasMaxLength(200);
         builder.Property(t => t.ExternalUrl).HasMaxLength(2048);
         builder.Property(t => t.AiSummary).HasColumnType("nvarchar(max)");
@@ -33,9 +31,13 @@ public sealed class TicketConfiguration : IEntityTypeConfiguration<Ticket>
         // Lookup FK
         builder.HasOne(t => t.TaskType).WithMany(tt => tt.Tickets).HasForeignKey(t => t.TaskTypeId).OnDelete(DeleteBehavior.Restrict);
         builder.HasOne(t => t.TaskState).WithMany(ts => ts.Tickets).HasForeignKey(t => t.TaskStateId).OnDelete(DeleteBehavior.Restrict);
+        builder.HasOne(t => t.TicketPriority).WithMany(tp => tp.Tickets).HasForeignKey(t => t.TicketPriorityId).OnDelete(DeleteBehavior.Restrict);
         builder.HasOne(t => t.ParentTicket).WithMany(t => t.SubTickets).HasForeignKey(t => t.ParentTicketId).OnDelete(DeleteBehavior.Restrict);
 
-        builder.HasIndex(t => new { t.ProjectId, t.Status });
+        builder.Property(t => t.Number).IsRequired();
+        builder.HasIndex(t => new { t.ProjectId, t.Number }).IsUnique();
+
+        builder.HasIndex(t => new { t.ProjectId, t.TaskStateId });
         builder.HasIndex(t => t.AssigneeId);
         builder.HasIndex(t => t.ExternalId);
     }

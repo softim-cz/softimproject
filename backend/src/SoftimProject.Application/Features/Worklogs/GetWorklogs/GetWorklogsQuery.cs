@@ -5,6 +5,10 @@ using SoftimProject.Domain.Enums;
 
 namespace SoftimProject.Application.Features.Worklogs.GetWorklogs;
 
+public sealed record WorklogUserDto(
+    Guid Id,
+    string DisplayName);
+
 public sealed record WorklogDto(
     Guid Id,
     Guid ProjectId,
@@ -12,7 +16,7 @@ public sealed record WorklogDto(
     Guid? TicketId,
     string? TicketTitle,
     Guid UserId,
-    string UserDisplayName,
+    WorklogUserDto User,
     DateOnly Date,
     decimal Hours,
     string? Description,
@@ -35,7 +39,7 @@ public sealed class GetWorklogsQueryHandler(
 {
     public async Task<List<WorklogDto>> Handle(GetWorklogsQuery request, CancellationToken cancellationToken)
     {
-        var query = dbContext.Worklogs.AsQueryable();
+        var query = dbContext.Worklogs.AsNoTracking().AsQueryable();
 
         if (request.ProjectId.HasValue)
             query = query.Where(w => w.ProjectId == request.ProjectId.Value);
@@ -49,8 +53,10 @@ public sealed class GetWorklogsQueryHandler(
         if (request.UserId.HasValue)
             query = query.Where(w => w.UserId == request.UserId.Value);
 
-        // Non-admin, non-manager users can only see their own worklogs unless scoped to a project
-        if (!currentUserService.IsInRole("Admin") && !request.ProjectId.HasValue && currentUserService.UserId.HasValue)
+        if (!currentUserService.IsInRole("Admin")
+            && !currentUserService.IsInRole("Manager")
+            && !request.ProjectId.HasValue
+            && currentUserService.UserId.HasValue)
         {
             query = query.Where(w => w.UserId == currentUserService.UserId.Value);
         }
@@ -65,7 +71,7 @@ public sealed class GetWorklogsQueryHandler(
                 w.TicketId,
                 w.Ticket != null ? w.Ticket.Title : null,
                 w.UserId,
-                w.User.DisplayName,
+                new WorklogUserDto(w.UserId, w.User.DisplayName),
                 w.Date,
                 w.Hours,
                 w.Description,

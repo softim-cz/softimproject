@@ -44,8 +44,11 @@ public sealed class GetProjectsQueryHandler(
         var query = dbContext.Projects.AsQueryable();
 
         // Non-admin users only see projects they are members of
-        if (!currentUserService.IsInRole("Admin") && currentUserService.UserId.HasValue)
+        if (!currentUserService.IsInRole("Admin"))
         {
+            if (!currentUserService.UserId.HasValue)
+                return [];
+
             var userId = currentUserService.UserId.Value;
             query = query.Where(p => p.Members.Any(m => m.UserId == userId));
         }

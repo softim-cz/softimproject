@@ -1,17 +1,26 @@
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using SoftimProject.Application.Interfaces;
-using SoftimProject.Domain.Enums;
 
 namespace SoftimProject.Application.Features.Tickets.GetTickets;
 
+public sealed record TicketUserDto(
+    Guid Id,
+    string DisplayName);
+
 public sealed record TicketListItemDto(
     Guid Id,
+    int Number,
+    string Key,
     string Title,
-    TicketPriority Priority,
-    TicketStatus Status,
+    Guid TicketPriorityId,
+    string TicketPriorityName,
+    string TicketPriorityColor,
+    Guid TaskStateId,
+    string TaskStateName,
+    string TaskStateColor,
     Guid? AssigneeId,
-    string? AssigneeDisplayName,
+    TicketUserDto? Assignee,
     Guid? ColumnId,
     double Position,
     DateOnly? DueDate,
@@ -19,20 +28,24 @@ public sealed record TicketListItemDto(
     Guid? TaskTypeId,
     string? TaskTypeName,
     string? TaskTypeIcon,
-    Guid? TaskStateId,
-    string? TaskStateName,
-    string? TaskStateColor,
     Guid? ParentTicketId,
+    decimal CumulativeWorkedHours,
+    int CommentsCount,
+    int AttachmentsCount,
     DateTime CreatedAt);
 
 public sealed record GetTicketsQuery(
     Guid ProjectId,
-    TicketStatus? Status = null,
-    TicketPriority? Priority = null,
+    Guid? TaskStateId = null,
+    Guid? TicketPriorityId = null,
     Guid? AssigneeId = null,
     string? SearchTerm = null,
     Guid? TaskTypeId = null,
-    Guid? TaskStateId = null) : IRequest<List<TicketListItemDto>>, IRequireProjectAccess;
+    string? TaskStateName = null,
+    string? TicketPriorityName = null,
+    string? AssigneeName = null,
+    string? TaskTypeName = null,
+    DateOnly? DueDate = null) : IRequest<List<TicketListItemDto>>, IRequireProjectAccess;
 
 public sealed class GetTicketsQueryHandler(
     IApplicationDbContext dbContext) : IRequestHandler<GetTicketsQuery, List<TicketListItemDto>>
@@ -40,14 +53,15 @@ public sealed class GetTicketsQueryHandler(
     public async Task<List<TicketListItemDto>> Handle(GetTicketsQuery request, CancellationToken cancellationToken)
     {
         var query = dbContext.Tickets
+            .AsNoTracking()
             .Where(t => t.ProjectId == request.ProjectId)
             .AsQueryable();
 
-        if (request.Status.HasValue)
-            query = query.Where(t => t.Status == request.Status.Value);
+        if (request.TaskStateId.HasValue)
+            query = query.Where(t => t.TaskStateId == request.TaskStateId.Value);
 
-        if (request.Priority.HasValue)
-            query = query.Where(t => t.Priority == request.Priority.Value);
+        if (request.TicketPriorityId.HasValue)
+            query = query.Where(t => t.TicketPriorityId == request.TicketPriorityId.Value);
 
         if (request.AssigneeId.HasValue)
             query = query.Where(t => t.AssigneeId == request.AssigneeId.Value);
@@ -58,18 +72,36 @@ public sealed class GetTicketsQueryHandler(
         if (request.TaskTypeId.HasValue)
             query = query.Where(t => t.TaskTypeId == request.TaskTypeId.Value);
 
-        if (request.TaskStateId.HasValue)
-            query = query.Where(t => t.TaskStateId == request.TaskStateId.Value);
+        if (!string.IsNullOrWhiteSpace(request.TaskStateName))
+            query = query.Where(t => t.TaskState.Name == request.TaskStateName);
+
+        if (!string.IsNullOrWhiteSpace(request.TicketPriorityName))
+            query = query.Where(t => t.TicketPriority.Name == request.TicketPriorityName);
+
+        if (!string.IsNullOrWhiteSpace(request.AssigneeName))
+            query = query.Where(t => t.Assignee != null && t.Assignee.DisplayName == request.AssigneeName);
+
+        if (!string.IsNullOrWhiteSpace(request.TaskTypeName))
+            query = query.Where(t => t.TaskType != null && t.TaskType.Name == request.TaskTypeName);
+
+        if (request.DueDate.HasValue)
+            query = query.Where(t => t.DueDate == request.DueDate.Value);
 
         return await query
             .OrderByDescending(t => t.CreatedAt)
             .Select(t => new TicketListItemDto(
                 t.Id,
+                t.Number,
+                t.Project.Code + "-" + t.Number,
                 t.Title,
-                t.Priority,
-                t.Status,
+                t.TicketPriorityId,
+                t.TicketPriority.Name,
+                t.TicketPriority.Color,
+                t.TaskStateId,
+                t.TaskState.Name,
+                t.TaskState.Color,
                 t.AssigneeId,
-                t.Assignee != null ? t.Assignee.DisplayName : null,
+                t.Assignee != null ? new TicketUserDto(t.Assignee.Id, t.Assignee.DisplayName) : null,
                 t.ColumnId,
                 t.Position,
                 t.DueDate,
@@ -77,10 +109,10 @@ public sealed class GetTicketsQueryHandler(
                 t.TaskTypeId,
                 t.TaskType != null ? t.TaskType.Name : null,
                 t.TaskType != null ? t.TaskType.Icon : null,
-                t.TaskStateId,
-                t.TaskState != null ? t.TaskState.Name : null,
-                t.TaskState != null ? t.TaskState.Color : null,
                 t.ParentTicketId,
+                t.CumulativeWorkedHours,
+                t.Comments.Count,
+                t.Attachments.Count,
                 t.CreatedAt))
             .ToListAsync(cancellationToken);
     }

@@ -7,5 +7,6 @@ public interface ICurrentUserService
     string? Email { get; }
     bool IsAuthenticated { get; }
     bool IsInRole(string role);
+    Task InitializeAsync(CancellationToken cancellationToken = default);
     Task<bool> HasProjectAccessAsync(Guid projectId, CancellationToken cancellationToken = default);
 }

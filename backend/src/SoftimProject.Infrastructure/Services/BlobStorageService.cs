@@ -7,17 +7,19 @@ namespace SoftimProject.Infrastructure.Services;
 
 public sealed class BlobStorageService : IBlobStorageService
 {
-    private readonly BlobServiceClient _blobServiceClient;
+    private readonly BlobServiceClient? _blobServiceClient;
 
     public BlobStorageService(IConfiguration configuration)
     {
         var connectionString = configuration["AzureBlobStorage:ConnectionString"];
-        _blobServiceClient = new BlobServiceClient(connectionString);
+        if (!string.IsNullOrWhiteSpace(connectionString))
+            _blobServiceClient = new BlobServiceClient(connectionString);
     }
 
     public async Task<string> UploadAsync(string containerName, string blobName, Stream content, string contentType, CancellationToken cancellationToken = default)
     {
-        var containerClient = _blobServiceClient.GetBlobContainerClient(containerName);
+        var client = GetClientOrThrow();
+        var containerClient = client.GetBlobContainerClient(containerName);
         await containerClient.CreateIfNotExistsAsync(cancellationToken: cancellationToken);
 
         var blobClient = containerClient.GetBlobClient(blobName);
@@ -28,7 +30,8 @@ public sealed class BlobStorageService : IBlobStorageService
 
     public async Task<Stream> DownloadAsync(string containerName, string blobName, CancellationToken cancellationToken = default)
     {
-        var containerClient = _blobServiceClient.GetBlobContainerClient(containerName);
+        var client = GetClientOrThrow();
+        var containerClient = client.GetBlobContainerClient(containerName);
         var blobClient = containerClient.GetBlobClient(blobName);
 
         var response = await blobClient.DownloadStreamingAsync(cancellationToken: cancellationToken);
@@ -37,8 +40,13 @@ public sealed class BlobStorageService : IBlobStorageService
 
     public async Task DeleteAsync(string containerName, string blobName, CancellationToken cancellationToken = default)
     {
-        var containerClient = _blobServiceClient.GetBlobContainerClient(containerName);
+        var client = GetClientOrThrow();
+        var containerClient = client.GetBlobContainerClient(containerName);
         var blobClient = containerClient.GetBlobClient(blobName);
         await blobClient.DeleteIfExistsAsync(cancellationToken: cancellationToken);
     }
+
+    private BlobServiceClient GetClientOrThrow() =>
+        _blobServiceClient ?? throw new InvalidOperationException(
+            "Azure Blob Storage is not configured. Set 'AzureBlobStorage:ConnectionString' in appsettings.");
 }

@@ -17,7 +17,7 @@ public sealed class AiService : IAiService
     public async Task<(string Summary, int TokensUsed)> SummarizeTicketAsync(string title, string description, IEnumerable<string> comments, CancellationToken cancellationToken = default)
     {
         if (_chatClient is null)
-            return ("AI service not configured.", 0);
+            return (string.Empty, 0);
 
         var prompt = new StringBuilder();
         prompt.AppendLine("Summarize the following ticket concisely for a project manager. Include key points, current status, and any blockers.");
@@ -34,13 +34,13 @@ public sealed class AiService : IAiService
         var response = await _chatClient.GetResponseAsync(prompt.ToString(), cancellationToken: cancellationToken);
         var tokensUsed = (int)(response.Usage?.TotalTokenCount ?? 0);
 
-        return (response.Text, tokensUsed);
+        return (response.Text.Trim(), tokensUsed);
     }
 
     public async Task<(string Report, int TokensUsed)> GenerateReportAsync(string projectName, string reportType, string periodDescription, string data, CancellationToken cancellationToken = default)
     {
         if (_chatClient is null)
-            return ("AI service not configured.", 0);
+            return (string.Empty, 0);
 
         var prompt = $"""
             Generate a {reportType} report for project "{projectName}" covering {periodDescription}.
@@ -53,7 +53,7 @@ public sealed class AiService : IAiService
         var response = await _chatClient.GetResponseAsync(prompt, cancellationToken: cancellationToken);
         var tokensUsed = (int)(response.Usage?.TotalTokenCount ?? 0);
 
-        return (response.Text, tokensUsed);
+        return (response.Text.Trim(), tokensUsed);
     }
 
     public async Task<string?> SuggestStatusTransitionAsync(string ticketTitle, string currentStatus, string latestComment, CancellationToken cancellationToken = default)

@@ -26,7 +26,10 @@ public sealed class GetCompaniesQueryHandler(IApplicationDbContext dbContext)
 }
 
 // CREATE
-public sealed record CreateCompanyCommand(string Name, string? Description) : IRequest<Guid>;
+public sealed record CreateCompanyCommand(string Name, string? Description) : IRequest<Guid>, IRequireRole
+{
+    public string RequiredRole => "Admin";
+}
 
 public sealed class CreateCompanyCommandValidator : AbstractValidator<CreateCompanyCommand>
 {
@@ -58,7 +61,10 @@ public sealed class CreateCompanyCommandHandler(IApplicationDbContext dbContext)
 }
 
 // UPDATE
-public sealed record UpdateCompanyCommand(Guid Id, string Name, string? Description, bool IsActive) : IRequest;
+public sealed record UpdateCompanyCommand(Guid Id, string Name, string? Description, bool IsActive) : IRequest, IRequireRole
+{
+    public string RequiredRole => "Admin";
+}
 
 public sealed class UpdateCompanyCommandValidator : AbstractValidator<UpdateCompanyCommand>
 {
@@ -87,7 +93,10 @@ public sealed class UpdateCompanyCommandHandler(IApplicationDbContext dbContext)
 }
 
 // DELETE
-public sealed record DeleteCompanyCommand(Guid Id) : IRequest;
+public sealed record DeleteCompanyCommand(Guid Id) : IRequest, IRequireRole
+{
+    public string RequiredRole => "Admin";
+}
 
 public sealed class DeleteCompanyCommandHandler(IApplicationDbContext dbContext)
     : IRequestHandler<DeleteCompanyCommand>

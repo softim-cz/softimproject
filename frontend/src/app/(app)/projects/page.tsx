@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useProjects, useCreateProject } from "@/queries/projects";
+import { useProjectTemplates } from "@/queries/lookups";
 import { HealthIndicator } from "@/components/shared/health-indicator";
 import { CardSkeleton } from "@/components/shared/loading-skeleton";
 import { EmptyState } from "@/components/shared/empty-state";
@@ -14,7 +15,7 @@ import {
   Clock,
 } from "lucide-react";
 import Link from "next/link";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
   createProjectSchema,
@@ -22,7 +23,19 @@ import {
 } from "@/schemas/project";
 import { toast } from "sonner";
 import { ProjectStatus } from "@/types";
-import type { Project } from "@/types";
+import type { Project, ProjectTemplate } from "@/types";
+
+function generateCodeFromName(name: string): string {
+  const words = name.trim().split(/\s+/).filter(Boolean);
+  if (words.length === 0) return "";
+  if (words.length === 1) {
+    return words[0].slice(0, 3).toUpperCase();
+  }
+  return words
+    .slice(0, 6)
+    .map((w) => w[0].toUpperCase())
+    .join("");
+}
 
 const statusColors: Record<ProjectStatus, string> = {
   [ProjectStatus.Active]: "bg-green-100 text-green-700",
@@ -39,20 +52,51 @@ function CreateProjectDialog({
   onClose: () => void;
 }) {
   const createProject = useCreateProject();
+  const { data: projects } = useProjects();
+  const { data: templates } = useProjectTemplates();
+  const [codeManuallyEdited, setCodeManuallyEdited] = useState(false);
+
   const {
+    control,
     register,
     handleSubmit,
     reset,
+    setValue,
     formState: { errors, isSubmitting },
   } = useForm<CreateProjectInput>({
     resolver: zodResolver(createProjectSchema),
   });
 
+  const nameValue = useWatch({ control, name: "name" });
+
+  useEffect(() => {
+    if (!codeManuallyEdited && nameValue) {
+      setValue("code", generateCodeFromName(nameValue));
+    }
+  }, [nameValue, codeManuallyEdited, setValue]);
+
+  const handleClose = () => {
+    reset();
+    setCodeManuallyEdited(false);
+    onClose();
+  };
+
   const onSubmit = async (data: CreateProjectInput) => {
     try {
-      await createProject.mutateAsync(data);
+      const payload = {
+        ...data,
+        parentProjectId: data.parentProjectId || undefined,
+        projectTemplateId: data.projectTemplateId || undefined,
+        description: data.description || undefined,
+        startDate: data.startDate || undefined,
+        endDate: data.endDate || undefined,
+        budgetHours: data.budgetHours || undefined,
+        budgetAmount: data.budgetAmount || undefined,
+      };
+      await createProject.mutateAsync(payload);
       toast.success("Project created successfully");
       reset();
+      setCodeManuallyEdited(false);
       onClose();
     } catch {
       toast.error("Failed to create project");
@@ -61,19 +105,26 @@ function CreateProjectDialog({
 
   if (!open) return null;
 
+  // Only show top-level projects or projects that could be parents
+  const parentOptions = projects?.filter(
+    (p: Project) => p.status === ProjectStatus.Active
+  );
+
+  const activeTemplates = templates?.filter((t: ProjectTemplate) => t.isActive);
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div
         className="absolute inset-0 bg-black/50"
-        onClick={onClose}
+        onClick={handleClose}
       />
-      <div className="relative bg-card rounded-xl shadow-xl border border-border w-full max-w-lg mx-4 p-6">
+      <div className="relative bg-card rounded-xl shadow-xl border border-border w-full max-w-lg mx-4 p-6 max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-lg font-semibold text-card-foreground">
             New Project
           </h2>
           <button
-            onClick={onClose}
+            onClick={handleClose}
             className="p-1 rounded hover:bg-muted transition-colors"
           >
             <X className="h-5 w-5 text-muted-foreground" />
@@ -82,9 +133,10 @@ function CreateProjectDialog({
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-card-foreground mb-1">
+            <label className="block text-sm font-medium text-card-foreground">
               Name
             </label>
+            <p className="text-xs text-muted-foreground mb-1">Zobrazovaný název projektu v celé aplikaci</p>
             <input
               {...register("name")}
               className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
@@ -98,13 +150,19 @@ function CreateProjectDialog({
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-card-foreground mb-1">
+            <label className="block text-sm font-medium text-card-foreground">
               Code
+              <span className="text-muted-foreground font-normal ml-1">
+                (auto-generated)
+              </span>
             </label>
+            <p className="text-xs text-muted-foreground mb-1">Krátký unikátní identifikátor (2-6 velkých písmen). Používá se v číslech tiketů.</p>
             <input
-              {...register("code")}
+              {...register("code", {
+                onChange: () => setCodeManuallyEdited(true),
+              })}
               className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring uppercase"
-              placeholder="PROJ"
+              placeholder="Auto-generated from name"
               maxLength={6}
             />
             {errors.code && (
@@ -115,9 +173,52 @@ function CreateProjectDialog({
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-card-foreground mb-1">
+            <label className="block text-sm font-medium text-card-foreground">
+              Parent Project
+              <span className="text-muted-foreground font-normal ml-1">
+                (optional)
+              </span>
+            </label>
+            <p className="text-xs text-muted-foreground mb-1">Zařadí projekt jako podprojekt pod vybraný rodičovský projekt</p>
+            <select
+              {...register("parentProjectId")}
+              className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+            >
+              <option value="">None (top-level project)</option>
+              {parentOptions?.map((p: Project) => (
+                <option key={p.id} value={p.id}>
+                  {p.code} - {p.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-card-foreground">
+              Template
+              <span className="text-muted-foreground font-normal ml-1">
+                (optional)
+              </span>
+            </label>
+            <p className="text-xs text-muted-foreground mb-1">Šablona předkonfiguruje custom pole pro nový projekt</p>
+            <select
+              {...register("projectTemplateId")}
+              className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+            >
+              <option value="">None</option>
+              {activeTemplates?.map((t: ProjectTemplate) => (
+                <option key={t.id} value={t.id}>
+                  {t.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-card-foreground">
               Description
             </label>
+            <p className="text-xs text-muted-foreground mb-1">Stručný popis rozsahu a cílů projektu</p>
             <textarea
               {...register("description")}
               rows={3}
@@ -133,9 +234,10 @@ function CreateProjectDialog({
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-card-foreground mb-1">
+              <label className="block text-sm font-medium text-card-foreground">
                 Start Date
               </label>
+              <p className="text-xs text-muted-foreground mb-1">Plánované zahájení prací na projektu</p>
               <input
                 {...register("startDate")}
                 type="date"
@@ -143,9 +245,10 @@ function CreateProjectDialog({
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-card-foreground mb-1">
+              <label className="block text-sm font-medium text-card-foreground">
                 End Date
               </label>
+              <p className="text-xs text-muted-foreground mb-1">Plánované ukončení projektu</p>
               <input
                 {...register("endDate")}
                 type="date"
@@ -156,35 +259,43 @@ function CreateProjectDialog({
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-card-foreground mb-1">
+              <label className="block text-sm font-medium text-card-foreground">
                 Budget Hours
               </label>
-              <input
-                {...register("budgetHours", { valueAsNumber: true })}
-                type="number"
-                step="0.5"
-                className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-                placeholder="0"
-              />
+              <p className="text-xs text-muted-foreground mb-1">Maximální počet hodin alokovaných na projekt</p>
+              <div className="relative">
+                <input
+                  {...register("budgetHours", { valueAsNumber: true })}
+                  type="number"
+                  step="0.5"
+                  className="w-full rounded-lg border border-input bg-background px-3 py-2 pr-8 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                  placeholder="0"
+                />
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground pointer-events-none">h</span>
+              </div>
             </div>
             <div>
-              <label className="block text-sm font-medium text-card-foreground mb-1">
+              <label className="block text-sm font-medium text-card-foreground">
                 Budget Amount
               </label>
-              <input
-                {...register("budgetAmount", { valueAsNumber: true })}
-                type="number"
-                step="100"
-                className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-                placeholder="0"
-              />
+              <p className="text-xs text-muted-foreground mb-1">Celkový finanční rozpočet projektu</p>
+              <div className="relative">
+                <input
+                  {...register("budgetAmount", { valueAsNumber: true })}
+                  type="number"
+                  step="100"
+                  className="w-full rounded-lg border border-input bg-background px-3 py-2 pr-10 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                  placeholder="0"
+                />
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground pointer-events-none">Kč</span>
+              </div>
             </div>
           </div>
 
           <div className="flex justify-end gap-3 pt-4">
             <button
               type="button"
-              onClick={onClose}
+              onClick={handleClose}
               className="px-4 py-2 rounded-lg border border-border text-sm font-medium hover:bg-muted transition-colors"
             >
               Cancel
@@ -276,7 +387,7 @@ export default function ProjectsPage() {
           {filteredProjects.map((project: Project) => (
             <Link
               key={project.id}
-              href={`/projects/${project.id}/board`}
+              href={`/projects/${project.code}/board`}
               className="block rounded-lg border border-border bg-card p-5 hover:shadow-md transition-shadow"
             >
               <div className="flex items-start justify-between mb-3">
@@ -294,6 +405,15 @@ export default function ProjectsPage() {
                   {project.status}
                 </span>
               </div>
+
+              {project.parentProjectName && (
+                <div className="mb-2">
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-muted text-xs text-muted-foreground">
+                    <FolderKanban className="h-3 w-3" />
+                    {project.parentProjectName}
+                  </span>
+                </div>
+              )}
 
               {project.description && (
                 <p className="text-sm text-muted-foreground mb-3 line-clamp-2">
@@ -343,3 +463,6 @@ export default function ProjectsPage() {
     </div>
   );
 }
+
+
+

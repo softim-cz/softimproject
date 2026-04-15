@@ -2,11 +2,7 @@
 
 import { useProjects } from "@/queries/projects";
 import { useWorklogs } from "@/queries/worklogs";
-import { useTickets } from "@/queries/tickets";
-import { useCurrentUser } from "@/queries/auth";
 import { HealthIndicator } from "@/components/shared/health-indicator";
-import { PriorityBadge } from "@/components/shared/priority-badge";
-import { StatusBadge } from "@/components/shared/status-badge";
 import { CardSkeleton } from "@/components/shared/loading-skeleton";
 import { EmptyState } from "@/components/shared/empty-state";
 import {
@@ -28,7 +24,7 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
-import type { Project, TicketPriority } from "@/types";
+import type { Project } from "@/types";
 
 function ProjectHealthCards() {
   const { data: projects, isLoading, error } = useProjects();
@@ -75,7 +71,7 @@ function ProjectHealthCards() {
       {projects.slice(0, 6).map((project: Project) => (
         <Link
           key={project.id}
-          href={`/projects/${project.id}/board`}
+          href={`/projects/${project.code}/board`}
           className="block rounded-lg border border-border bg-card p-5 hover:shadow-md transition-shadow"
         >
           <div className="flex items-start justify-between mb-3">
@@ -147,9 +143,7 @@ function WeeklyHoursChart() {
   });
 
   if (isLoading) {
-    return (
-      <div className="h-64 animate-pulse rounded-lg bg-muted" />
-    );
+    return <div className="h-64 animate-pulse rounded-lg bg-muted" />;
   }
 
   return (
@@ -193,6 +187,59 @@ function QuickActions() {
   );
 }
 
+function DashboardStats() {
+  const now = new Date();
+  const weekStart = startOfWeek(now, { weekStartsOn: 1 });
+  const weekEnd = endOfWeek(now, { weekStartsOn: 1 });
+  const { data: projects } = useProjects();
+  const { data: worklogs } = useWorklogs({
+    from: format(weekStart, "yyyy-MM-dd"),
+    to: format(weekEnd, "yyyy-MM-dd"),
+  });
+
+  const activeProjects = projects?.filter((project) => project.status === "Active").length ?? 0;
+  const visibleTickets = projects?.reduce((sum, project) => sum + (project.ticketCount ?? 0), 0) ?? 0;
+  const weeklyHours = worklogs?.reduce((sum, worklog) => sum + worklog.hours, 0) ?? 0;
+
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="rounded-lg border border-border bg-card p-5">
+        <div className="flex items-center gap-3">
+          <div className="h-10 w-10 rounded-lg bg-primary-navy/10 flex items-center justify-center">
+            <FolderKanban className="h-5 w-5 text-primary-navy" />
+          </div>
+          <div>
+            <p className="text-2xl font-bold text-card-foreground">{activeProjects}</p>
+            <p className="text-sm text-muted-foreground">Active Projects</p>
+          </div>
+        </div>
+      </div>
+      <div className="rounded-lg border border-border bg-card p-5">
+        <div className="flex items-center gap-3">
+          <div className="h-10 w-10 rounded-lg bg-accent-orange/10 flex items-center justify-center">
+            <TrendingUp className="h-5 w-5 text-accent-orange" />
+          </div>
+          <div>
+            <p className="text-2xl font-bold text-card-foreground">{visibleTickets}</p>
+            <p className="text-sm text-muted-foreground">Visible Tickets</p>
+          </div>
+        </div>
+      </div>
+      <div className="rounded-lg border border-border bg-card p-5">
+        <div className="flex items-center gap-3">
+          <div className="h-10 w-10 rounded-lg bg-green-500/10 flex items-center justify-center">
+            <Clock className="h-5 w-5 text-green-600" />
+          </div>
+          <div>
+            <p className="text-2xl font-bold text-card-foreground">{weeklyHours.toFixed(1)}</p>
+            <p className="text-sm text-muted-foreground">Hours This Week</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function DashboardPage() {
   return (
     <div className="space-y-8">
@@ -206,44 +253,8 @@ export default function DashboardPage() {
         <QuickActions />
       </div>
 
-      {/* Stats row */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="rounded-lg border border-border bg-card p-5">
-          <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-lg bg-primary-navy/10 flex items-center justify-center">
-              <FolderKanban className="h-5 w-5 text-primary-navy" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold text-card-foreground">--</p>
-              <p className="text-sm text-muted-foreground">Active Projects</p>
-            </div>
-          </div>
-        </div>
-        <div className="rounded-lg border border-border bg-card p-5">
-          <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-lg bg-accent-orange/10 flex items-center justify-center">
-              <TrendingUp className="h-5 w-5 text-accent-orange" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold text-card-foreground">--</p>
-              <p className="text-sm text-muted-foreground">My Open Tasks</p>
-            </div>
-          </div>
-        </div>
-        <div className="rounded-lg border border-border bg-card p-5">
-          <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-lg bg-green-500/10 flex items-center justify-center">
-              <Clock className="h-5 w-5 text-green-600" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold text-card-foreground">--</p>
-              <p className="text-sm text-muted-foreground">Hours This Week</p>
-            </div>
-          </div>
-        </div>
-      </div>
+      <DashboardStats />
 
-      {/* Project health cards */}
       <section>
         <h2 className="text-lg font-semibold text-foreground mb-4">
           Project Health
@@ -251,7 +262,6 @@ export default function DashboardPage() {
         <ProjectHealthCards />
       </section>
 
-      {/* Hours chart */}
       <section>
         <h2 className="text-lg font-semibold text-foreground mb-4">
           Hours Logged This Week

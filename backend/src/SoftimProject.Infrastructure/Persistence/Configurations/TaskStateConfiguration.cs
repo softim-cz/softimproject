@@ -14,6 +14,11 @@ public sealed class TaskStateConfiguration : IEntityTypeConfiguration<TaskState>
         builder.Property(ts => ts.Name).HasMaxLength(200).IsRequired();
         builder.Property(ts => ts.Color).HasMaxLength(50).IsRequired();
 
-        builder.HasIndex(ts => ts.Name).IsUnique();
+        builder.HasOne(ts => ts.ProjectTemplate)
+            .WithMany(t => t.TaskStates)
+            .HasForeignKey(ts => ts.ProjectTemplateId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasIndex(ts => new { ts.ProjectTemplateId, ts.Name }).IsUnique();
     }
 }

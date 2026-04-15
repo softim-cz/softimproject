@@ -21,16 +21,17 @@ public sealed class MoveTicketCommandHandler(
             ?? throw new NotFoundException(nameof(Domain.Entities.Ticket), request.TicketId);
 
         var column = await dbContext.KanbanColumns
+            .Include(c => c.MapsToTaskStates)
             .FirstOrDefaultAsync(c => c.Id == request.ColumnId, cancellationToken)
             ?? throw new NotFoundException(nameof(Domain.Entities.KanbanColumn), request.ColumnId);
 
         ticket.ColumnId = request.ColumnId;
         ticket.Position = request.Position;
-        ticket.Status = column.MapsToStatus;
 
-        if (column.MapsToTaskStateId.HasValue)
+        // Keep current state if it's already mapped to this column, otherwise use the first mapped state
+        if (column.MapsToTaskStates.Count > 0 && !column.MapsToTaskStates.Any(ts => ts.Id == ticket.TaskStateId))
         {
-            ticket.TaskStateId = column.MapsToTaskStateId;
+            ticket.TaskStateId = column.MapsToTaskStates.OrderBy(ts => ts.SortOrder).First().Id;
         }
 
         await dbContext.SaveChangesAsync(cancellationToken);
