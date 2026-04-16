@@ -1,6 +1,10 @@
 # SoftimProject
 
+[![Build & Deploy](https://github.com/softim-cz/softimproject/actions/workflows/deploy.yml/badge.svg?branch=main)](https://github.com/softim-cz/softimproject/actions/workflows/deploy.yml)
+
 Interní nástroj pro řízení projektů a servisních aktivit firmy Softim. Centrální hub pro správu projektů, tiketů, kanban boardů, worklogů, komentářů, příloh, klientského portálu, migraci z Easy Projectu, GitHub integraci, AI sumarizaci a MCP server pro AI asistenty.
+
+Vývojové standardy a onboarding: [CONTRIBUTING.md](./CONTRIBUTING.md)
 
 ## Tech stack
 

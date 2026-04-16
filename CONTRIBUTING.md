@@ -38,9 +38,14 @@ Kdykoli přidáváte nový env var / app setting, doplňte ho do:
 
 Nikdy nekomitujte reálné hodnoty (hesla, tokeny, connection stringy). Produkční hodnoty jsou v Azure App Service → Configuration, ne v repu.
 
-### 4. `main` zůstává zelený
+### 4. `main` zůstává zelený (kulturní pravidlo)
 
-GitHub branch protection vyžaduje passing CI před přijetím pushe. I přímý push do `main` je odmítnut, pokud poslední workflow skončil červeně. Nejdřív opravit CI, pak pokračovat.
+GitHub Free tier pro private repos neumí Branch Protection, takže tohle není technicky vynucené — je to **dohoda**.
+
+- Pre-push hook (bod 1) zachytí většinu problémů dřív, než push dorazí na remote.
+- Když CI přesto zčervená (např. po `git push --no-verify`), opraví to ten, kdo push zavinil, **prioritně před ostatní prací**. Nekumulovat další commity na rozbitý main.
+- GitHub posílá default e-mail všem contributors při failed workflow → víme o problému do 1-2 minut.
+- CI status badge v `README.md` ukazuje aktuální stav `main` komukoli, kdo repo otevře.
 
 ### 5. Konzistentní formátování
 
@@ -73,7 +78,7 @@ Tyto položky ještě nejsou zavedené, dokud nebudou hotové, je pravidlo "best
 - [x] Pre-push git hook — spustí `npm run build` + `dotnet build` (bod 1)
 - [x] `Database.Migrate()` v `Program.cs` v `using var scope` bloku (bod 2)
 - [x] `frontend/.env.example` + `backend/src/SoftimProject.WebApi/appsettings.Example.json` (bod 3)
-- [ ] GitHub branch protection na `main` s "require status checks to pass" (bod 4)
+- [x] ~~GitHub branch protection na `main`~~ — **neaplikovatelné na Free tier pro private repos**, bod 4 je kulturní pravidlo + CI badge + defaultní e-mail notifikace
 - [x] `.editorconfig` v kořeni + Prettier config + lint skript ve `frontend/package.json` (bod 5)
 
 Bod 6 (konvenční commity) je zavedený ode dneška — Honza už to tak většinou dělá, Karel navázal.
