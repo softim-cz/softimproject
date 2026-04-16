@@ -72,7 +72,7 @@ Tyto položky ještě nejsou zavedené, dokud nebudou hotové, je pravidlo "best
 
 - [x] Pre-push git hook — spustí `npm run build` + `dotnet build` (bod 1)
 - [x] `Database.Migrate()` v `Program.cs` v `using var scope` bloku (bod 2)
-- [ ] `frontend/.env.example` + `backend/src/SoftimProject.WebApi/appsettings.Example.json` (bod 3)
+- [x] `frontend/.env.example` + `backend/src/SoftimProject.WebApi/appsettings.Example.json` (bod 3)
 - [ ] GitHub branch protection na `main` s "require status checks to pass" (bod 4)
 - [ ] `.editorconfig` v kořeni + Prettier config + lint skript ve `frontend/package.json` (bod 5)
 
