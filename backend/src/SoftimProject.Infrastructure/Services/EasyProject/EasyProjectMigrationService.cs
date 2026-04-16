@@ -458,9 +458,20 @@ public sealed class EasyProjectMigrationService(
 
         var code = GenerateProjectCode(ep.Name);
         code = await EnsureUniqueCode(code, ct);
-        var project = new Project { Id = Guid.NewGuid(), Name = ep.Name, Code = code, Description = ep.Description, Status = MapProjectStatus(ep.Status),
-            ExternalSystem = "EasyProject", ExternalProjectId = externalId, ExternalBaseUrl = baseUrl,
-            StartDate = ParseDateOnly(ep.StartDate), DeadlineDate = ParseDateOnly(ep.DueDate), CreatedAt = DateTime.UtcNow };
+        var project = new Project
+        {
+            Id = Guid.NewGuid(),
+            Name = ep.Name,
+            Code = code,
+            Description = ep.Description,
+            Status = MapProjectStatus(ep.Status),
+            ExternalSystem = "EasyProject",
+            ExternalProjectId = externalId,
+            ExternalBaseUrl = baseUrl,
+            StartDate = ParseDateOnly(ep.StartDate),
+            DeadlineDate = ParseDateOnly(ep.DueDate),
+            CreatedAt = DateTime.UtcNow
+        };
         dbContext.Projects.Add(project);
         dbContext.ProjectMembers.Add(new ProjectMember { Id = Guid.NewGuid(), ProjectId = project.Id, UserId = adminUserId, Role = ProjectRole.ProjectManager, JoinedAt = DateTime.UtcNow });
 
@@ -500,10 +511,25 @@ public sealed class EasyProjectMigrationService(
             tracker.IncrementUpdated(jobId); return existing.Id;
         }
 
-        var ticket = new Ticket { Id = Guid.NewGuid(), ProjectId = spProjectId, Title = issue.Subject, Description = issue.Description,
-            TaskStateId = taskStateId, TicketPriorityId = ticketPriorityId, Position = 0, TaskTypeId = taskTypeId,
-            AssigneeId = assigneeId, ReporterId = reporterId, ExternalId = externalId, ExternalUrl = $"{cmd.BaseUrl.TrimEnd('/')}/issues/{issue.Id}",
-            EstimatedHours = issue.EstimatedHours, DueDate = ParseDateOnly(issue.DueDate), ColumnId = column?.Id, CreatedAt = DateTime.UtcNow };
+        var ticket = new Ticket
+        {
+            Id = Guid.NewGuid(),
+            ProjectId = spProjectId,
+            Title = issue.Subject,
+            Description = issue.Description,
+            TaskStateId = taskStateId,
+            TicketPriorityId = ticketPriorityId,
+            Position = 0,
+            TaskTypeId = taskTypeId,
+            AssigneeId = assigneeId,
+            ReporterId = reporterId,
+            ExternalId = externalId,
+            ExternalUrl = $"{cmd.BaseUrl.TrimEnd('/')}/issues/{issue.Id}",
+            EstimatedHours = issue.EstimatedHours,
+            DueDate = ParseDateOnly(issue.DueDate),
+            ColumnId = column?.Id,
+            CreatedAt = DateTime.UtcNow
+        };
         dbContext.Tickets.Add(ticket); tracker.IncrementCreated(jobId); return ticket.Id;
     }
 
@@ -512,9 +538,19 @@ public sealed class EasyProjectMigrationService(
         var externalId = journal.Id.ToString();
         if (await dbContext.Comments.AnyAsync(c => c.ExternalId == externalId && c.Source == CommentSource.EasyProject, ct)) { tracker.IncrementSkipped(jobId); return; }
         var authorId = journal.User != null && userMap.TryGetValue(journal.User.Id, out var uid) ? uid : adminUserId;
-        dbContext.Comments.Add(new Comment { Id = Guid.NewGuid(), TicketId = spTicketId, ProjectId = spProjectId, AuthorId = authorId,
-            Content = journal.Notes ?? string.Empty, IsInternal = journal.PrivateNotes, Source = CommentSource.EasyProject,
-            ExternalId = externalId, ExternalUser = journal.User?.Name, CreatedAt = ParseDateTime(journal.CreatedOn) ?? DateTime.UtcNow });
+        dbContext.Comments.Add(new Comment
+        {
+            Id = Guid.NewGuid(),
+            TicketId = spTicketId,
+            ProjectId = spProjectId,
+            AuthorId = authorId,
+            Content = journal.Notes ?? string.Empty,
+            IsInternal = journal.PrivateNotes,
+            Source = CommentSource.EasyProject,
+            ExternalId = externalId,
+            ExternalUser = journal.User?.Name,
+            CreatedAt = ParseDateTime(journal.CreatedOn) ?? DateTime.UtcNow
+        });
         tracker.IncrementCreated(jobId);
     }
 
@@ -524,9 +560,20 @@ public sealed class EasyProjectMigrationService(
         if (await dbContext.Worklogs.AnyAsync(w => w.ExternalId == externalId, ct)) { tracker.IncrementSkipped(jobId); return; }
         var userId = te.User != null && userMap.TryGetValue(te.User.Id, out var uid) ? uid : adminUserId;
         var ticketId = te.Issue != null && ticketMap.TryGetValue(te.Issue.Id, out var tid) ? tid : (Guid?)null;
-        dbContext.Worklogs.Add(new Worklog { Id = Guid.NewGuid(), ProjectId = spProjectId, TicketId = ticketId, UserId = userId,
-            Date = ParseDateOnly(te.SpentOn) ?? DateOnly.FromDateTime(DateTime.UtcNow), Hours = te.Hours, Description = te.Comments,
-            Source = WorklogSource.Sync, IsBillable = te.EasyIsBillable ?? false, ExternalId = externalId, CreatedAt = DateTime.UtcNow });
+        dbContext.Worklogs.Add(new Worklog
+        {
+            Id = Guid.NewGuid(),
+            ProjectId = spProjectId,
+            TicketId = ticketId,
+            UserId = userId,
+            Date = ParseDateOnly(te.SpentOn) ?? DateOnly.FromDateTime(DateTime.UtcNow),
+            Hours = te.Hours,
+            Description = te.Comments,
+            Source = WorklogSource.Sync,
+            IsBillable = te.EasyIsBillable ?? false,
+            ExternalId = externalId,
+            CreatedAt = DateTime.UtcNow
+        });
         tracker.IncrementCreated(jobId);
     }
 
@@ -592,8 +639,17 @@ public sealed class EasyProjectMigrationService(
         await using var stream = await apiClient.DownloadAttachmentAsync(baseUrl, apiKey, att.ContentUrl, ct);
         var blobName = $"migration/{spTicketId}/{Guid.NewGuid()}/{att.Filename}";
         var blobUrl = await blobStorage.UploadAsync("attachments", blobName, stream, att.ContentType ?? "application/octet-stream", ct);
-        dbContext.TicketAttachments.Add(new TicketAttachment { Id = Guid.NewGuid(), TicketId = spTicketId, FileName = att.Filename, BlobUrl = blobUrl,
-            ContentType = att.ContentType ?? "application/octet-stream", FileSizeBytes = att.Filesize, UploadedById = adminUserId, CreatedAt = ParseDateTime(att.CreatedOn) ?? DateTime.UtcNow });
+        dbContext.TicketAttachments.Add(new TicketAttachment
+        {
+            Id = Guid.NewGuid(),
+            TicketId = spTicketId,
+            FileName = att.Filename,
+            BlobUrl = blobUrl,
+            ContentType = att.ContentType ?? "application/octet-stream",
+            FileSizeBytes = att.Filesize,
+            UploadedById = adminUserId,
+            CreatedAt = ParseDateTime(att.CreatedOn) ?? DateTime.UtcNow
+        });
         tracker.IncrementCreated(jobId); tracker.AddLog(jobId, $"Uploaded attachment '{att.Filename}'");
     }
 
@@ -697,8 +753,18 @@ public sealed class EasyProjectMigrationService(
             var entraId = $"easyproject:{epUserId}";
             var existing = await dbContext.Users.FirstOrDefaultAsync(u => u.EntraObjectId == entraId, ct);
             if (existing != null) { result[epUserId] = existing.Id; continue; }
-            var user = new User { Id = Guid.NewGuid(), EntraObjectId = entraId, Email = epUser.Mail ?? $"ep-{epUserId}@migration.local",
-                DisplayName = displayName, FirstName = epUser.Firstname, LastName = epUser.Lastname, GlobalRole = GlobalRole.User, IsActive = false, CreatedAt = DateTime.UtcNow };
+            var user = new User
+            {
+                Id = Guid.NewGuid(),
+                EntraObjectId = entraId,
+                Email = epUser.Mail ?? $"ep-{epUserId}@migration.local",
+                DisplayName = displayName,
+                FirstName = epUser.Firstname,
+                LastName = epUser.Lastname,
+                GlobalRole = GlobalRole.User,
+                IsActive = false,
+                CreatedAt = DateTime.UtcNow
+            };
             dbContext.Users.Add(user); await dbContext.SaveChangesAsync(ct); result[epUserId] = user.Id;
             tracker.IncrementCreated(jobId); tracker.AddLog(jobId, $"Created inactive user '{displayName}'");
         }

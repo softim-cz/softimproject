@@ -1,3 +1,17 @@
-# Keep shell scripts and git hooks as LF so they work on Linux CI
+# Auto-detect text vs binary, but normalize all text files to LF.
+# This is required so dotnet format / Prettier --check pass the same on
+# Windows and Linux CI.
+* text=auto eol=lf
+
+# Scripts explicitly LF (belt and suspenders)
 *.sh text eol=lf
 .githooks/* text eol=lf
+
+# Binaries stay as-is
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.pdf binary
+*.xlsx binary
