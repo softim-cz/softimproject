@@ -19,8 +19,7 @@ const operators: { value: FilterCondition["operator"]; label: string }[] = [
 
 export function FilterBuilder({ fields, onApply, onClose }: FilterBuilderProps) {
   const [field, setField] = useState(fields[0]?.value ?? "");
-  const [operator, setOperator] =
-    useState<FilterCondition["operator"]>("eq");
+  const [operator, setOperator] = useState<FilterCondition["operator"]>("eq");
   const [value, setValue] = useState("");
 
   const handleApply = () => {
@@ -33,9 +32,7 @@ export function FilterBuilder({ fields, onApply, onClose }: FilterBuilderProps) 
     <div className="bg-card border border-border rounded-lg shadow-lg p-3 w-80">
       <div className="space-y-2">
         <div>
-          <label className="block text-xs font-medium text-muted-foreground mb-1">
-            Field
-          </label>
+          <label className="block text-xs font-medium text-muted-foreground mb-1">Field</label>
           <select
             value={field}
             onChange={(e) => setField(e.target.value)}
@@ -50,14 +47,10 @@ export function FilterBuilder({ fields, onApply, onClose }: FilterBuilderProps) 
         </div>
 
         <div>
-          <label className="block text-xs font-medium text-muted-foreground mb-1">
-            Operator
-          </label>
+          <label className="block text-xs font-medium text-muted-foreground mb-1">Operator</label>
           <select
             value={operator}
-            onChange={(e) =>
-              setOperator(e.target.value as FilterCondition["operator"])
-            }
+            onChange={(e) => setOperator(e.target.value as FilterCondition["operator"])}
             className="w-full rounded border border-input bg-background px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-ring"
           >
             {operators.map((op) => (
@@ -69,9 +62,7 @@ export function FilterBuilder({ fields, onApply, onClose }: FilterBuilderProps) 
         </div>
 
         <div>
-          <label className="block text-xs font-medium text-muted-foreground mb-1">
-            Value
-          </label>
+          <label className="block text-xs font-medium text-muted-foreground mb-1">Value</label>
           <input
             type="text"
             value={value}

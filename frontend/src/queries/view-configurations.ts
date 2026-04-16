@@ -9,10 +9,7 @@ export interface ViewConfigurationDto {
   configurationJson: string;
 }
 
-export function useViewConfiguration(
-  viewType: string,
-  projectId?: string
-) {
+export function useViewConfiguration(viewType: string, projectId?: string) {
   return useQuery({
     queryKey: ["view-configuration", viewType, projectId ?? "global"],
     queryFn: async () => {
@@ -38,10 +35,11 @@ export function useUpsertViewConfiguration() {
       viewType: string;
       configurationJson: string;
     }) => {
-      const { data } = await apiClient.put<string>(
-        `/api/v1/view-configurations`,
-        { projectId, viewType, configurationJson }
-      );
+      const { data } = await apiClient.put<string>(`/api/v1/view-configurations`, {
+        projectId,
+        viewType,
+        configurationJson,
+      });
       return data;
     },
     onSuccess: (_, { viewType, projectId }) => {

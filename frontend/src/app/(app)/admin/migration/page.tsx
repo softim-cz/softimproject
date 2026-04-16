@@ -32,14 +32,7 @@ import { HubConnectionBuilder } from "@microsoft/signalr";
 import { useAuth } from "@/lib/auth/use-auth";
 import type { MigrationProgress } from "@/types";
 
-const STEPS = [
-  "Connection",
-  "Projects",
-  "Lookups",
-  "Users",
-  "Review",
-  "Progress",
-];
+const STEPS = ["Connection", "Projects", "Lookups", "Users", "Review", "Progress"];
 
 function StepIndicator({ current }: { current: number }) {
   return (
@@ -56,11 +49,7 @@ function StepIndicator({ current }: { current: number }) {
                   : "bg-muted text-muted-foreground"
             )}
           >
-            {i < current ? (
-              <CheckCircle2 className="h-4 w-4" />
-            ) : (
-              i + 1
-            )}
+            {i < current ? <CheckCircle2 className="h-4 w-4" /> : i + 1}
           </div>
           <span
             className={cn(
@@ -70,9 +59,7 @@ function StepIndicator({ current }: { current: number }) {
           >
             {name}
           </span>
-          {i < STEPS.length - 1 && (
-            <div className="w-8 h-px bg-border hidden sm:block" />
-          )}
+          {i < STEPS.length - 1 && <div className="w-8 h-px bg-border hidden sm:block" />}
         </div>
       ))}
     </div>
@@ -98,9 +85,7 @@ function StepConnection() {
   return (
     <div className="max-w-lg space-y-6">
       <div>
-        <h2 className="text-xl font-semibold text-foreground">
-          Connect to EasyProject
-        </h2>
+        <h2 className="text-xl font-semibold text-foreground">Connect to EasyProject</h2>
         <p className="text-sm text-muted-foreground mt-1">
           Enter your EasyProject instance URL and API key to begin.
         </p>
@@ -108,9 +93,7 @@ function StepConnection() {
 
       <div className="space-y-4">
         <div>
-          <label className="block text-sm font-medium text-foreground mb-1">
-            EasyProject URL
-          </label>
+          <label className="block text-sm font-medium text-foreground mb-1">EasyProject URL</label>
           <input
             type="url"
             value={baseUrl}
@@ -121,9 +104,7 @@ function StepConnection() {
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-foreground mb-1">
-            API Key
-          </label>
+          <label className="block text-sm font-medium text-foreground mb-1">API Key</label>
           <input
             type="password"
             value={apiKey}
@@ -139,9 +120,7 @@ function StepConnection() {
             disabled={!baseUrl || !apiKey || testConnection.isPending}
             className="px-4 py-2 bg-accent-orange text-white rounded-lg text-sm font-medium hover:bg-accent-orange/90 disabled:opacity-50 flex items-center gap-2"
           >
-            {testConnection.isPending && (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            )}
+            {testConnection.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
             Test Connection
           </button>
 
@@ -198,7 +177,9 @@ function StepProjects() {
   const fetchProjects = useFetchEpProjects();
   const fetchIssueCounts = useFetchIssueCounts();
   const { getAccessToken } = useAuth();
-  const connectionRef = useRef<ReturnType<typeof HubConnectionBuilder.prototype.build> | null>(null);
+  const connectionRef = useRef<ReturnType<typeof HubConnectionBuilder.prototype.build> | null>(
+    null
+  );
   const sessionIdRef = useRef<string>(crypto.randomUUID());
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -256,28 +237,22 @@ function StepProjects() {
     return (
       <div className="flex flex-col items-center gap-4 py-12">
         <Loader2 className="h-6 w-6 animate-spin text-accent-orange" />
-        <p className="text-sm text-muted-foreground">
-          Fetching project list...
-        </p>
+        <p className="text-sm text-muted-foreground">Fetching project list...</p>
       </div>
     );
   }
 
   const filteredProjects = searchQuery
-    ? projects.filter((p) =>
-        p.name.toLowerCase().includes(searchQuery.toLowerCase())
-      )
+    ? projects.filter((p) => p.name.toLowerCase().includes(searchQuery.toLowerCase()))
     : projects;
 
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-xl font-semibold text-foreground">
-          Select Projects to Import
-        </h2>
+        <h2 className="text-xl font-semibold text-foreground">Select Projects to Import</h2>
         <p className="text-sm text-muted-foreground mt-1">
-          Choose which EasyProject projects to migrate. Already imported
-          projects can be re-imported for incremental updates.
+          Choose which EasyProject projects to migrate. Already imported projects can be re-imported
+          for incremental updates.
         </p>
       </div>
 
@@ -326,9 +301,7 @@ function StepProjects() {
             />
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2">
-                <span className="text-sm font-medium text-foreground">
-                  {p.name}
-                </span>
+                <span className="text-sm font-medium text-foreground">{p.name}</span>
                 {p.alreadyImported && (
                   <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-green-100 text-green-700">
                     Imported
@@ -341,9 +314,7 @@ function StepProjects() {
                 )}
               </div>
               {p.parentName && (
-                <span className="text-xs text-muted-foreground">
-                  Parent: {p.parentName}
-                </span>
+                <span className="text-xs text-muted-foreground">Parent: {p.parentName}</span>
               )}
             </div>
             <span className="text-xs text-muted-foreground whitespace-nowrap">
@@ -404,8 +375,7 @@ function StepLookups() {
       fetchLookups.mutate(
         { baseUrl, apiKey },
         {
-          onSuccess: (data) =>
-            setLookups(data.trackers, data.statuses, data.priorities),
+          onSuccess: (data) => setLookups(data.trackers, data.statuses, data.priorities),
         }
       );
     }
@@ -424,42 +394,38 @@ function StepLookups() {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-xl font-semibold text-foreground">
-          Map Lookups
-        </h2>
+        <h2 className="text-xl font-semibold text-foreground">Map Lookups</h2>
         <p className="text-sm text-muted-foreground mt-1">
-          Map EasyProject trackers, statuses, and priorities to SoftimProject
-          equivalents. Auto-suggested mappings are pre-filled.
+          Map EasyProject trackers, statuses, and priorities to SoftimProject equivalents.
+          Auto-suggested mappings are pre-filled.
         </p>
       </div>
 
       {/* Trackers */}
       <div>
-        <h3 className="text-sm font-semibold text-foreground mb-2">
-          Trackers → Task Types
-        </h3>
+        <h3 className="text-sm font-semibold text-foreground mb-2">Trackers → Task Types</h3>
         <div className="space-y-2">
           {trackerMappings.map((t) => (
             <div
               key={t.epId}
               className="flex items-center gap-3 p-2 rounded-lg border border-border"
             >
-              <span className="text-sm font-medium w-40 shrink-0">
-                {t.epName}
-              </span>
+              <span className="text-sm font-medium w-40 shrink-0">{t.epName}</span>
               <ArrowRight className="h-4 w-4 text-muted-foreground shrink-0" />
               <select
                 value={trackerSelections[t.epId] ?? ""}
-                onChange={(e) =>
-                  setTrackerSelection(t.epId, e.target.value || null)
-                }
+                onChange={(e) => setTrackerSelection(t.epId, e.target.value || null)}
                 className="flex-1 px-2 py-1 rounded border border-border bg-card text-sm"
               >
                 <option value="">(Skip)</option>
                 <option value="__create__">Auto-create: &quot;{t.epName}&quot;</option>
-                {taskTypes?.filter((tt) => tt.isActive).map((tt) => (
-                  <option key={tt.id} value={tt.id}>{tt.name}</option>
-                ))}
+                {taskTypes
+                  ?.filter((tt) => tt.isActive)
+                  .map((tt) => (
+                    <option key={tt.id} value={tt.id}>
+                      {tt.name}
+                    </option>
+                  ))}
               </select>
             </div>
           ))}
@@ -468,9 +434,7 @@ function StepLookups() {
 
       {/* Statuses */}
       <div>
-        <h3 className="text-sm font-semibold text-foreground mb-2">
-          Statuses → Task State
-        </h3>
+        <h3 className="text-sm font-semibold text-foreground mb-2">Statuses → Task State</h3>
         <div className="space-y-2">
           {statusMappings.map((s) => (
             <div
@@ -480,9 +444,7 @@ function StepLookups() {
               <span className="text-sm font-medium w-40 shrink-0">
                 {s.epName}
                 {s.isClosed && (
-                  <span className="ml-1 text-[10px] text-muted-foreground">
-                    (closed)
-                  </span>
+                  <span className="ml-1 text-[10px] text-muted-foreground">(closed)</span>
                 )}
               </span>
               <ArrowRight className="h-4 w-4 text-muted-foreground shrink-0" />
@@ -493,9 +455,13 @@ function StepLookups() {
               >
                 <option value="">(Use default)</option>
                 <option value="__create__">Auto-create: &quot;{s.epName}&quot;</option>
-                {taskStates?.filter((ts) => ts.isActive).map((ts) => (
-                  <option key={ts.id} value={ts.id}>{ts.name}</option>
-                ))}
+                {taskStates
+                  ?.filter((ts) => ts.isActive)
+                  .map((ts) => (
+                    <option key={ts.id} value={ts.id}>
+                      {ts.name}
+                    </option>
+                  ))}
               </select>
             </div>
           ))}
@@ -504,18 +470,14 @@ function StepLookups() {
 
       {/* Priorities */}
       <div>
-        <h3 className="text-sm font-semibold text-foreground mb-2">
-          Priorities → Ticket Priority
-        </h3>
+        <h3 className="text-sm font-semibold text-foreground mb-2">Priorities → Ticket Priority</h3>
         <div className="space-y-2">
           {priorityMappings.map((p) => (
             <div
               key={p.epId}
               className="flex items-center gap-3 p-2 rounded-lg border border-border"
             >
-              <span className="text-sm font-medium w-40 shrink-0">
-                {p.epName}
-              </span>
+              <span className="text-sm font-medium w-40 shrink-0">{p.epName}</span>
               <ArrowRight className="h-4 w-4 text-muted-foreground shrink-0" />
               <select
                 value={prioritySelections[p.epId] ?? ""}
@@ -524,9 +486,13 @@ function StepLookups() {
               >
                 <option value="">(Use default)</option>
                 <option value="__create__">Auto-create: &quot;{p.epName}&quot;</option>
-                {ticketPriorities?.filter((tp) => tp.isActive).map((tp) => (
-                  <option key={tp.id} value={tp.id}>{tp.name}</option>
-                ))}
+                {ticketPriorities
+                  ?.filter((tp) => tp.isActive)
+                  .map((tp) => (
+                    <option key={tp.id} value={tp.id}>
+                      {tp.name}
+                    </option>
+                  ))}
               </select>
             </div>
           ))}
@@ -567,10 +533,7 @@ function StepUsers() {
 
   useEffect(() => {
     if (userMappings.length === 0) {
-      fetchUsers.mutate(
-        { baseUrl, apiKey },
-        { onSuccess: (data) => setUserMappings(data) }
-      );
+      fetchUsers.mutate({ baseUrl, apiKey }, { onSuccess: (data) => setUserMappings(data) });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -587,47 +550,31 @@ function StepUsers() {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-xl font-semibold text-foreground">
-          Map Users
-        </h2>
+        <h2 className="text-xl font-semibold text-foreground">Map Users</h2>
         <p className="text-sm text-muted-foreground mt-1">
-          Map EasyProject users to existing SoftimProject users. Users matched
-          by email are shown with a green check. Unmatched users will be created
-          as inactive.
+          Map EasyProject users to existing SoftimProject users. Users matched by email are shown
+          with a green check. Unmatched users will be created as inactive.
         </p>
       </div>
 
       <div className="space-y-2 max-h-[400px] overflow-y-auto">
         {userMappings.map((u) => (
-          <div
-            key={u.epId}
-            className="flex items-center gap-3 p-3 rounded-lg border border-border"
-          >
+          <div key={u.epId} className="flex items-center gap-3 p-3 rounded-lg border border-border">
             <div className="flex-1 min-w-0">
-              <span className="text-sm font-medium text-foreground block">
-                {u.epName}
-              </span>
-              {u.epEmail && (
-                <span className="text-xs text-muted-foreground">
-                  {u.epEmail}
-                </span>
-              )}
+              <span className="text-sm font-medium text-foreground block">{u.epName}</span>
+              {u.epEmail && <span className="text-xs text-muted-foreground">{u.epEmail}</span>}
             </div>
             <ArrowRight className="h-4 w-4 text-muted-foreground shrink-0" />
             <div className="flex items-center gap-2">
               {u.matchedUserId ? (
                 <div className="flex items-center gap-1.5">
                   <CheckCircle2 className="h-4 w-4 text-green-500" />
-                  <span className="text-sm text-foreground">
-                    {u.matchedUserName}
-                  </span>
+                  <span className="text-sm text-foreground">{u.matchedUserName}</span>
                 </div>
               ) : (
                 <select
                   value={userSelections[u.epId] ?? ""}
-                  onChange={(e) =>
-                    setUserSelection(u.epId, e.target.value || null)
-                  }
+                  onChange={(e) => setUserSelection(u.epId, e.target.value || null)}
                   className="px-2 py-1 rounded border border-border bg-card text-sm min-w-[200px]"
                 >
                   <option value="">Create as inactive</option>
@@ -663,13 +610,8 @@ function StepReview() {
   const store = useMigrationStore();
   const startMigration = useStartMigration();
 
-  const selectedProjects = store.projects.filter((p) =>
-    store.selectedProjectIds.has(p.epId)
-  );
-  const totalIssues = selectedProjects.reduce(
-    (sum, p) => sum + Math.max(0, p.issueCount),
-    0
-  );
+  const selectedProjects = store.projects.filter((p) => store.selectedProjectIds.has(p.epId));
+  const totalIssues = selectedProjects.reduce((sum, p) => sum + Math.max(0, p.issueCount), 0);
 
   const handleStart = () => {
     // Split tracker selections into mapping vs auto-create
@@ -736,9 +678,7 @@ function StepReview() {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-xl font-semibold text-foreground">
-          Review & Start
-        </h2>
+        <h2 className="text-xl font-semibold text-foreground">Review & Start</h2>
         <p className="text-sm text-muted-foreground mt-1">
           Review your migration settings before starting.
         </p>
@@ -747,9 +687,7 @@ function StepReview() {
       {/* Summary cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div className="rounded-lg border border-border p-4 text-center">
-          <p className="text-2xl font-bold text-foreground">
-            {selectedProjects.length}
-          </p>
+          <p className="text-2xl font-bold text-foreground">{selectedProjects.length}</p>
           <p className="text-xs text-muted-foreground">Projects</p>
         </div>
         <div className="rounded-lg border border-border p-4 text-center">
@@ -757,15 +695,12 @@ function StepReview() {
           <p className="text-xs text-muted-foreground">Issues (approx)</p>
         </div>
         <div className="rounded-lg border border-border p-4 text-center">
-          <p className="text-2xl font-bold text-foreground">
-            {store.trackerMappings.length}
-          </p>
+          <p className="text-2xl font-bold text-foreground">{store.trackerMappings.length}</p>
           <p className="text-xs text-muted-foreground">Tracker Mappings</p>
         </div>
         <div className="rounded-lg border border-border p-4 text-center">
           <p className="text-2xl font-bold text-foreground">
-            {store.userMappings.filter((u) => u.matchedUserId).length}/
-            {store.userMappings.length}
+            {store.userMappings.filter((u) => u.matchedUserId).length}/{store.userMappings.length}
           </p>
           <p className="text-xs text-muted-foreground">Users Matched</p>
         </div>
@@ -807,9 +742,7 @@ function StepReview() {
           disabled={startMigration.isPending}
           className="px-6 py-2 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700 disabled:opacity-50 flex items-center gap-2"
         >
-          {startMigration.isPending && (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          )}
+          {startMigration.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
           <Download className="h-4 w-4" />
           Start Migration
         </button>
@@ -819,20 +752,22 @@ function StepReview() {
 }
 
 function StepProgress() {
-  const { activeJobId, reset, importComments, importWorklogs, skipAttachments } = useMigrationStore();
+  const { activeJobId, reset, importComments, importWorklogs, skipAttachments } =
+    useMigrationStore();
   const { data: progress } = useMigrationProgress(activeJobId);
   const cancelMigration = useCancelMigration();
   const { getAccessToken, isAuthenticated } = useAuth();
   const [liveProgress, setLiveProgress] = useState<MigrationProgress | null>(null);
-  const connectionRef = useRef<ReturnType<typeof HubConnectionBuilder.prototype.build> | null>(null);
+  const connectionRef = useRef<ReturnType<typeof HubConnectionBuilder.prototype.build> | null>(
+    null
+  );
   const logEndRef = useRef<HTMLDivElement>(null);
 
   // SignalR connection for live updates
   useEffect(() => {
     if (!activeJobId || !isAuthenticated) return;
 
-    const baseUrl =
-      process.env.NEXT_PUBLIC_SIGNALR_URL || "http://localhost:5249/hubs";
+    const baseUrl = process.env.NEXT_PUBLIC_SIGNALR_URL || "http://localhost:5249/hubs";
 
     const connection = new HubConnectionBuilder()
       .withUrl(`${baseUrl}/migration`, {
@@ -872,28 +807,64 @@ function StepProgress() {
 
   // Phase order matches backend execution order
   const phaseOrder = ["projects", "tickets", "comments", "worklogs", "attachments"] as const;
-  const phaseConfig: Record<string, { label: string; enabled: boolean; total: number; done: number }> = {
-    projects: { label: "Projects", enabled: true, total: p?.projectsTotal ?? 0, done: p?.projectsMigrated ?? 0 },
-    tickets: { label: "Tickets", enabled: true, total: p?.ticketsTotal ?? 0, done: p?.ticketsMigrated ?? 0 },
-    comments: { label: "Comments", enabled: importComments, total: p?.commentsTotal ?? 0, done: p?.commentsMigrated ?? 0 },
-    worklogs: { label: "Worklogs", enabled: importWorklogs, total: p?.worklogsTotal ?? 0, done: p?.worklogsMigrated ?? 0 },
-    attachments: { label: "Attachments", enabled: !skipAttachments, total: p?.attachmentsTotal ?? 0, done: p?.attachmentsMigrated ?? 0 },
+  const phaseConfig: Record<
+    string,
+    { label: string; enabled: boolean; total: number; done: number }
+  > = {
+    projects: {
+      label: "Projects",
+      enabled: true,
+      total: p?.projectsTotal ?? 0,
+      done: p?.projectsMigrated ?? 0,
+    },
+    tickets: {
+      label: "Tickets",
+      enabled: true,
+      total: p?.ticketsTotal ?? 0,
+      done: p?.ticketsMigrated ?? 0,
+    },
+    comments: {
+      label: "Comments",
+      enabled: importComments,
+      total: p?.commentsTotal ?? 0,
+      done: p?.commentsMigrated ?? 0,
+    },
+    worklogs: {
+      label: "Worklogs",
+      enabled: importWorklogs,
+      total: p?.worklogsTotal ?? 0,
+      done: p?.worklogsMigrated ?? 0,
+    },
+    attachments: {
+      label: "Attachments",
+      enabled: !skipAttachments,
+      total: p?.attachmentsTotal ?? 0,
+      done: p?.attachmentsMigrated ?? 0,
+    },
   };
 
   // Determine which phase is currently active based on currentPhase string
-  const currentPhaseKey = p?.currentPhase?.toLowerCase().includes("project") ? "projects"
-    : p?.currentPhase?.toLowerCase().includes("ticket") ? "tickets"
-    : p?.currentPhase?.toLowerCase().includes("comment") ? "comments"
-    : p?.currentPhase?.toLowerCase().includes("worklog") ? "worklogs"
-    : p?.currentPhase?.toLowerCase().includes("attachment") ? "attachments"
-    : null;
+  const currentPhaseKey = p?.currentPhase?.toLowerCase().includes("project")
+    ? "projects"
+    : p?.currentPhase?.toLowerCase().includes("ticket")
+      ? "tickets"
+      : p?.currentPhase?.toLowerCase().includes("comment")
+        ? "comments"
+        : p?.currentPhase?.toLowerCase().includes("worklog")
+          ? "worklogs"
+          : p?.currentPhase?.toLowerCase().includes("attachment")
+            ? "attachments"
+            : null;
 
   const currentPhaseIndex = currentPhaseKey ? phaseOrder.indexOf(currentPhaseKey) : -1;
 
-  const getPhaseStatus = (key: string, idx: number): "skipped" | "pending" | "active" | "completed" => {
+  const getPhaseStatus = (
+    key: string,
+    idx: number
+  ): "skipped" | "pending" | "active" | "completed" => {
     const cfg = phaseConfig[key];
     if (!cfg.enabled) return "skipped";
-    if (isFinished) return cfg.total > 0 || (currentPhaseIndex >= idx) ? "completed" : "pending";
+    if (isFinished) return cfg.total > 0 || currentPhaseIndex >= idx ? "completed" : "pending";
     if (currentPhaseIndex === idx) return "active";
     if (currentPhaseIndex > idx) return "completed";
     return "pending";
@@ -905,18 +876,14 @@ function StepProgress() {
         <h2 className="text-xl font-semibold text-foreground">
           Migration {isFinished ? "Complete" : "in Progress"}
         </h2>
-        <p className="text-sm text-muted-foreground mt-1">
-          {p?.currentPhase ?? "Initializing..."}
-        </p>
+        <p className="text-sm text-muted-foreground mt-1">{p?.currentPhase ?? "Initializing..."}</p>
       </div>
 
       {/* Overall progress */}
       <div>
         <div className="flex justify-between text-sm mb-1">
           <span className="text-muted-foreground">Overall Progress</span>
-          <span className="font-medium text-foreground">
-            {p?.overallPercent ?? 0}%
-          </span>
+          <span className="font-medium text-foreground">{p?.overallPercent ?? 0}%</span>
         </div>
         <div className="h-3 bg-muted rounded-full overflow-hidden">
           <div
@@ -945,14 +912,10 @@ function StepProgress() {
               key={key}
               className={cn(
                 "rounded-lg border p-3",
-                status === "skipped"
-                  ? "border-border/50 opacity-50"
-                  : "border-border"
+                status === "skipped" ? "border-border/50 opacity-50" : "border-border"
               )}
             >
-              <p className="text-xs text-muted-foreground mb-1">
-                {phase.label}
-              </p>
+              <p className="text-xs text-muted-foreground mb-1">{phase.label}</p>
               {status === "skipped" ? (
                 <p className="text-sm text-muted-foreground italic">Skipped</p>
               ) : status === "pending" && phase.total === 0 ? (
@@ -961,9 +924,7 @@ function StepProgress() {
                 <>
                   <p className="text-lg font-semibold text-foreground">
                     {phase.done}
-                    <span className="text-muted-foreground font-normal">
-                      /{phase.total}
-                    </span>
+                    <span className="text-muted-foreground font-normal">/{phase.total}</span>
                   </p>
                   {phase.total > 0 && (
                     <div className="h-1.5 bg-muted rounded-full mt-1">
@@ -1010,9 +971,7 @@ function StepProgress() {
       {/* Log */}
       <div className="rounded-lg border border-border">
         <div className="px-3 py-2 border-b border-border bg-muted/30">
-          <span className="text-xs font-medium text-muted-foreground">
-            Log
-          </span>
+          <span className="text-xs font-medium text-muted-foreground">Log</span>
         </div>
         <div className="h-48 overflow-y-auto p-3 font-mono text-xs text-muted-foreground space-y-0.5">
           {(p?.recentLog ?? []).map((line, i) => (
@@ -1027,9 +986,7 @@ function StepProgress() {
         <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-4">
           <div className="flex items-center gap-2 mb-2">
             <AlertTriangle className="h-4 w-4 text-destructive" />
-            <span className="text-sm font-medium text-destructive">
-              {p?.errorCount} errors
-            </span>
+            <span className="text-sm font-medium text-destructive">{p?.errorCount} errors</span>
           </div>
           <div className="space-y-1 max-h-32 overflow-y-auto">
             {(p?.recentErrors ?? []).map((err, i) => (
@@ -1054,7 +1011,8 @@ function StepProgress() {
               <RefreshCw className="h-4 w-4" />
               New Migration
             </button>
-            <Link href="/projects"
+            <Link
+              href="/projects"
               className="px-4 py-2 bg-accent-orange text-white rounded-lg text-sm font-medium hover:bg-accent-orange/90 flex items-center gap-2"
             >
               View Projects
@@ -1099,9 +1057,7 @@ function MigrationHistorySection() {
 
   return (
     <div className="mt-8">
-      <h3 className="text-sm font-semibold text-foreground mb-3">
-        Migration History
-      </h3>
+      <h3 className="text-sm font-semibold text-foreground mb-3">Migration History</h3>
       <div className="rounded-lg border border-border overflow-hidden">
         <table className="w-full">
           <thead>
@@ -1132,16 +1088,9 @@ function MigrationHistorySection() {
                 <td className="px-4 py-2 text-sm text-foreground">
                   {new Date(job.startedAt).toLocaleString()}
                 </td>
-                <td className="px-4 py-2 text-sm text-muted-foreground">
-                  {job.sourceBaseUrl}
-                </td>
+                <td className="px-4 py-2 text-sm text-muted-foreground">{job.sourceBaseUrl}</td>
                 <td className="px-4 py-2">
-                  <span
-                    className={cn(
-                      "text-xs font-medium",
-                      statusColor(job.status)
-                    )}
-                  >
+                  <span className={cn("text-xs font-medium", statusColor(job.status))}>
                     {job.status}
                   </span>
                 </td>
@@ -1169,9 +1118,7 @@ export default function MigrationPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-foreground">
-          EasyProject Migration
-        </h1>
+        <h1 className="text-2xl font-bold text-foreground">EasyProject Migration</h1>
         <p className="text-sm text-muted-foreground mt-1">
           Import projects, tickets, worklogs, and more from EasyProject.
         </p>
@@ -1192,7 +1139,3 @@ export default function MigrationPage() {
     </div>
   );
 }
-
-
-
-

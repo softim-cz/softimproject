@@ -2,10 +2,7 @@
 
 import { useState } from "react";
 import { X, Filter, Save, ChevronDown } from "lucide-react";
-import {
-  useFilterStore,
-  type FilterCondition,
-} from "@/stores/filter-store";
+import { useFilterStore, type FilterCondition } from "@/stores/filter-store";
 import {
   useSavedFilters,
   useCreateSavedFilter,
@@ -21,14 +18,8 @@ interface FilterBarProps {
   filterFields: { value: string; label: string }[];
 }
 
-export function FilterBar({
-  viewKey,
-  viewType,
-  projectId,
-  filterFields,
-}: FilterBarProps) {
-  const { activeFilters, setFilters, removeFilter, clearFilters } =
-    useFilterStore();
+export function FilterBar({ viewKey, viewType, projectId, filterFields }: FilterBarProps) {
+  const { activeFilters, setFilters, removeFilter, clearFilters } = useFilterStore();
   const filters = activeFilters[viewKey] ?? [];
   const { data: savedFilters } = useSavedFilters(viewType, projectId);
   const createSavedFilter = useCreateSavedFilter();
@@ -129,9 +120,7 @@ export function FilterBar({
           {showSaved && savedFilters && (
             <div className="absolute left-0 top-full mt-1 z-20 bg-card border border-border rounded-lg shadow-lg py-1 w-56 max-h-64 overflow-y-auto">
               {savedFilters.length === 0 ? (
-                <p className="px-3 py-2 text-xs text-muted-foreground">
-                  No saved filters
-                </p>
+                <p className="px-3 py-2 text-xs text-muted-foreground">No saved filters</p>
               ) : (
                 savedFilters.map((sf) => (
                   <button
@@ -139,11 +128,7 @@ export function FilterBar({
                     onClick={() => handleLoadSavedFilter(sf)}
                     className="w-full text-left px-3 py-1.5 text-sm hover:bg-muted transition-colors flex items-center gap-2"
                   >
-                    {sf.isSystem && (
-                      <span className="text-xs text-muted-foreground">
-                        [sys]
-                      </span>
-                    )}
+                    {sf.isSystem && <span className="text-xs text-muted-foreground">[sys]</span>}
                     {sf.name}
                   </button>
                 ))
@@ -214,5 +199,3 @@ export function FilterBar({
     </div>
   );
 }
-
-

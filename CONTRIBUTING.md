@@ -74,6 +74,6 @@ Tyto položky ještě nejsou zavedené, dokud nebudou hotové, je pravidlo "best
 - [x] `Database.Migrate()` v `Program.cs` v `using var scope` bloku (bod 2)
 - [x] `frontend/.env.example` + `backend/src/SoftimProject.WebApi/appsettings.Example.json` (bod 3)
 - [ ] GitHub branch protection na `main` s "require status checks to pass" (bod 4)
-- [ ] `.editorconfig` v kořeni + Prettier config + lint skript ve `frontend/package.json` (bod 5)
+- [x] `.editorconfig` v kořeni + Prettier config + lint skript ve `frontend/package.json` (bod 5)
 
 Bod 6 (konvenční commity) je zavedený ode dneška — Honza už to tak většinou dělá, Karel navázal.

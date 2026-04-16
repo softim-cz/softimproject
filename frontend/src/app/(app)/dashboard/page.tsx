@@ -5,25 +5,10 @@ import { useWorklogs } from "@/queries/worklogs";
 import { HealthIndicator } from "@/components/shared/health-indicator";
 import { CardSkeleton } from "@/components/shared/loading-skeleton";
 import { EmptyState } from "@/components/shared/empty-state";
-import {
-  FolderKanban,
-  Clock,
-  Plus,
-  TrendingUp,
-  AlertTriangle,
-  CheckCircle2,
-} from "lucide-react";
+import { FolderKanban, Clock, Plus, TrendingUp, AlertTriangle, CheckCircle2 } from "lucide-react";
 import Link from "next/link";
 import { format, startOfWeek, endOfWeek } from "date-fns";
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-} from "recharts";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import type { Project } from "@/types";
 
 function ProjectHealthCards() {
@@ -76,12 +61,8 @@ function ProjectHealthCards() {
         >
           <div className="flex items-start justify-between mb-3">
             <div>
-              <h3 className="font-semibold text-card-foreground">
-                {project.name}
-              </h3>
-              <p className="text-xs text-muted-foreground font-mono">
-                {project.code}
-              </p>
+              <h3 className="font-semibold text-card-foreground">{project.name}</h3>
+              <p className="text-xs text-muted-foreground font-mono">{project.code}</p>
             </div>
             <HealthIndicator score={project.healthScore} showLabel={false} />
           </div>
@@ -136,9 +117,7 @@ function WeeklyHoursChart() {
     date.setDate(date.getDate() + i);
     const dateStr = format(date, "yyyy-MM-dd");
     const dayHours =
-      worklogs
-        ?.filter((w) => w.date === dateStr)
-        .reduce((sum, w) => sum + w.hours, 0) || 0;
+      worklogs?.filter((w) => w.date === dateStr).reduce((sum, w) => sum + w.hours, 0) || 0;
     return { day, hours: dayHours };
   });
 
@@ -198,7 +177,8 @@ function DashboardStats() {
   });
 
   const activeProjects = projects?.filter((project) => project.status === "Active").length ?? 0;
-  const visibleTickets = projects?.reduce((sum, project) => sum + (project.ticketCount ?? 0), 0) ?? 0;
+  const visibleTickets =
+    projects?.reduce((sum, project) => sum + (project.ticketCount ?? 0), 0) ?? 0;
   const weeklyHours = worklogs?.reduce((sum, worklog) => sum + worklog.hours, 0) ?? 0;
 
   return (
@@ -256,16 +236,12 @@ export default function DashboardPage() {
       <DashboardStats />
 
       <section>
-        <h2 className="text-lg font-semibold text-foreground mb-4">
-          Project Health
-        </h2>
+        <h2 className="text-lg font-semibold text-foreground mb-4">Project Health</h2>
         <ProjectHealthCards />
       </section>
 
       <section>
-        <h2 className="text-lg font-semibold text-foreground mb-4">
-          Hours Logged This Week
-        </h2>
+        <h2 className="text-lg font-semibold text-foreground mb-4">Hours Logged This Week</h2>
         <div className="rounded-lg border border-border bg-card p-5">
           <WeeklyHoursChart />
         </div>

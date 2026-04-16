@@ -113,7 +113,12 @@ export function useProjectStates() {
 export function useCreateProjectState() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (body: { name: string; color: string; sortOrder: number; isDefault: boolean }) => {
+    mutationFn: async (body: {
+      name: string;
+      color: string;
+      sortOrder: number;
+      isDefault: boolean;
+    }) => {
       const { data } = await apiClient.post<string>("/api/v1/lookups/project-states", body);
       return data;
     },
@@ -200,7 +205,14 @@ export function useTaskStates(templateId?: string) {
 export function useCreateTaskState() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (body: { name: string; color: string; sortOrder: number; isDefault: boolean; isClosedState: boolean; projectTemplateId: string }) => {
+    mutationFn: async (body: {
+      name: string;
+      color: string;
+      sortOrder: number;
+      isDefault: boolean;
+      isClosedState: boolean;
+      projectTemplateId: string;
+    }) => {
       const { data } = await apiClient.post<string>("/api/v1/lookups/task-states", body);
       return data;
     },
@@ -234,7 +246,9 @@ export function useApplicationRoles() {
   return useQuery({
     queryKey: ["lookups", "application-roles"],
     queryFn: async () => {
-      const { data } = await apiClient.get<ApplicationRoleEntity[]>("/api/v1/lookups/application-roles");
+      const { data } = await apiClient.get<ApplicationRoleEntity[]>(
+        "/api/v1/lookups/application-roles"
+      );
       return data;
     },
   });
@@ -277,7 +291,9 @@ export function useCustomFieldDefinitions() {
   return useQuery({
     queryKey: ["lookups", "custom-field-definitions"],
     queryFn: async () => {
-      const { data } = await apiClient.get<CustomFieldDefinition[]>("/api/v1/lookups/custom-field-definitions");
+      const { data } = await apiClient.get<CustomFieldDefinition[]>(
+        "/api/v1/lookups/custom-field-definitions"
+      );
       return data;
     },
   });
@@ -286,8 +302,18 @@ export function useCustomFieldDefinitions() {
 export function useCreateCustomFieldDefinition() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (body: { name: string; description?: string; fieldType: string; isRequired: boolean; options?: string; sortOrder: number }) => {
-      const { data } = await apiClient.post<string>("/api/v1/lookups/custom-field-definitions", body);
+    mutationFn: async (body: {
+      name: string;
+      description?: string;
+      fieldType: string;
+      isRequired: boolean;
+      options?: string;
+      sortOrder: number;
+    }) => {
+      const { data } = await apiClient.post<string>(
+        "/api/v1/lookups/custom-field-definitions",
+        body
+      );
       return data;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["lookups", "custom-field-definitions"] }),
@@ -329,7 +355,11 @@ export function useProjectTemplates() {
 export function useCreateProjectTemplate() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (body: { name: string; description?: string; customFieldDefinitionIds: string[] }) => {
+    mutationFn: async (body: {
+      name: string;
+      description?: string;
+      customFieldDefinitionIds: string[];
+    }) => {
       const { data } = await apiClient.post<string>("/api/v1/lookups/project-templates", body);
       return data;
     },
@@ -340,7 +370,13 @@ export function useCreateProjectTemplate() {
 export function useUpdateProjectTemplate() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (body: { id: string; name: string; description?: string; isActive: boolean; customFieldDefinitionIds: string[] }) => {
+    mutationFn: async (body: {
+      id: string;
+      name: string;
+      description?: string;
+      isActive: boolean;
+      customFieldDefinitionIds: string[];
+    }) => {
       await apiClient.put(`/api/v1/lookups/project-templates/${body.id}`, body);
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["lookups", "project-templates"] }),
@@ -361,7 +397,10 @@ export function useDuplicateProjectTemplate() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (body: { id: string; newName: string }) => {
-      const { data } = await apiClient.post<string>(`/api/v1/lookups/project-templates/${body.id}/duplicate`, { newName: body.newName });
+      const { data } = await apiClient.post<string>(
+        `/api/v1/lookups/project-templates/${body.id}/duplicate`,
+        { newName: body.newName }
+      );
       return data;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["lookups", "project-templates"] }),
@@ -375,7 +414,9 @@ export function useTicketPriorities(templateId?: string) {
     queryKey: ["lookups", "ticket-priorities", templateId ?? "all"],
     queryFn: async () => {
       const params = templateId ? `?templateId=${templateId}` : "";
-      const { data } = await apiClient.get<TicketPriorityLookup[]>(`/api/v1/lookups/ticket-priorities${params}`);
+      const { data } = await apiClient.get<TicketPriorityLookup[]>(
+        `/api/v1/lookups/ticket-priorities${params}`
+      );
       return data;
     },
   });
@@ -384,7 +425,13 @@ export function useTicketPriorities(templateId?: string) {
 export function useCreateTicketPriority() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (body: { name: string; color: string; sortOrder: number; isDefault: boolean; projectTemplateId: string }) => {
+    mutationFn: async (body: {
+      name: string;
+      color: string;
+      sortOrder: number;
+      isDefault: boolean;
+      projectTemplateId: string;
+    }) => {
       const { data } = await apiClient.post<string>("/api/v1/lookups/ticket-priorities", body);
       return data;
     },

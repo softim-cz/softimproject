@@ -5,11 +5,7 @@ import { useWorklogs } from "@/queries/worklogs";
 import { Skeleton } from "@/components/shared/loading-skeleton";
 import { EmptyState } from "@/components/shared/empty-state";
 import { Users, ChevronLeft, ChevronRight } from "lucide-react";
-import {
-  format,
-  startOfWeek,
-  addDays,
-  addWeeks,} from "date-fns";
+import { format, startOfWeek, addDays, addWeeks } from "date-fns";
 import { cn } from "@/lib/utils";
 
 function getHeatColor(hours: number, maxHours: number = 8): string {
@@ -25,14 +21,11 @@ function getHeatColor(hours: number, maxHours: number = 8): string {
 export default function ResourcesPage() {
   const [weekOffset, setWeekOffset] = useState(0);
   const now = new Date();
-  const currentWeekStart = startOfWeek(
-    weekOffset === 0 ? now : addWeeks(now, weekOffset),
-    { weekStartsOn: 1 }
-  );
+  const currentWeekStart = startOfWeek(weekOffset === 0 ? now : addWeeks(now, weekOffset), {
+    weekStartsOn: 1,
+  });
 
-  const weekDays = Array.from({ length: 7 }, (_, i) =>
-    addDays(currentWeekStart, i)
-  );
+  const weekDays = Array.from({ length: 7 }, (_, i) => addDays(currentWeekStart, i));
 
   const from = format(weekDays[0], "yyyy-MM-dd");
   const to = format(weekDays[6], "yyyy-MM-dd");
@@ -43,10 +36,7 @@ export default function ResourcesPage() {
   const userRows = useMemo(() => {
     if (!worklogs) return [];
 
-    const userMap = new Map<
-      string,
-      { displayName: string; dailyHours: Map<string, number> }
-    >();
+    const userMap = new Map<string, { displayName: string; dailyHours: Map<string, number> }>();
 
     for (const w of worklogs) {
       if (!userMap.has(w.userId)) {
@@ -71,9 +61,7 @@ export default function ResourcesPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-foreground">Resources</h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          Capacity heatmap and team allocation
-        </p>
+        <p className="text-sm text-muted-foreground mt-1">Capacity heatmap and team allocation</p>
       </div>
 
       {/* Week navigation */}
@@ -169,9 +157,7 @@ export default function ResourcesPage() {
                     className="px-2 py-3 text-center text-xs font-medium text-muted-foreground uppercase tracking-wider"
                   >
                     <div>{format(day, "EEE")}</div>
-                    <div className="text-[10px] font-normal">
-                      {format(day, "MMM d")}
-                    </div>
+                    <div className="text-[10px] font-normal">{format(day, "MMM d")}</div>
                   </th>
                 ))}
                 <th className="px-4 py-3 text-center text-xs font-medium text-muted-foreground uppercase tracking-wider">
@@ -195,10 +181,7 @@ export default function ResourcesPage() {
                       const dateStr = format(day, "yyyy-MM-dd");
                       const hours = row.dailyHours.get(dateStr) || 0;
                       return (
-                        <td
-                          key={dateStr}
-                          className="px-2 py-3 text-center"
-                        >
+                        <td key={dateStr} className="px-2 py-3 text-center">
                           <div
                             className={cn(
                               "mx-auto h-10 w-full max-w-[60px] rounded flex items-center justify-center text-xs font-medium",
@@ -223,5 +206,3 @@ export default function ResourcesPage() {
     </div>
   );
 }
-
-

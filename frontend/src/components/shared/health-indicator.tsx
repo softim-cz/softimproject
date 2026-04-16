@@ -31,9 +31,7 @@ export function HealthIndicator({
 
   return (
     <div className="flex items-center gap-2">
-      <span
-        className={cn("rounded-full inline-block", sizeClasses[size], getHealthColor(score))}
-      />
+      <span className={cn("rounded-full inline-block", sizeClasses[size], getHealthColor(score))} />
       {showLabel && (
         <span className="text-sm text-muted-foreground">
           {getHealthLabel(score)} ({score}%)

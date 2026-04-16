@@ -8,11 +8,7 @@ interface TimerState {
   projectId: string | null;
   ticketId: string | null;
   description: string;
-  start: (
-    projectId: string,
-    ticketId?: string,
-    description?: string
-  ) => void;
+  start: (projectId: string, ticketId?: string, description?: string) => void;
   stop: () => {
     elapsed: number;
     projectId: string | null;

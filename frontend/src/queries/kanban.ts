@@ -21,8 +21,18 @@ function invalidateBoard(queryClient: ReturnType<typeof useQueryClient>, project
 export function useCreateColumn() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (payload: { projectId: string; boardId: string; name: string; wipLimit?: number; mapsToTaskStateIds: string[]; color?: string }) => {
-      const { data } = await apiClient.post<string>(`/api/v1/projects/${payload.projectId}/boards/${payload.boardId}/columns`, payload);
+    mutationFn: async (payload: {
+      projectId: string;
+      boardId: string;
+      name: string;
+      wipLimit?: number;
+      mapsToTaskStateIds: string[];
+      color?: string;
+    }) => {
+      const { data } = await apiClient.post<string>(
+        `/api/v1/projects/${payload.projectId}/boards/${payload.boardId}/columns`,
+        payload
+      );
       return data;
     },
     onSuccess: (_, { projectId }) => invalidateBoard(queryClient, projectId),
@@ -32,8 +42,19 @@ export function useCreateColumn() {
 export function useUpdateColumn() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (payload: { projectId: string; boardId: string; columnId: string; name: string; wipLimit?: number; mapsToTaskStateIds: string[]; color?: string }) => {
-      await apiClient.put(`/api/v1/projects/${payload.projectId}/boards/${payload.boardId}/columns/${payload.columnId}`, payload);
+    mutationFn: async (payload: {
+      projectId: string;
+      boardId: string;
+      columnId: string;
+      name: string;
+      wipLimit?: number;
+      mapsToTaskStateIds: string[];
+      color?: string;
+    }) => {
+      await apiClient.put(
+        `/api/v1/projects/${payload.projectId}/boards/${payload.boardId}/columns/${payload.columnId}`,
+        payload
+      );
     },
     onSuccess: (_, { projectId }) => invalidateBoard(queryClient, projectId),
   });
@@ -42,7 +63,15 @@ export function useUpdateColumn() {
 export function useDeleteColumn() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({ projectId, boardId, columnId }: { projectId: string; boardId: string; columnId: string }) => {
+    mutationFn: async ({
+      projectId,
+      boardId,
+      columnId,
+    }: {
+      projectId: string;
+      boardId: string;
+      columnId: string;
+    }) => {
       await apiClient.delete(`/api/v1/projects/${projectId}/boards/${boardId}/columns/${columnId}`);
     },
     onSuccess: (_, { projectId }) => invalidateBoard(queryClient, projectId),
@@ -53,7 +82,10 @@ export function useReorderColumns() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (payload: { projectId: string; boardId: string; columnIds: string[] }) => {
-      await apiClient.put(`/api/v1/projects/${payload.projectId}/boards/${payload.boardId}/columns/reorder`, payload);
+      await apiClient.put(
+        `/api/v1/projects/${payload.projectId}/boards/${payload.boardId}/columns/reorder`,
+        payload
+      );
     },
     onSuccess: (_, { projectId }) => invalidateBoard(queryClient, projectId),
   });
@@ -62,8 +94,21 @@ export function useReorderColumns() {
 export function useMoveTicket() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({ projectId, ticketId, targetColumnId, position }: { projectId: string; ticketId: string; targetColumnId: string; position: number }) => {
-      await apiClient.put(`/api/v1/projects/${projectId}/tickets/${ticketId}/move`, { targetColumnId, position });
+    mutationFn: async ({
+      projectId,
+      ticketId,
+      targetColumnId,
+      position,
+    }: {
+      projectId: string;
+      ticketId: string;
+      targetColumnId: string;
+      position: number;
+    }) => {
+      await apiClient.put(`/api/v1/projects/${projectId}/tickets/${ticketId}/move`, {
+        targetColumnId,
+        position,
+      });
     },
     onSuccess: (_, { projectId }) => invalidateBoard(queryClient, projectId),
   });

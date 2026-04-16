@@ -90,10 +90,7 @@ export function useStartMigration() {
       autoCreateStatusIsClosed: Record<number, boolean>;
       autoCreatePriorities: Record<number, string>;
     }) => {
-      const { data } = await apiClient.post<string>(
-        "/api/v1/migration/start",
-        params
-      );
+      const { data } = await apiClient.post<string>("/api/v1/migration/start", params);
       return data;
     },
   });
@@ -125,11 +122,8 @@ export function useMigrationHistory() {
   return useQuery({
     queryKey: ["migration", "history"],
     queryFn: async () => {
-      const { data } = await apiClient.get<MigrationJob[]>(
-        "/api/v1/migration/history"
-      );
+      const { data } = await apiClient.get<MigrationJob[]>("/api/v1/migration/history");
       return data;
     },
   });
 }
-

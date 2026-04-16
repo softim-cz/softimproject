@@ -176,13 +176,10 @@ export const useMigrationStore = create<MigrationState>()((set) => ({
 
   updateProjectIssueCount: (epId, count) =>
     set((state) => ({
-      projects: state.projects.map((p) =>
-        p.epId === epId ? { ...p, issueCount: count } : p
-      ),
+      projects: state.projects.map((p) => (p.epId === epId ? { ...p, issueCount: count } : p)),
     })),
 
   setActiveJobId: (activeJobId) => set({ activeJobId }),
 
   reset: () => set(initialState),
 }));
-

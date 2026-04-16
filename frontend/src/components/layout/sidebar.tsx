@@ -47,12 +47,7 @@ function TimerWidget({ collapsed }: { collapsed: boolean }) {
   }
 
   return (
-    <div
-      className={cn(
-        "border-t border-border p-3",
-        collapsed ? "text-center" : ""
-      )}
-    >
+    <div className={cn("border-t border-border p-3", collapsed ? "text-center" : "")}>
       <div className="flex items-center gap-2">
         <div className="relative">
           <div className="h-2 w-2 rounded-full bg-red-500 animate-pulse" />
@@ -104,8 +99,7 @@ export function Sidebar({ collapsed }: { collapsed: boolean }) {
 
       <nav className="flex-1 py-4 space-y-1 px-2">
         {navigation.map((item) => {
-          const isActive =
-            pathname === item.href || pathname.startsWith(item.href + "/");
+          const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
           return (
             <Link
               key={item.name}
@@ -133,11 +127,7 @@ export function Sidebar({ collapsed }: { collapsed: boolean }) {
         className="flex items-center justify-center py-3 border-t border-white/10 text-white/50 hover:text-white transition-colors"
         aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
       >
-        {collapsed ? (
-          <ChevronRight className="h-4 w-4" />
-        ) : (
-          <ChevronLeft className="h-4 w-4" />
-        )}
+        {collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
       </button>
     </aside>
   );

@@ -22,12 +22,8 @@ export default function LoginPage() {
           <div className="inline-flex items-center justify-center h-16 w-16 rounded-2xl bg-accent-orange mb-4">
             <span className="text-2xl font-bold text-white">S</span>
           </div>
-          <h1 className="text-2xl font-bold text-card-foreground">
-            SoftimProject
-          </h1>
-          <p className="text-muted-foreground text-sm mt-1">
-            Internal project management tool
-          </p>
+          <h1 className="text-2xl font-bold text-card-foreground">SoftimProject</h1>
+          <p className="text-muted-foreground text-sm mt-1">Internal project management tool</p>
         </div>
 
         {/* Login button */}

@@ -42,12 +42,7 @@ function UserManagement() {
   }
 
   if (!users || users.length === 0) {
-    return (
-      <EmptyState
-        icon={<Users className="h-10 w-10" />}
-        title="No users found"
-      />
-    );
+    return <EmptyState icon={<Users className="h-10 w-10" />} title="No users found" />;
   }
 
   const toggleRole = (user: AdminUser, roleId: string) => {
@@ -105,9 +100,7 @@ function UserManagement() {
                     </div>
                   </div>
                 </td>
-                <td className="px-4 py-3 text-sm text-muted-foreground">
-                  {user.email}
-                </td>
+                <td className="px-4 py-3 text-sm text-muted-foreground">{user.email}</td>
                 <td className="px-4 py-3 text-sm text-muted-foreground">
                   {[user.companyName, user.corporateRole].filter(Boolean).join(" / ") || "—"}
                 </td>
@@ -139,14 +132,20 @@ function UserManagement() {
                     onClick={() => setExpandedUser(expandedUser === user.id ? null : user.id)}
                     className="p-1 text-muted-foreground hover:text-foreground"
                   >
-                    {expandedUser === user.id ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                    {expandedUser === user.id ? (
+                      <ChevronUp className="h-4 w-4" />
+                    ) : (
+                      <ChevronDown className="h-4 w-4" />
+                    )}
                   </button>
                 </td>
               </tr>
               {expandedUser === user.id && appRoles && (
                 <tr key={`${user.id}-roles`}>
                   <td colSpan={6} className="px-4 py-3 bg-muted/20">
-                    <p className="text-xs font-medium text-muted-foreground mb-2">Application Roles</p>
+                    <p className="text-xs font-medium text-muted-foreground mb-2">
+                      Application Roles
+                    </p>
                     <div className="flex flex-wrap gap-2">
                       {appRoles.map((role: ApplicationRoleEntity) => (
                         <button
@@ -163,7 +162,9 @@ function UserManagement() {
                         </button>
                       ))}
                       {appRoles.length === 0 && (
-                        <p className="text-xs text-muted-foreground">No application roles configured. Create them in Lookups.</p>
+                        <p className="text-xs text-muted-foreground">
+                          No application roles configured. Create them in Lookups.
+                        </p>
                       )}
                     </div>
                   </td>
@@ -197,9 +198,7 @@ function SystemHealth() {
             <Activity className="h-5 w-5 text-green-600" />
           </div>
           <div>
-            <p className="text-sm font-medium text-card-foreground">
-              SignalR
-            </p>
+            <p className="text-sm font-medium text-card-foreground">SignalR</p>
             <p className="text-xs text-green-600">Connected</p>
           </div>
         </div>
@@ -210,9 +209,7 @@ function SystemHealth() {
             <Activity className="h-5 w-5 text-green-600" />
           </div>
           <div>
-            <p className="text-sm font-medium text-card-foreground">
-              Database
-            </p>
+            <p className="text-sm font-medium text-card-foreground">Database</p>
             <p className="text-xs text-green-600">Operational</p>
           </div>
         </div>
@@ -238,18 +235,12 @@ function IntegrationStatus() {
           <div className="flex items-center gap-3">
             <Link2 className="h-5 w-5 text-muted-foreground" />
             <div>
-              <p className="text-sm font-medium text-foreground">
-                {integration.name}
-              </p>
-              <p className="text-xs text-muted-foreground">
-                {integration.status}
-              </p>
+              <p className="text-sm font-medium text-foreground">{integration.name}</p>
+              <p className="text-xs text-muted-foreground">{integration.status}</p>
             </div>
           </div>
           {integration.connected ? (
-            <span className="text-xs text-green-600 font-medium">
-              Connected
-            </span>
+            <span className="text-xs text-green-600 font-medium">Connected</span>
           ) : (
             <button className="text-xs text-accent-orange hover:underline font-medium">
               Configure
@@ -266,18 +257,14 @@ export default function AdminPage() {
     <div className="space-y-8">
       <div>
         <h1 className="text-2xl font-bold text-foreground">Administration</h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          System management and configuration
-        </p>
+        <p className="text-sm text-muted-foreground mt-1">System management and configuration</p>
       </div>
 
       {/* System health */}
       <section>
         <div className="flex items-center gap-2 mb-4">
           <Shield className="h-5 w-5 text-muted-foreground" />
-          <h2 className="text-lg font-semibold text-foreground">
-            System Health
-          </h2>
+          <h2 className="text-lg font-semibold text-foreground">System Health</h2>
         </div>
         <SystemHealth />
       </section>
@@ -286,9 +273,7 @@ export default function AdminPage() {
       <section>
         <div className="flex items-center gap-2 mb-4">
           <Users className="h-5 w-5 text-muted-foreground" />
-          <h2 className="text-lg font-semibold text-foreground">
-            User Management
-          </h2>
+          <h2 className="text-lg font-semibold text-foreground">User Management</h2>
         </div>
         <UserManagement />
       </section>
@@ -297,9 +282,7 @@ export default function AdminPage() {
       <section>
         <div className="flex items-center gap-2 mb-4">
           <Link2 className="h-5 w-5 text-muted-foreground" />
-          <h2 className="text-lg font-semibold text-foreground">
-            Integrations
-          </h2>
+          <h2 className="text-lg font-semibold text-foreground">Integrations</h2>
         </div>
         <IntegrationStatus />
       </section>

@@ -7,10 +7,12 @@ import { StatusBadge } from "@/components/shared/status-badge";
 import type { Ticket } from "@/types";
 
 export function TaskPreviewSidebar({
-  ticket,  code,
+  ticket,
+  code,
   onClose,
 }: {
-  ticket: Ticket | null;  code: string;
+  ticket: Ticket | null;
+  code: string;
   onClose: () => void;
 }) {
   if (!ticket) return null;
@@ -71,9 +73,7 @@ export function TaskPreviewSidebar({
         {/* Assignee */}
         <div>
           <p className="text-xs font-medium text-muted-foreground mb-1">Assignee</p>
-          <p className="text-sm">
-            {ticket.assignee?.displayName || "Unassigned"}
-          </p>
+          <p className="text-sm">{ticket.assignee?.displayName || "Unassigned"}</p>
         </div>
 
         {/* Due date */}
@@ -117,5 +117,3 @@ export function TaskPreviewSidebar({
     </div>
   );
 }
-
-

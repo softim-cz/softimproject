@@ -26,19 +26,12 @@ import {
 import Link from "next/link";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import {
-  createCommentSchema,
-  type CreateCommentInput,
-} from "@/schemas/comment";
+import { createCommentSchema, type CreateCommentInput } from "@/schemas/comment";
 import { toast } from "sonner";
 import type { Comment, ChecklistItem } from "@/types";
 import { format } from "date-fns";
 
-function ChecklistSection({
-  items,
-}: {
-  items: ChecklistItem[];
-}) {
+function ChecklistSection({ items }: { items: ChecklistItem[] }) {
   if (!items || items.length === 0) return null;
 
   const completed = items.filter((i) => i.isCompleted).length;
@@ -81,13 +74,7 @@ function ChecklistSection({
   );
 }
 
-function CommentsSection({
-  projectId,
-  ticketId,
-}: {
-  projectId: string;
-  ticketId: string;
-}) {
+function CommentsSection({ projectId, ticketId }: { projectId: string; ticketId: string }) {
   const { data: comments, isLoading } = useComments(projectId, ticketId);
   const createComment = useCreateComment();
   const {
@@ -130,16 +117,10 @@ function CommentsSection({
           className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring resize-none"
           placeholder="Write a comment..."
         />
-        {errors.content && (
-          <p className="text-xs text-destructive">{errors.content.message}</p>
-        )}
+        {errors.content && <p className="text-xs text-destructive">{errors.content.message}</p>}
         <div className="flex items-center justify-between">
           <label className="flex items-center gap-2 text-sm text-muted-foreground">
-            <input
-              type="checkbox"
-              {...register("isInternal")}
-              className="rounded"
-            />
+            <input type="checkbox" {...register("isInternal")} className="rounded" />
             Internal only
           </label>
           <button
@@ -165,10 +146,7 @@ function CommentsSection({
       {comments && comments.length > 0 && (
         <div className="space-y-3">
           {comments.map((comment: Comment) => (
-            <div
-              key={comment.id}
-              className="rounded-lg border border-border p-4"
-            >
+            <div key={comment.id} className="rounded-lg border border-border p-4">
               <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2">
                   <div className="h-6 w-6 rounded-full bg-primary-navy text-white flex items-center justify-center text-[10px] font-bold">
@@ -191,30 +169,20 @@ function CommentsSection({
                   {format(new Date(comment.createdAt), "MMM d, yyyy HH:mm")}
                 </span>
               </div>
-              <p className="text-sm text-foreground whitespace-pre-wrap">
-                {comment.content}
-              </p>
+              <p className="text-sm text-foreground whitespace-pre-wrap">{comment.content}</p>
             </div>
           ))}
         </div>
       )}
 
       {comments && comments.length === 0 && (
-        <p className="text-sm text-muted-foreground text-center py-4">
-          No comments yet.
-        </p>
+        <p className="text-sm text-muted-foreground text-center py-4">No comments yet.</p>
       )}
     </div>
   );
 }
 
-function AttachmentsSection({
-  projectId,
-  ticketId,
-}: {
-  projectId: string;
-  ticketId: string;
-}) {
+function AttachmentsSection({ projectId, ticketId }: { projectId: string; ticketId: string }) {
   const { data: attachments, isLoading } = useAttachments(projectId, ticketId);
   const deleteAttachment = useDeleteAttachment();
 
@@ -255,12 +223,9 @@ function AttachmentsSection({
             >
               <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-foreground truncate">
-                  {att.fileName}
-                </p>
+                <p className="text-sm font-medium text-foreground truncate">{att.fileName}</p>
                 <p className="text-xs text-muted-foreground">
-                  {formatFileSize(att.fileSizeBytes)} &middot;{" "}
-                  {att.uploadedByName}
+                  {formatFileSize(att.fileSizeBytes)} &middot; {att.uploadedByName}
                 </p>
               </div>
               <a
@@ -351,9 +316,7 @@ export default function TicketDetailPage({
           {/* Description */}
           {ticket.description && (
             <div className="prose prose-sm max-w-none text-foreground">
-              <h3 className="text-sm font-semibold text-foreground mb-2">
-                Description
-              </h3>
+              <h3 className="text-sm font-semibold text-foreground mb-2">Description</h3>
               <div className="rounded-lg border border-border p-4 bg-muted/30">
                 <p className="whitespace-pre-wrap text-sm">{ticket.description}</p>
               </div>
@@ -365,9 +328,7 @@ export default function TicketDetailPage({
             <div className="rounded-lg border border-purple-200 bg-purple-50 p-4">
               <div className="flex items-center gap-2 mb-2">
                 <Sparkles className="h-4 w-4 text-purple-600" />
-                <h3 className="text-sm font-semibold text-purple-900">
-                  AI Summary
-                </h3>
+                <h3 className="text-sm font-semibold text-purple-900">AI Summary</h3>
               </div>
               <p className="text-sm text-purple-800">{ticket.aiSummary}</p>
             </div>
@@ -397,7 +358,10 @@ export default function TicketDetailPage({
                 Priority
               </label>
               <div className="mt-1">
-                <PriorityBadge name={ticket.ticketPriorityName} color={ticket.ticketPriorityColor} />
+                <PriorityBadge
+                  name={ticket.ticketPriorityName}
+                  color={ticket.ticketPriorityColor}
+                />
               </div>
             </div>
 
@@ -446,9 +410,7 @@ export default function TicketDetailPage({
                 </label>
                 <div className="mt-1 flex items-center gap-2">
                   <Clock className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-sm text-foreground">
-                    {ticket.estimatedHours}h
-                  </span>
+                  <span className="text-sm text-foreground">{ticket.estimatedHours}h</span>
                 </div>
               </div>
             )}
@@ -481,5 +443,3 @@ export default function TicketDetailPage({
     </div>
   );
 }
-
-

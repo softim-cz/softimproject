@@ -4,10 +4,7 @@ import { use, useState, useCallback, useMemo, useRef, memo } from "react";
 import { useBoard, useMoveTicket } from "@/queries/kanban";
 import { useCreateTicket, type CreateTicketPayload } from "@/queries/tickets";
 import { useProjectByCode } from "@/queries/projects";
-import {
-  useViewConfiguration,
-  useUpsertViewConfiguration,
-} from "@/queries/view-configurations";
+import { useViewConfiguration, useUpsertViewConfiguration } from "@/queries/view-configurations";
 import { KanbanSkeleton } from "@/components/shared/loading-skeleton";
 import { EmptyState } from "@/components/shared/empty-state";
 import { PriorityBadge } from "@/components/shared/priority-badge";
@@ -22,11 +19,7 @@ import {
   type DragStartEvent,
   type DragEndEvent,
 } from "@dnd-kit/core";
-import {
-  SortableContext,
-  verticalListSortingStrategy,
-  useSortable,
-} from "@dnd-kit/sortable";
+import { SortableContext, verticalListSortingStrategy, useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { useDroppable } from "@dnd-kit/core";
 import { cn } from "@/lib/utils";
@@ -43,11 +36,7 @@ import {
   Clock,
   Plus,
 } from "lucide-react";
-import type {
-  Ticket,
-  KanbanBoard,
-  KanbanColumn as KanbanColumnType,
-} from "@/types";
+import type { Ticket, KanbanBoard, KanbanColumn as KanbanColumnType } from "@/types";
 
 type GroupBy = "none" | "assignee" | "priority" | "taskType";
 
@@ -154,10 +143,7 @@ const TicketCard = memo(function TicketCard({
       </div>
       {cardFields.taskState && (
         <div className="mt-2">
-          <DynamicStateBadge
-            name={ticket.taskStateName}
-            color={ticket.taskStateColor}
-          />
+          <DynamicStateBadge name={ticket.taskStateName} color={ticket.taskStateColor} />
         </div>
       )}
     </Link>
@@ -173,14 +159,9 @@ function SortableTicketCard({
   code: string;
   cardFields: CardFields;
 }) {
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging,
-  } = useSortable({ id: ticket.id });
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: ticket.id,
+  });
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -190,11 +171,7 @@ function SortableTicketCard({
 
   return (
     <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
-      <TicketCard
-        ticket={ticket}
-        code={code}
-        cardFields={cardFields}
-      />
+      <TicketCard ticket={ticket} code={code} cardFields={cardFields} />
     </div>
   );
 }
@@ -230,20 +207,16 @@ const KanbanColumn = memo(function KanbanColumn({
     <div className="min-w-[300px] max-w-[300px] flex flex-col">
       <div
         className="flex items-center justify-between mb-3 px-1 border-t-3 rounded-t pt-2"
-        style={{ borderTopColor: column.color ?? 'transparent' }}
+        style={{ borderTopColor: column.color ?? "transparent" }}
       >
         <div className="flex items-center gap-2">
-          <h3 className="text-sm font-semibold text-foreground">
-            {column.name}
-          </h3>
+          <h3 className="text-sm font-semibold text-foreground">{column.name}</h3>
           <span className="text-xs text-muted-foreground bg-muted rounded-full px-2 py-0.5">
             {column.tickets.length}
           </span>
         </div>
         {column.wipLimit && (
-          <span className="text-xs text-muted-foreground">
-            WIP: {column.wipLimit}
-          </span>
+          <span className="text-xs text-muted-foreground">WIP: {column.wipLimit}</span>
         )}
       </div>
       <div
@@ -267,9 +240,7 @@ const KanbanColumn = memo(function KanbanColumn({
           ))}
         </SortableContext>
         {column.tickets.length === 0 && !isAdding && (
-          <p className="text-xs text-muted-foreground text-center py-8">
-            Drop tickets here
-          </p>
+          <p className="text-xs text-muted-foreground text-center py-8">Drop tickets here</p>
         )}
         {isAdding ? (
           <div className="p-2 space-y-2">
@@ -279,7 +250,10 @@ const KanbanColumn = memo(function KanbanColumn({
               onChange={(e) => setNewTitle(e.target.value)}
               onKeyDown={(e) => {
                 if (e.key === "Enter") handleCreate();
-                if (e.key === "Escape") { setIsAdding(false); setNewTitle(""); }
+                if (e.key === "Escape") {
+                  setIsAdding(false);
+                  setNewTitle("");
+                }
               }}
               className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm"
               placeholder="Task title..."
@@ -293,7 +267,10 @@ const KanbanColumn = memo(function KanbanColumn({
                 Add
               </button>
               <button
-                onClick={() => { setIsAdding(false); setNewTitle(""); }}
+                onClick={() => {
+                  setIsAdding(false);
+                  setNewTitle("");
+                }}
                 className="px-3 py-1.5 rounded-lg border border-border text-xs text-muted-foreground hover:text-foreground"
               >
                 Cancel
@@ -338,17 +315,13 @@ function buildSwimlanes(
     c.tickets.map((t) => ({ ...t, _columnId: c.id }))
   );
 
-  const groupNames = Array.from(
-    new Set(allTickets.map((t) => getSwimlaneName(t, groupBy)))
-  ).sort();
+  const groupNames = Array.from(new Set(allTickets.map((t) => getSwimlaneName(t, groupBy)))).sort();
 
   return groupNames.map((name) => ({
     name,
     columns: board.columns.map((col) => ({
       ...col,
-      tickets: col.tickets.filter(
-        (t) => getSwimlaneName(t, groupBy) === name
-      ),
+      tickets: col.tickets.filter((t) => getSwimlaneName(t, groupBy) === name),
     })),
   }));
 }
@@ -371,11 +344,7 @@ const cardFieldLabels: { key: keyof CardFields; label: string }[] = [
   { key: "estimatedHours", label: "Est. Hours" },
 ];
 
-export default function BoardPage({
-  params,
-}: {
-  params: Promise<{ code: string }>;
-}) {
+export default function BoardPage({ params }: { params: Promise<{ code: string }> }) {
   const { code } = use(params);
   const { data: project } = useProjectByCode(code);
   const projectId = project?.id ?? "";
@@ -402,9 +371,7 @@ export default function BoardPage({
   }, [viewConfig?.configurationJson]);
 
   const [groupBy, setGroupBy] = useState<GroupBy>(savedConfig.groupBy);
-  const [cardFields, setCardFields] = useState<CardFields>(
-    savedConfig.cardFields
-  );
+  const [cardFields, setCardFields] = useState<CardFields>(savedConfig.cardFields);
 
   const saveTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const persistConfig = useCallback(
@@ -450,9 +417,7 @@ export default function BoardPage({
   const handleDragStart = useCallback(
     (event: DragStartEvent) => {
       const ticketId = event.active.id as string;
-      const ticket = board?.columns
-        .flatMap((c) => c.tickets)
-        .find((t) => t.id === ticketId);
+      const ticket = board?.columns.flatMap((c) => c.tickets).find((t) => t.id === ticketId);
       if (ticket) setActiveTicket(ticket);
     },
     [board]
@@ -480,10 +445,7 @@ export default function BoardPage({
     [board, projectId, moveTicket]
   );
 
-  const swimlanes = useMemo(
-    () => (board ? buildSwimlanes(board, groupBy) : []),
-    [board, groupBy]
-  );
+  const swimlanes = useMemo(() => (board ? buildSwimlanes(board, groupBy) : []), [board, groupBy]);
 
   if (isLoading) {
     return (
@@ -547,8 +509,7 @@ export default function BoardPage({
                     onClick={() => handleGroupByChange(opt.value)}
                     className={cn(
                       "w-full text-left px-3 py-1.5 text-sm hover:bg-muted transition-colors",
-                      groupBy === opt.value &&
-                        "text-primary font-medium bg-muted/50"
+                      groupBy === opt.value && "text-primary font-medium bg-muted/50"
                     )}
                   >
                     {opt.label}
@@ -572,14 +533,9 @@ export default function BoardPage({
             </button>
             {showCardSettings && (
               <div className="absolute right-0 top-full mt-1 z-20 bg-card border border-border rounded-lg shadow-lg p-3 w-48">
-                <p className="text-xs font-medium text-muted-foreground mb-2">
-                  Show on cards
-                </p>
+                <p className="text-xs font-medium text-muted-foreground mb-2">Show on cards</p>
                 {cardFieldLabels.map(({ key, label }) => (
-                  <label
-                    key={key}
-                    className="flex items-center gap-2 py-1 text-sm cursor-pointer"
-                  >
+                  <label key={key} className="flex items-center gap-2 py-1 text-sm cursor-pointer">
                     <input
                       type="checkbox"
                       checked={cardFields[key]}
@@ -607,16 +563,9 @@ export default function BoardPage({
             <div key={lane.name || "__default"} className="mb-6">
               {lane.name && (
                 <div className="flex items-center gap-2 mb-3 sticky left-0">
-                  <h3 className="text-sm font-semibold text-foreground">
-                    {lane.name}
-                  </h3>
+                  <h3 className="text-sm font-semibold text-foreground">{lane.name}</h3>
                   <span className="text-xs text-muted-foreground">
-                    (
-                    {lane.columns.reduce(
-                      (sum, c) => sum + c.tickets.length,
-                      0
-                    )}
-                    )
+                    ({lane.columns.reduce((sum, c) => sum + c.tickets.length, 0)})
                   </span>
                 </div>
               )}
@@ -640,12 +589,7 @@ export default function BoardPage({
         <DragOverlay>
           {activeTicket && (
             <div className="w-[280px]">
-              <TicketCard
-                ticket={activeTicket}
-                code={code}
-                cardFields={cardFields}
-                isDragging
-              />
+              <TicketCard ticket={activeTicket} code={code} cardFields={cardFields} isDragging />
             </div>
           )}
         </DragOverlay>
@@ -660,4 +604,3 @@ export default function BoardPage({
     </div>
   );
 }
-

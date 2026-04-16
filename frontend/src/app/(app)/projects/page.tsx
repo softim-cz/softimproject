@@ -6,21 +6,11 @@ import { useProjectTemplates } from "@/queries/lookups";
 import { HealthIndicator } from "@/components/shared/health-indicator";
 import { CardSkeleton } from "@/components/shared/loading-skeleton";
 import { EmptyState } from "@/components/shared/empty-state";
-import {
-  FolderKanban,
-  Plus,
-  Search,
-  X,
-  AlertTriangle,
-  Clock,
-} from "lucide-react";
+import { FolderKanban, Plus, Search, X, AlertTriangle, Clock } from "lucide-react";
 import Link from "next/link";
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import {
-  createProjectSchema,
-  type CreateProjectInput,
-} from "@/schemas/project";
+import { createProjectSchema, type CreateProjectInput } from "@/schemas/project";
 import { toast } from "sonner";
 import { ProjectStatus } from "@/types";
 import type { Project, ProjectTemplate } from "@/types";
@@ -44,13 +34,7 @@ const statusColors: Record<ProjectStatus, string> = {
   [ProjectStatus.Archived]: "bg-gray-100 text-gray-500",
 };
 
-function CreateProjectDialog({
-  open,
-  onClose,
-}: {
-  open: boolean;
-  onClose: () => void;
-}) {
+function CreateProjectDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
   const createProject = useCreateProject();
   const { data: projects } = useProjects();
   const { data: templates } = useProjectTemplates();
@@ -106,57 +90,43 @@ function CreateProjectDialog({
   if (!open) return null;
 
   // Only show top-level projects or projects that could be parents
-  const parentOptions = projects?.filter(
-    (p: Project) => p.status === ProjectStatus.Active
-  );
+  const parentOptions = projects?.filter((p: Project) => p.status === ProjectStatus.Active);
 
   const activeTemplates = templates?.filter((t: ProjectTemplate) => t.isActive);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
-      <div
-        className="absolute inset-0 bg-black/50"
-        onClick={handleClose}
-      />
+      <div className="absolute inset-0 bg-black/50" onClick={handleClose} />
       <div className="relative bg-card rounded-xl shadow-xl border border-border w-full max-w-lg mx-4 p-6 max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-lg font-semibold text-card-foreground">
-            New Project
-          </h2>
-          <button
-            onClick={handleClose}
-            className="p-1 rounded hover:bg-muted transition-colors"
-          >
+          <h2 className="text-lg font-semibold text-card-foreground">New Project</h2>
+          <button onClick={handleClose} className="p-1 rounded hover:bg-muted transition-colors">
             <X className="h-5 w-5 text-muted-foreground" />
           </button>
         </div>
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-card-foreground">
-              Name
-            </label>
-            <p className="text-xs text-muted-foreground mb-1">Zobrazovaný název projektu v celé aplikaci</p>
+            <label className="block text-sm font-medium text-card-foreground">Name</label>
+            <p className="text-xs text-muted-foreground mb-1">
+              Zobrazovaný název projektu v celé aplikaci
+            </p>
             <input
               {...register("name")}
               className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
               placeholder="Project name"
             />
-            {errors.name && (
-              <p className="text-xs text-destructive mt-1">
-                {errors.name.message}
-              </p>
-            )}
+            {errors.name && <p className="text-xs text-destructive mt-1">{errors.name.message}</p>}
           </div>
 
           <div>
             <label className="block text-sm font-medium text-card-foreground">
               Code
-              <span className="text-muted-foreground font-normal ml-1">
-                (auto-generated)
-              </span>
+              <span className="text-muted-foreground font-normal ml-1">(auto-generated)</span>
             </label>
-            <p className="text-xs text-muted-foreground mb-1">Krátký unikátní identifikátor (2-6 velkých písmen). Používá se v číslech tiketů.</p>
+            <p className="text-xs text-muted-foreground mb-1">
+              Krátký unikátní identifikátor (2-6 velkých písmen). Používá se v číslech tiketů.
+            </p>
             <input
               {...register("code", {
                 onChange: () => setCodeManuallyEdited(true),
@@ -165,21 +135,17 @@ function CreateProjectDialog({
               placeholder="Auto-generated from name"
               maxLength={6}
             />
-            {errors.code && (
-              <p className="text-xs text-destructive mt-1">
-                {errors.code.message}
-              </p>
-            )}
+            {errors.code && <p className="text-xs text-destructive mt-1">{errors.code.message}</p>}
           </div>
 
           <div>
             <label className="block text-sm font-medium text-card-foreground">
               Parent Project
-              <span className="text-muted-foreground font-normal ml-1">
-                (optional)
-              </span>
+              <span className="text-muted-foreground font-normal ml-1">(optional)</span>
             </label>
-            <p className="text-xs text-muted-foreground mb-1">Zařadí projekt jako podprojekt pod vybraný rodičovský projekt</p>
+            <p className="text-xs text-muted-foreground mb-1">
+              Zařadí projekt jako podprojekt pod vybraný rodičovský projekt
+            </p>
             <select
               {...register("parentProjectId")}
               className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
@@ -196,11 +162,11 @@ function CreateProjectDialog({
           <div>
             <label className="block text-sm font-medium text-card-foreground">
               Template
-              <span className="text-muted-foreground font-normal ml-1">
-                (optional)
-              </span>
+              <span className="text-muted-foreground font-normal ml-1">(optional)</span>
             </label>
-            <p className="text-xs text-muted-foreground mb-1">Šablona předkonfiguruje custom pole pro nový projekt</p>
+            <p className="text-xs text-muted-foreground mb-1">
+              Šablona předkonfiguruje custom pole pro nový projekt
+            </p>
             <select
               {...register("projectTemplateId")}
               className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
@@ -215,10 +181,10 @@ function CreateProjectDialog({
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-card-foreground">
-              Description
-            </label>
-            <p className="text-xs text-muted-foreground mb-1">Stručný popis rozsahu a cílů projektu</p>
+            <label className="block text-sm font-medium text-card-foreground">Description</label>
+            <p className="text-xs text-muted-foreground mb-1">
+              Stručný popis rozsahu a cílů projektu
+            </p>
             <textarea
               {...register("description")}
               rows={3}
@@ -226,18 +192,16 @@ function CreateProjectDialog({
               placeholder="Optional description"
             />
             {errors.description && (
-              <p className="text-xs text-destructive mt-1">
-                {errors.description.message}
-              </p>
+              <p className="text-xs text-destructive mt-1">{errors.description.message}</p>
             )}
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-card-foreground">
-                Start Date
-              </label>
-              <p className="text-xs text-muted-foreground mb-1">Plánované zahájení prací na projektu</p>
+              <label className="block text-sm font-medium text-card-foreground">Start Date</label>
+              <p className="text-xs text-muted-foreground mb-1">
+                Plánované zahájení prací na projektu
+              </p>
               <input
                 {...register("startDate")}
                 type="date"
@@ -245,9 +209,7 @@ function CreateProjectDialog({
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-card-foreground">
-                End Date
-              </label>
+              <label className="block text-sm font-medium text-card-foreground">End Date</label>
               <p className="text-xs text-muted-foreground mb-1">Plánované ukončení projektu</p>
               <input
                 {...register("endDate")}
@@ -259,10 +221,10 @@ function CreateProjectDialog({
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-card-foreground">
-                Budget Hours
-              </label>
-              <p className="text-xs text-muted-foreground mb-1">Maximální počet hodin alokovaných na projekt</p>
+              <label className="block text-sm font-medium text-card-foreground">Budget Hours</label>
+              <p className="text-xs text-muted-foreground mb-1">
+                Maximální počet hodin alokovaných na projekt
+              </p>
               <div className="relative">
                 <input
                   {...register("budgetHours", { valueAsNumber: true })}
@@ -271,14 +233,18 @@ function CreateProjectDialog({
                   className="w-full rounded-lg border border-input bg-background px-3 py-2 pr-8 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
                   placeholder="0"
                 />
-                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground pointer-events-none">h</span>
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground pointer-events-none">
+                  h
+                </span>
               </div>
             </div>
             <div>
               <label className="block text-sm font-medium text-card-foreground">
                 Budget Amount
               </label>
-              <p className="text-xs text-muted-foreground mb-1">Celkový finanční rozpočet projektu</p>
+              <p className="text-xs text-muted-foreground mb-1">
+                Celkový finanční rozpočet projektu
+              </p>
               <div className="relative">
                 <input
                   {...register("budgetAmount", { valueAsNumber: true })}
@@ -287,7 +253,9 @@ function CreateProjectDialog({
                   className="w-full rounded-lg border border-input bg-background px-3 py-2 pr-10 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
                   placeholder="0"
                 />
-                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground pointer-events-none">Kč</span>
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground pointer-events-none">
+                  Kč
+                </span>
               </div>
             </div>
           </div>
@@ -392,12 +360,8 @@ export default function ProjectsPage() {
             >
               <div className="flex items-start justify-between mb-3">
                 <div>
-                  <h3 className="font-semibold text-card-foreground">
-                    {project.name}
-                  </h3>
-                  <p className="text-xs text-muted-foreground font-mono">
-                    {project.code}
-                  </p>
+                  <h3 className="font-semibold text-card-foreground">{project.name}</h3>
+                  <p className="text-xs text-muted-foreground font-mono">{project.code}</p>
                 </div>
                 <span
                   className={`px-2 py-0.5 rounded-full text-xs font-medium ${statusColors[project.status]}`}
@@ -424,12 +388,8 @@ export default function ProjectsPage() {
               <div className="flex items-center justify-between">
                 <HealthIndicator score={project.healthScore} size="sm" />
                 <div className="flex gap-2">
-                  {project.isOverBudget && (
-                    <AlertTriangle className="h-4 w-4 text-red-500" />
-                  )}
-                  {project.isOverDeadline && (
-                    <Clock className="h-4 w-4 text-orange-500" />
-                  )}
+                  {project.isOverBudget && <AlertTriangle className="h-4 w-4 text-red-500" />}
+                  {project.isOverDeadline && <Clock className="h-4 w-4 text-orange-500" />}
                 </div>
               </div>
 
@@ -456,13 +416,7 @@ export default function ProjectsPage() {
         </div>
       )}
 
-      <CreateProjectDialog
-        open={dialogOpen}
-        onClose={() => setDialogOpen(false)}
-      />
+      <CreateProjectDialog open={dialogOpen} onClose={() => setDialogOpen(false)} />
     </div>
   );
 }
-
-
-

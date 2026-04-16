@@ -1,9 +1,7 @@
 "use client";
 
 import { MsalProvider } from "@azure/msal-react";
-import {  PublicClientApplication,
-  type AuthenticationResult,
-} from "@azure/msal-browser";
+import { PublicClientApplication, type AuthenticationResult } from "@azure/msal-browser";
 import { msalConfig } from "./msal-config";
 import { ReactNode, useEffect, useRef, useState } from "react";
 
@@ -42,5 +40,3 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   return <MsalProvider instance={msalInstance}>{children}</MsalProvider>;
 }
-
-

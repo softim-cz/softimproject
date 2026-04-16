@@ -12,10 +12,7 @@ import {
   type ColumnSizingState,
 } from "@tanstack/react-table";
 import { useTickets } from "@/queries/tickets";
-import {
-  useViewConfiguration,
-  useUpsertViewConfiguration,
-} from "@/queries/view-configurations";
+import { useViewConfiguration, useUpsertViewConfiguration } from "@/queries/view-configurations";
 import { TableSkeleton } from "@/components/shared/loading-skeleton";
 import { EmptyState } from "@/components/shared/empty-state";
 import { PriorityBadge } from "@/components/shared/priority-badge";
@@ -48,9 +45,7 @@ const allColumns = [
     size: 100,
     minSize: 80,
     cell: ({ row }) => (
-      <span className="text-sm font-mono text-muted-foreground">
-        {row.original.key}
-      </span>
+      <span className="text-sm font-mono text-muted-foreground">{row.original.key}</span>
     ),
   }),
   columnHelper.accessor("title", {
@@ -64,9 +59,7 @@ const allColumns = [
           onClick={() => meta?.onRowClick?.(row.original)}
           className="text-left text-sm font-medium text-foreground hover:text-primary truncate block w-full"
         >
-          {row.original.taskTypeIcon && (
-            <span className="mr-1">{row.original.taskTypeIcon}</span>
-          )}
+          {row.original.taskTypeIcon && <span className="mr-1">{row.original.taskTypeIcon}</span>}
           {row.original.title}
         </button>
       );
@@ -76,10 +69,7 @@ const allColumns = [
     header: "Status",
     size: 120,
     cell: ({ row }) => (
-      <StatusBadge
-        name={row.original.taskStateName}
-        color={row.original.taskStateColor}
-      />
+      <StatusBadge name={row.original.taskStateName} color={row.original.taskStateColor} />
     ),
   }),
   columnHelper.accessor("ticketPriorityName", {
@@ -111,9 +101,7 @@ const allColumns = [
     size: 120,
     cell: ({ row }) => (
       <span className="text-sm text-foreground">
-        {row.original.taskTypeIcon && (
-          <span className="mr-1">{row.original.taskTypeIcon}</span>
-        )}
+        {row.original.taskTypeIcon && <span className="mr-1">{row.original.taskTypeIcon}</span>}
         {row.original.taskTypeName || "-"}
       </span>
     ),
@@ -123,9 +111,7 @@ const allColumns = [
     size: 110,
     cell: ({ row }) => (
       <span className="text-sm text-foreground">
-        {row.original.dueDate
-          ? new Date(row.original.dueDate).toLocaleDateString()
-          : "-"}
+        {row.original.dueDate ? new Date(row.original.dueDate).toLocaleDateString() : "-"}
       </span>
     ),
   }),
@@ -134,9 +120,7 @@ const allColumns = [
     size: 100,
     cell: ({ row }) => (
       <span className="text-sm text-foreground">
-        {row.original.estimatedHours != null
-          ? `${row.original.estimatedHours}h`
-          : "-"}
+        {row.original.estimatedHours != null ? `${row.original.estimatedHours}h` : "-"}
       </span>
     ),
   }),
@@ -145,8 +129,7 @@ const allColumns = [
     size: 90,
     cell: ({ row }) => (
       <span className="text-sm text-foreground">
-        {row.original.cumulativeWorkedHours != null &&
-        row.original.cumulativeWorkedHours > 0
+        {row.original.cumulativeWorkedHours != null && row.original.cumulativeWorkedHours > 0
           ? `${row.original.cumulativeWorkedHours}h`
           : "-"}
       </span>
@@ -156,9 +139,7 @@ const allColumns = [
     header: "Comments",
     size: 90,
     cell: ({ row }) => (
-      <span className="text-sm text-muted-foreground">
-        {row.original.commentsCount}
-      </span>
+      <span className="text-sm text-muted-foreground">{row.original.commentsCount}</span>
     ),
   }),
   columnHelper.accessor("createdAt", {
@@ -244,11 +225,7 @@ function splitFilters(filters: FilterCondition[]) {
   return { serverParams, localFilters };
 }
 
-export default function TaskListPage({
-  params,
-}: {
-  params: Promise<{ code: string }>;
-}) {
+export default function TaskListPage({ params }: { params: Promise<{ code: string }> }) {
   const { code } = use(params);
   const { data: project } = useProjectByCode(code);
   const projectId = project?.id ?? "";
@@ -311,11 +288,14 @@ export default function TaskListPage({
   }, [tickets, localFilters]);
 
   const saveTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
-  useEffect(() => () => {
-    if (saveTimeout.current) {
-      clearTimeout(saveTimeout.current);
-    }
-  }, []);
+  useEffect(
+    () => () => {
+      if (saveTimeout.current) {
+        clearTimeout(saveTimeout.current);
+      }
+    },
+    []
+  );
 
   const persistConfig = useCallback(
     (config: TaskListConfig) => {
@@ -344,9 +324,7 @@ export default function TaskListPage({
   );
 
   const handleColumnVisibilityChange = useCallback(
-    (
-      updater: VisibilityState | ((old: VisibilityState) => VisibilityState)
-    ) => {
+    (updater: VisibilityState | ((old: VisibilityState) => VisibilityState)) => {
       setColumnVisibility((prev) => {
         const next = typeof updater === "function" ? updater(prev) : updater;
         persistConfig({ sorting, columnVisibility: next, columnSizing });
@@ -357,11 +335,7 @@ export default function TaskListPage({
   );
 
   const handleColumnSizingChange = useCallback(
-    (
-      updater:
-        | ColumnSizingState
-        | ((old: ColumnSizingState) => ColumnSizingState)
-    ) => {
+    (updater: ColumnSizingState | ((old: ColumnSizingState) => ColumnSizingState)) => {
       setColumnSizing((prev) => {
         const next = typeof updater === "function" ? updater(prev) : updater;
         persistConfig({ sorting, columnVisibility, columnSizing: next });
@@ -401,17 +375,12 @@ export default function TaskListPage({
   return (
     <div className="flex h-full gap-0">
       <div className="flex-1 flex flex-col min-w-0">
-        <FilterBar
-          viewKey={viewKey}
-          viewType="TaskList"          filterFields={taskFilterFields}
-        />
+        <FilterBar viewKey={viewKey} viewType="TaskList" filterFields={taskFilterFields} />
 
         <div className="flex items-center justify-between mb-4 mt-2">
           <p className="text-sm text-muted-foreground">
             {filteredTickets.length} task{filteredTickets.length !== 1 ? "s" : ""}
-            {activeFilters.length > 0 && tickets
-              ? ` (of ${tickets.length})`
-              : ""}
+            {activeFilters.length > 0 && tickets ? ` (of ${tickets.length})` : ""}
           </p>
           <div className="flex items-center gap-2">
             <button
@@ -424,15 +393,10 @@ export default function TaskListPage({
             <button
               onClick={async () => {
                 try {
-                  const visibleCols = table
-                    .getVisibleLeafColumns()
-                    .map((c) => ({
-                      field: c.id,
-                      header:
-                        typeof c.columnDef.header === "string"
-                          ? c.columnDef.header
-                          : c.id,
-                    }));
+                  const visibleCols = table.getVisibleLeafColumns().map((c) => ({
+                    field: c.id,
+                    header: typeof c.columnDef.header === "string" ? c.columnDef.header : c.id,
+                  }));
                   await exportXlsx({
                     projectId,
                     viewType: "TaskList",
@@ -458,9 +422,7 @@ export default function TaskListPage({
               </button>
               {showColumnSettings && (
                 <div className="absolute right-0 top-full mt-1 z-20 bg-card border border-border rounded-lg shadow-lg p-3 w-56">
-                  <p className="text-xs font-medium text-muted-foreground mb-2">
-                    Toggle columns
-                  </p>
+                  <p className="text-xs font-medium text-muted-foreground mb-2">Toggle columns</p>
                   {table.getAllLeafColumns().map((column) => (
                     <label
                       key={column.id}
@@ -506,10 +468,7 @@ export default function TaskListPage({
                             onClick={header.column.getToggleSortingHandler()}
                             className="flex items-center gap-1 hover:text-foreground transition-colors"
                           >
-                            {flexRender(
-                              header.column.columnDef.header,
-                              header.getContext()
-                            )}
+                            {flexRender(header.column.columnDef.header, header.getContext())}
                             {header.column.getIsSorted() === "asc" ? (
                               <ArrowUp className="h-3 w-3" />
                             ) : header.column.getIsSorted() === "desc" ? (
@@ -524,9 +483,7 @@ export default function TaskListPage({
                           onTouchStart={header.getResizeHandler()}
                           className={cn(
                             "absolute right-0 top-0 h-full w-1 cursor-col-resize select-none touch-none",
-                            header.column.getIsResizing()
-                              ? "bg-primary"
-                              : "hover:bg-border"
+                            header.column.getIsResizing() ? "bg-primary" : "hover:bg-border"
                           )}
                         />
                       </th>
@@ -550,10 +507,7 @@ export default function TaskListPage({
                         className="px-4 py-3"
                         style={{ width: cell.column.getSize() }}
                       >
-                        {flexRender(
-                          cell.column.columnDef.cell,
-                          cell.getContext()
-                        )}
+                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
                       </td>
                     ))}
                   </tr>
@@ -566,7 +520,8 @@ export default function TaskListPage({
 
       {selectedTicket && (
         <TaskPreviewSidebar
-          ticket={selectedTicket}          code={code}
+          ticket={selectedTicket}
+          code={code}
           onClose={() => setSelectedTicket(null)}
         />
       )}
@@ -580,5 +535,3 @@ export default function TaskListPage({
     </div>
   );
 }
-
-

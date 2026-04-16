@@ -9,25 +9,14 @@ import { EmptyState } from "@/components/shared/empty-state";
 import { Clock, Plus, X, Play, Square, Timer } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import {
-  createWorklogSchema,
-  type CreateWorklogInput,
-} from "@/schemas/worklog";
+import { createWorklogSchema, type CreateWorklogInput } from "@/schemas/worklog";
 import { toast } from "sonner";
 import { format, startOfWeek, endOfWeek } from "date-fns";
 import type { Worklog, Project } from "@/types";
 import { formatElapsedTime } from "@/lib/utils";
 
 function TimerDisplay() {
-  const {
-    isRunning,
-    elapsed,
-    tick,
-    start,
-    stop,
-    reset,
-    description,
-  } = useTimerStore();
+  const { isRunning, elapsed, tick, start, stop, reset, description } = useTimerStore();
   const { data: projects } = useProjects();
   const createWorklog = useCreateWorklog();
   const [timerProjectId, setTimerProjectId] = useState("");
@@ -104,9 +93,7 @@ function TimerDisplay() {
         </div>
       ) : (
         <div className="space-y-3">
-          <p className="text-sm text-muted-foreground">
-            {description || "Timer running..."}
-          </p>
+          <p className="text-sm text-muted-foreground">{description || "Timer running..."}</p>
           <p className="text-3xl font-mono font-bold text-accent-orange">
             {formatElapsedTime(elapsed)}
           </p>
@@ -123,13 +110,7 @@ function TimerDisplay() {
   );
 }
 
-function QuickLogDialog({
-  open,
-  onClose,
-}: {
-  open: boolean;
-  onClose: () => void;
-}) {
+function QuickLogDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
   const { data: projects } = useProjects();
   const createWorklog = useCreateWorklog();
   const {
@@ -163,22 +144,15 @@ function QuickLogDialog({
       <div className="absolute inset-0 bg-black/50" onClick={onClose} />
       <div className="relative bg-card rounded-xl shadow-xl border border-border w-full max-w-md mx-4 p-6">
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-lg font-semibold text-card-foreground">
-            Quick Log
-          </h2>
-          <button
-            onClick={onClose}
-            className="p-1 rounded hover:bg-muted transition-colors"
-          >
+          <h2 className="text-lg font-semibold text-card-foreground">Quick Log</h2>
+          <button onClick={onClose} className="p-1 rounded hover:bg-muted transition-colors">
             <X className="h-5 w-5 text-muted-foreground" />
           </button>
         </div>
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-card-foreground mb-1">
-              Project
-            </label>
+            <label className="block text-sm font-medium text-card-foreground mb-1">Project</label>
             <select
               {...register("projectId")}
               className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
@@ -191,17 +165,13 @@ function QuickLogDialog({
               ))}
             </select>
             {errors.projectId && (
-              <p className="text-xs text-destructive mt-1">
-                {errors.projectId.message}
-              </p>
+              <p className="text-xs text-destructive mt-1">{errors.projectId.message}</p>
             )}
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-card-foreground mb-1">
-                Date
-              </label>
+              <label className="block text-sm font-medium text-card-foreground mb-1">Date</label>
               <input
                 {...register("date")}
                 type="date"
@@ -209,9 +179,7 @@ function QuickLogDialog({
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-card-foreground mb-1">
-                Hours
-              </label>
+              <label className="block text-sm font-medium text-card-foreground mb-1">Hours</label>
               <input
                 {...register("hours", { valueAsNumber: true })}
                 type="number"
@@ -235,11 +203,7 @@ function QuickLogDialog({
           </div>
 
           <label className="flex items-center gap-2 text-sm">
-            <input
-              type="checkbox"
-              {...register("isBillable")}
-              className="rounded"
-            />
+            <input type="checkbox" {...register("isBillable")} className="rounded" />
             Billable
           </label>
 
@@ -267,26 +231,19 @@ function QuickLogDialog({
 
 export default function WorklogsPage() {
   const now = new Date();
-  const [from, setFrom] = useState(
-    format(startOfWeek(now, { weekStartsOn: 1 }), "yyyy-MM-dd")
-  );
-  const [to, setTo] = useState(
-    format(endOfWeek(now, { weekStartsOn: 1 }), "yyyy-MM-dd")
-  );
+  const [from, setFrom] = useState(format(startOfWeek(now, { weekStartsOn: 1 }), "yyyy-MM-dd"));
+  const [to, setTo] = useState(format(endOfWeek(now, { weekStartsOn: 1 }), "yyyy-MM-dd"));
   const { data: worklogs, isLoading, error } = useWorklogs({ from, to });
   const [dialogOpen, setDialogOpen] = useState(false);
 
-  const totalHours =
-    worklogs?.reduce((sum, w) => sum + w.hours, 0).toFixed(2) || "0.00";
+  const totalHours = worklogs?.reduce((sum, w) => sum + w.hours, 0).toFixed(2) || "0.00";
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Worklogs</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Track and manage your time entries
-          </p>
+          <p className="text-sm text-muted-foreground mt-1">Track and manage your time entries</p>
         </div>
         <button
           onClick={() => setDialogOpen(true)}
@@ -305,19 +262,13 @@ export default function WorklogsPage() {
         <div className="lg:col-span-2">
           <div className="rounded-lg border border-border bg-card p-5">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold text-card-foreground">
-                Time Entries
-              </h2>
-              <p className="text-lg font-bold text-accent-orange">
-                {totalHours}h total
-              </p>
+              <h2 className="text-lg font-semibold text-card-foreground">Time Entries</h2>
+              <p className="text-lg font-bold text-accent-orange">{totalHours}h total</p>
             </div>
 
             <div className="flex gap-3 mb-4">
               <div>
-                <label className="block text-xs text-muted-foreground mb-1">
-                  From
-                </label>
+                <label className="block text-xs text-muted-foreground mb-1">From</label>
                 <input
                   type="date"
                   value={from}
@@ -326,9 +277,7 @@ export default function WorklogsPage() {
                 />
               </div>
               <div>
-                <label className="block text-xs text-muted-foreground mb-1">
-                  To
-                </label>
+                <label className="block text-xs text-muted-foreground mb-1">To</label>
                 <input
                   type="date"
                   value={to}
@@ -404,10 +353,7 @@ export default function WorklogsPage() {
         </div>
       </div>
 
-      <QuickLogDialog
-        open={dialogOpen}
-        onClose={() => setDialogOpen(false)}
-      />
+      <QuickLogDialog open={dialogOpen} onClose={() => setDialogOpen(false)} />
     </div>
   );
 }

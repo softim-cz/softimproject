@@ -46,11 +46,7 @@ apiClient.interceptors.response.use(
     }
 
     // If retry failed or no token provider, redirect to login (once)
-    if (
-      error.response?.status === 401 &&
-      typeof window !== "undefined" &&
-      !isRedirecting
-    ) {
+    if (error.response?.status === 401 && typeof window !== "undefined" && !isRedirecting) {
       isRedirecting = true;
       window.location.href = "/login";
     }

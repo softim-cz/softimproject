@@ -1,6 +1,13 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import apiClient from "@/lib/api/client";
-import type { GitHubRepo, GitHubStatus, Project, ProjectCustomFieldValue, ProjectRole, UserOption } from "@/types";
+import type {
+  GitHubRepo,
+  GitHubStatus,
+  Project,
+  ProjectCustomFieldValue,
+  ProjectRole,
+  UserOption,
+} from "@/types";
 import { invalidateQueryKeys, queryKeys } from "./query-keys";
 
 export function useProjects() {
@@ -87,21 +94,39 @@ export function useProjectUsers() {
 export function useAddProjectMember() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (payload: { projectId: string; userId: string; role: ProjectRole; hourlyRateOverride?: number }) => {
-      const { data } = await apiClient.post<string>(`/api/v1/projects/${payload.projectId}/members`, payload);
+    mutationFn: async (payload: {
+      projectId: string;
+      userId: string;
+      role: ProjectRole;
+      hourlyRateOverride?: number;
+    }) => {
+      const { data } = await apiClient.post<string>(
+        `/api/v1/projects/${payload.projectId}/members`,
+        payload
+      );
       return data;
     },
-    onSuccess: () => invalidateQueryKeys(queryClient, queryKeys.projects.byCodeRoot(), queryKeys.projects.all()),
+    onSuccess: () =>
+      invalidateQueryKeys(queryClient, queryKeys.projects.byCodeRoot(), queryKeys.projects.all()),
   });
 }
 
 export function useUpdateProjectMember() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (payload: { projectId: string; memberId: string; role: ProjectRole; hourlyRateOverride?: number }) => {
-      await apiClient.put(`/api/v1/projects/${payload.projectId}/members/${payload.memberId}`, payload);
+    mutationFn: async (payload: {
+      projectId: string;
+      memberId: string;
+      role: ProjectRole;
+      hourlyRateOverride?: number;
+    }) => {
+      await apiClient.put(
+        `/api/v1/projects/${payload.projectId}/members/${payload.memberId}`,
+        payload
+      );
     },
-    onSuccess: () => invalidateQueryKeys(queryClient, queryKeys.projects.byCodeRoot(), queryKeys.projects.all()),
+    onSuccess: () =>
+      invalidateQueryKeys(queryClient, queryKeys.projects.byCodeRoot(), queryKeys.projects.all()),
   });
 }
 
@@ -111,7 +136,8 @@ export function useRemoveProjectMember() {
     mutationFn: async ({ projectId, memberId }: { projectId: string; memberId: string }) => {
       await apiClient.delete(`/api/v1/projects/${projectId}/members/${memberId}`);
     },
-    onSuccess: () => invalidateQueryKeys(queryClient, queryKeys.projects.byCodeRoot(), queryKeys.projects.all()),
+    onSuccess: () =>
+      invalidateQueryKeys(queryClient, queryKeys.projects.byCodeRoot(), queryKeys.projects.all()),
   });
 }
 
@@ -119,7 +145,9 @@ export function useProjectCustomFieldValues(projectId: string) {
   return useQuery({
     queryKey: queryKeys.projects.customFields(projectId),
     queryFn: async () => {
-      const { data } = await apiClient.get<ProjectCustomFieldValue[]>(`/api/v1/projects/${projectId}/custom-fields`);
+      const { data } = await apiClient.get<ProjectCustomFieldValue[]>(
+        `/api/v1/projects/${projectId}/custom-fields`
+      );
       return data;
     },
     enabled: !!projectId,
@@ -129,7 +157,13 @@ export function useProjectCustomFieldValues(projectId: string) {
 export function useSaveProjectCustomFieldValues() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({ projectId, values }: { projectId: string; values: { customFieldDefinitionId: string; value?: string }[] }) => {
+    mutationFn: async ({
+      projectId,
+      values,
+    }: {
+      projectId: string;
+      values: { customFieldDefinitionId: string; value?: string }[];
+    }) => {
       await apiClient.put(`/api/v1/projects/${projectId}/custom-fields`, { projectId, values });
     },
     onSuccess: (_, { projectId }) => {
@@ -141,7 +175,11 @@ export function useSaveProjectCustomFieldValues() {
 export function useTestGitHubConnection() {
   return useMutation({
     mutationFn: async (projectId: string) => {
-      const { data } = await apiClient.post<{ success: boolean; error?: string; repositoryName?: string }>(`/api/v1/projects/${projectId}/github/test`);
+      const { data } = await apiClient.post<{
+        success: boolean;
+        error?: string;
+        repositoryName?: string;
+      }>(`/api/v1/projects/${projectId}/github/test`);
       return data;
     },
   });
@@ -151,10 +189,17 @@ export function useTriggerGitHubSync() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (projectId: string) => {
-      const { data } = await apiClient.post<{ synced: number; failed: number; error?: string }>(`/api/v1/projects/${projectId}/github/sync`);
+      const { data } = await apiClient.post<{ synced: number; failed: number; error?: string }>(
+        `/api/v1/projects/${projectId}/github/sync`
+      );
       return data;
     },
-    onSuccess: (_, projectId) => invalidateQueryKeys(queryClient, queryKeys.tickets.listRoot(projectId), queryKeys.kanban.board(projectId)),
+    onSuccess: (_, projectId) =>
+      invalidateQueryKeys(
+        queryClient,
+        queryKeys.tickets.listRoot(projectId),
+        queryKeys.kanban.board(projectId)
+      ),
   });
 }
 
@@ -182,7 +227,9 @@ export function useGitHubRepos(enabled: boolean) {
 export function useGitHubAuthorize() {
   return useMutation({
     mutationFn: async (projectId: string) => {
-      const { data } = await apiClient.get<{ url: string }>(`/api/v1/github/authorize?projectId=${projectId}`);
+      const { data } = await apiClient.get<{ url: string }>(
+        `/api/v1/github/authorize?projectId=${projectId}`
+      );
       return data;
     },
   });
@@ -191,8 +238,17 @@ export function useGitHubAuthorize() {
 export function useLinkGitHubRepo() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({ projectId, repositoryFullName }: { projectId: string; repositoryFullName: string }) => {
-      await apiClient.post(`/api/v1/projects/${projectId}/github/link`, { projectId, repositoryFullName });
+    mutationFn: async ({
+      projectId,
+      repositoryFullName,
+    }: {
+      projectId: string;
+      repositoryFullName: string;
+    }) => {
+      await apiClient.post(`/api/v1/projects/${projectId}/github/link`, {
+        projectId,
+        repositoryFullName,
+      });
     },
     onSuccess: (_, { projectId }) => {
       queryClient.invalidateQueries({ queryKey: queryKeys.projects.detail(projectId) });
@@ -218,6 +274,7 @@ export function useDisconnectGitHub() {
     mutationFn: async () => {
       await apiClient.delete("/api/v1/github/disconnect");
     },
-    onSuccess: () => invalidateQueryKeys(queryClient, queryKeys.github.all(), queryKeys.projects.all()),
+    onSuccess: () =>
+      invalidateQueryKeys(queryClient, queryKeys.github.all(), queryKeys.projects.all()),
   });
 }

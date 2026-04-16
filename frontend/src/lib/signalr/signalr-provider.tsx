@@ -1,13 +1,6 @@
 "use client";
 
-import {
-  createContext,
-  useContext,
-  useEffect,
-  useRef,
-  useState,
-  ReactNode,
-} from "react";
+import { createContext, useContext, useEffect, useRef, useState, ReactNode } from "react";
 import {
   HubConnectionBuilder,
   HubConnection,
@@ -33,13 +26,9 @@ const SignalRContext = createContext<SignalRContextType>({
 export function SignalRProvider({ children }: { children: ReactNode }) {
   const { getAccessToken, isAuthenticated, inProgress } = useAuth();
   const queryClient = useQueryClient();
-  const [kanbanConnection, setKanbanConnection] =
-    useState<HubConnection | null>(null);
-  const [notificationConnection, setNotificationConnection] =
-    useState<HubConnection | null>(null);
-  const [connectionState, setConnectionState] = useState(
-    HubConnectionState.Disconnected
-  );
+  const [kanbanConnection, setKanbanConnection] = useState<HubConnection | null>(null);
+  const [notificationConnection, setNotificationConnection] = useState<HubConnection | null>(null);
+  const [connectionState, setConnectionState] = useState(HubConnectionState.Disconnected);
 
   // Stable ref — getAccessToken is already stable from useAuth, but ref ensures
   // the useEffect below never re-runs due to reference changes
@@ -55,14 +44,12 @@ export function SignalRProvider({ children }: { children: ReactNode }) {
 
     disposedRef.current = false;
 
-    const baseUrl =
-      process.env.NEXT_PUBLIC_SIGNALR_URL || "http://localhost:5249/hubs";
+    const baseUrl = process.env.NEXT_PUBLIC_SIGNALR_URL || "http://localhost:5249/hubs";
 
     const buildConnection = (hub: string) =>
       new HubConnectionBuilder()
         .withUrl(`${baseUrl}/${hub}`, {
-          accessTokenFactory: async () =>
-            (await getAccessTokenRef.current()) || "",
+          accessTokenFactory: async () => (await getAccessTokenRef.current()) || "",
         })
         .withAutomaticReconnect([0, 2000, 5000, 10000, 30000])
         .configureLogging(LogLevel.Warning)
@@ -76,15 +63,9 @@ export function SignalRProvider({ children }: { children: ReactNode }) {
       if (disposedRef.current) return;
       const k = kanban.state;
       const n = notifications.state;
-      if (
-        k === HubConnectionState.Reconnecting ||
-        n === HubConnectionState.Reconnecting
-      ) {
+      if (k === HubConnectionState.Reconnecting || n === HubConnectionState.Reconnecting) {
         setConnectionState(HubConnectionState.Reconnecting);
-      } else if (
-        k === HubConnectionState.Connected &&
-        n === HubConnectionState.Connected
-      ) {
+      } else if (k === HubConnectionState.Connected && n === HubConnectionState.Connected) {
         setConnectionState(HubConnectionState.Connected);
       } else {
         setConnectionState(HubConnectionState.Disconnected);
@@ -149,9 +130,7 @@ export function SignalRProvider({ children }: { children: ReactNode }) {
   }, [isAuthenticated, inProgress, queryClient]);
 
   return (
-    <SignalRContext.Provider
-      value={{ kanbanConnection, notificationConnection, connectionState }}
-    >
+    <SignalRContext.Provider value={{ kanbanConnection, notificationConnection, connectionState }}>
       {children}
     </SignalRContext.Provider>
   );

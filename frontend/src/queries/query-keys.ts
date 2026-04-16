@@ -11,20 +11,11 @@ export function normalizeQueryParams<T extends QueryParams | undefined>(params: 
     .filter(([, value]) => value !== undefined && value !== null && value !== "")
     .sort(([left], [right]) => left.localeCompare(right));
 
-  return normalizedEntries.length > 0
-    ? Object.fromEntries(normalizedEntries)
-    : undefined;
+  return normalizedEntries.length > 0 ? Object.fromEntries(normalizedEntries) : undefined;
 }
 
-export async function invalidateQueryKeys(
-  queryClient: QueryClient,
-  ...queryKeys: QueryKey[]
-) {
-  await Promise.all(
-    queryKeys.map((queryKey) =>
-      queryClient.invalidateQueries({ queryKey })
-    )
-  );
+export async function invalidateQueryKeys(queryClient: QueryClient, ...queryKeys: QueryKey[]) {
+  await Promise.all(queryKeys.map((queryKey) => queryClient.invalidateQueries({ queryKey })));
 }
 
 export const queryKeys = {
@@ -38,9 +29,11 @@ export const queryKeys = {
   },
   tickets: {
     listRoot: (projectId: string) => ["tickets", projectId] as const,
-    list: (projectId: string, params?: QueryParams) => ["tickets", projectId, normalizeQueryParams(params) ?? {}] as const,
+    list: (projectId: string, params?: QueryParams) =>
+      ["tickets", projectId, normalizeQueryParams(params) ?? {}] as const,
     detail: (projectId: string, ticketId: string) => ["tickets", projectId, ticketId] as const,
-    byNumber: (projectId: string, number: number) => ["tickets", projectId, "by-number", number] as const,
+    byNumber: (projectId: string, number: number) =>
+      ["tickets", projectId, "by-number", number] as const,
   },
   kanban: {
     board: (projectId: string) => ["kanban", projectId] as const,

@@ -8,10 +8,7 @@ import { EmptyState } from "@/components/shared/empty-state";
 import { Clock, Plus, X } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import {
-  createWorklogSchema,
-  type CreateWorklogInput,
-} from "@/schemas/worklog";
+import { createWorklogSchema, type CreateWorklogInput } from "@/schemas/worklog";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import type { Worklog } from "@/types";
@@ -58,13 +55,8 @@ function AddWorklogDialog({
       <div className="absolute inset-0 bg-black/50" onClick={onClose} />
       <div className="relative bg-card rounded-xl shadow-xl border border-border w-full max-w-md mx-4 p-6">
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-lg font-semibold text-card-foreground">
-            Add Worklog
-          </h2>
-          <button
-            onClick={onClose}
-            className="p-1 rounded hover:bg-muted transition-colors"
-          >
+          <h2 className="text-lg font-semibold text-card-foreground">Add Worklog</h2>
+          <button onClick={onClose} className="p-1 rounded hover:bg-muted transition-colors">
             <X className="h-5 w-5 text-muted-foreground" />
           </button>
         </div>
@@ -73,25 +65,17 @@ function AddWorklogDialog({
           <input type="hidden" {...register("projectId")} />
 
           <div>
-            <label className="block text-sm font-medium text-card-foreground mb-1">
-              Date
-            </label>
+            <label className="block text-sm font-medium text-card-foreground mb-1">Date</label>
             <input
               {...register("date")}
               type="date"
               className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
             />
-            {errors.date && (
-              <p className="text-xs text-destructive mt-1">
-                {errors.date.message}
-              </p>
-            )}
+            {errors.date && <p className="text-xs text-destructive mt-1">{errors.date.message}</p>}
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-card-foreground mb-1">
-              Hours
-            </label>
+            <label className="block text-sm font-medium text-card-foreground mb-1">Hours</label>
             <input
               {...register("hours", { valueAsNumber: true })}
               type="number"
@@ -102,9 +86,7 @@ function AddWorklogDialog({
               placeholder="1.0"
             />
             {errors.hours && (
-              <p className="text-xs text-destructive mt-1">
-                {errors.hours.message}
-              </p>
+              <p className="text-xs text-destructive mt-1">{errors.hours.message}</p>
             )}
           </div>
 
@@ -121,11 +103,7 @@ function AddWorklogDialog({
           </div>
 
           <label className="flex items-center gap-2 text-sm">
-            <input
-              type="checkbox"
-              {...register("isBillable")}
-              className="rounded"
-            />
+            <input type="checkbox" {...register("isBillable")} className="rounded" />
             Billable
           </label>
 
@@ -151,11 +129,7 @@ function AddWorklogDialog({
   );
 }
 
-export default function ProjectWorklogsPage({
-  params,
-}: {
-  params: Promise<{ code: string }>;
-}) {
+export default function ProjectWorklogsPage({ params }: { params: Promise<{ code: string }> }) {
   const { code } = use(params);
   const { data: project } = useProjectByCode(code);
   const projectId = project?.id ?? "";
@@ -165,9 +139,7 @@ export default function ProjectWorklogsPage({
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <p className="text-sm text-muted-foreground">
-          Time entries for this project
-        </p>
+        <p className="text-sm text-muted-foreground">Time entries for this project</p>
         <button
           onClick={() => setDialogOpen(true)}
           className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:opacity-90 transition-opacity"
@@ -224,9 +196,7 @@ export default function ProjectWorklogsPage({
                   <td className="px-4 py-3 text-sm text-foreground">
                     {format(new Date(worklog.date), "MMM d, yyyy")}
                   </td>
-                  <td className="px-4 py-3 text-sm text-foreground">
-                    {worklog.user.displayName}
-                  </td>
+                  <td className="px-4 py-3 text-sm text-foreground">{worklog.user.displayName}</td>
                   <td className="px-4 py-3 text-sm font-medium text-foreground">
                     {worklog.hours.toFixed(2)}h
                   </td>
@@ -235,16 +205,12 @@ export default function ProjectWorklogsPage({
                   </td>
                   <td className="px-4 py-3 text-sm">
                     {worklog.isBillable ? (
-                      <span className="text-green-600 text-xs font-medium">
-                        Yes
-                      </span>
+                      <span className="text-green-600 text-xs font-medium">Yes</span>
                     ) : (
                       <span className="text-muted-foreground text-xs">No</span>
                     )}
                   </td>
-                  <td className="px-4 py-3 text-sm text-muted-foreground">
-                    {worklog.source}
-                  </td>
+                  <td className="px-4 py-3 text-sm text-muted-foreground">{worklog.source}</td>
                 </tr>
               ))}
             </tbody>

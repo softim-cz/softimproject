@@ -71,19 +71,11 @@ export function CreateTicketDialog({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
-      <div
-        className="absolute inset-0 bg-black/50"
-        onClick={resetAndClose}
-      />
+      <div className="absolute inset-0 bg-black/50" onClick={resetAndClose} />
       <div className="relative bg-card border border-border rounded-xl shadow-xl w-full max-w-lg mx-4 p-6">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold text-card-foreground">
-            New Task
-          </h2>
-          <button
-            onClick={resetAndClose}
-            className="text-muted-foreground hover:text-foreground"
-          >
+          <h2 className="text-lg font-semibold text-card-foreground">New Task</h2>
+          <button onClick={resetAndClose} className="text-muted-foreground hover:text-foreground">
             <X className="h-5 w-5" />
           </button>
         </div>
@@ -125,11 +117,13 @@ export function CreateTicketDialog({
                 onChange={(e) => setTicketPriorityId(e.target.value)}
                 className={inputClass}
               >
-                {priorities?.filter((p) => p.isActive).map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.name}
-                  </option>
-                ))}
+                {priorities
+                  ?.filter((p) => p.isActive)
+                  .map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.name}
+                    </option>
+                  ))}
               </select>
             </div>
             <div>

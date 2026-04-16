@@ -37,10 +37,7 @@ export function useCreateSavedFilter() {
       isSystem: boolean;
       sortOrder: number;
     }) => {
-      const { data } = await apiClient.post<string>(
-        `/api/v1/saved-filters`,
-        input
-      );
+      const { data } = await apiClient.post<string>(`/api/v1/saved-filters`, input);
       return data;
     },
     onSuccess: (_, { viewType, projectId }) => {

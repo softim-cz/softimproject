@@ -1,16 +1,7 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import {
-  Bell,
-  Search,
-  LogOut,
-  User,
-  Settings,
-  Wifi,
-  WifiOff,
-  ChevronRight,
-} from "lucide-react";
+import { Bell, Search, LogOut, User, Settings, Wifi, WifiOff, ChevronRight } from "lucide-react";
 import { useAuth } from "@/lib/auth/use-auth";
 import { useNotifications } from "@/queries/notifications";
 import { useSignalR } from "@/lib/signalr/signalr-provider";
@@ -26,13 +17,8 @@ function getBreadcrumbs(pathname: string) {
   for (const segment of segments) {
     path += `/${segment}`;
     // Skip dynamic segments that look like UUIDs
-    const isUuid =
-      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
-        segment
-      );
-    const label = isUuid
-      ? "..."
-      : segment.charAt(0).toUpperCase() + segment.slice(1);
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(segment);
+    const label = isUuid ? "..." : segment.charAt(0).toUpperCase() + segment.slice(1);
     breadcrumbs.push({ label, href: path });
   }
 
@@ -62,10 +48,7 @@ function ConnectionIndicator() {
   }
 
   return (
-    <div
-      className="flex items-center gap-1 text-muted-foreground"
-      title="Disconnected"
-    >
+    <div className="flex items-center gap-1 text-muted-foreground" title="Disconnected">
       <WifiOff className="h-4 w-4" />
     </div>
   );
@@ -73,11 +56,13 @@ function ConnectionIndicator() {
 
 function NotificationBell() {
   const { data: notifications } = useNotifications();
-  const unreadCount =
-    notifications?.filter((n) => !n.isRead).length ?? 0;
+  const unreadCount = notifications?.filter((n) => !n.isRead).length ?? 0;
 
   return (
-    <button className="relative p-2 rounded-lg hover:bg-muted transition-colors" aria-label="Notifications">
+    <button
+      className="relative p-2 rounded-lg hover:bg-muted transition-colors"
+      aria-label="Notifications"
+    >
       <Bell className="h-5 w-5 text-muted-foreground" />
       {unreadCount > 0 && (
         <span className="absolute -top-0.5 -right-0.5 h-4 min-w-[16px] rounded-full bg-accent-orange text-white text-[10px] font-bold flex items-center justify-center px-1">
@@ -125,9 +110,7 @@ function UserMenu() {
       {open && (
         <div className="absolute right-0 mt-2 w-56 rounded-lg border border-border bg-popover shadow-lg z-50">
           <div className="p-3 border-b border-border">
-            <p className="text-sm font-medium text-popover-foreground">
-              {displayName}
-            </p>
+            <p className="text-sm font-medium text-popover-foreground">{displayName}</p>
             <p className="text-xs text-muted-foreground">{user?.username}</p>
           </div>
           <div className="py-1">
@@ -163,9 +146,7 @@ export function Topbar() {
       <nav className="flex items-center gap-1 text-sm">
         {breadcrumbs.map((crumb, index) => (
           <span key={crumb.href} className="flex items-center gap-1">
-            {index > 0 && (
-              <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />
-            )}
+            {index > 0 && <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />}
             <span
               className={cn(
                 index === breadcrumbs.length - 1

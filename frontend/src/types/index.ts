@@ -1,47 +1,46 @@
 export enum GlobalRole {
-  Admin = 'Admin',
-  Manager = 'Manager',
-  User = 'User',
+  Admin = "Admin",
+  Manager = "Manager",
+  User = "User",
 }
 
 export enum ProjectRole {
-  ProjectManager = 'ProjectManager',
-  Developer = 'Developer',
-  Guest = 'Guest',
+  ProjectManager = "ProjectManager",
+  Developer = "Developer",
+  Guest = "Guest",
 }
 
 export enum ProjectStatus {
-  Active = 'Active',
-  OnHold = 'OnHold',
-  Completed = 'Completed',
-  Archived = 'Archived',
+  Active = "Active",
+  OnHold = "OnHold",
+  Completed = "Completed",
+  Archived = "Archived",
 }
 
-
 export enum CommentSource {
-  Manual = 'Manual',
-  Jira = 'Jira',
-  Redmine = 'Redmine',
-  Email = 'Email',
-  AI = 'AI',
-  GitHub = 'GitHub',
-  EasyProject = 'EasyProject',
+  Manual = "Manual",
+  Jira = "Jira",
+  Redmine = "Redmine",
+  Email = "Email",
+  AI = "AI",
+  GitHub = "GitHub",
+  EasyProject = "EasyProject",
 }
 
 export enum WorklogSource {
-  Manual = 'Manual',
-  Timer = 'Timer',
-  Import = 'Import',
-  Sync = 'Sync',
+  Manual = "Manual",
+  Timer = "Timer",
+  Import = "Import",
+  Sync = "Sync",
 }
 
 export enum NotificationType {
-  TicketAssigned = 'TicketAssigned',
-  TicketUpdated = 'TicketUpdated',
-  CommentAdded = 'CommentAdded',
-  DeadlineApproaching = 'DeadlineApproaching',
-  MentionedInComment = 'MentionedInComment',
-  SyncFailed = 'SyncFailed',
+  TicketAssigned = "TicketAssigned",
+  TicketUpdated = "TicketUpdated",
+  CommentAdded = "CommentAdded",
+  DeadlineApproaching = "DeadlineApproaching",
+  MentionedInComment = "MentionedInComment",
+  SyncFailed = "SyncFailed",
 }
 
 // Interfaces for all entities matching backend DTOs
@@ -335,10 +334,10 @@ export interface TicketPriorityLookup {
 }
 
 export enum CustomFieldType {
-  Text = 'Text',
-  Number = 'Number',
-  Date = 'Date',
-  Select = 'Select',
+  Text = "Text",
+  Number = "Number",
+  Date = "Date",
+  Select = "Select",
 }
 
 export interface CustomFieldDefinition {

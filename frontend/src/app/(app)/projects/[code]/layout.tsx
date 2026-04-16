@@ -29,9 +29,7 @@ export default function ProjectLayout({
     <div className="flex flex-col h-full">
       {/* Project header + tabs */}
       <div className="border-b border-border bg-card px-6 pt-4">
-        <h1 className="text-xl font-bold text-foreground mb-3">
-          {project?.name ?? "Project"}
-        </h1>
+        <h1 className="text-xl font-bold text-foreground mb-3">{project?.name ?? "Project"}</h1>
         <nav className="flex gap-1 -mb-px">
           {tabs.map((tab) => {
             const href = `/projects/${code}/${tab.href}`;

@@ -6,9 +6,7 @@ export function useNotifications() {
   return useQuery({
     queryKey: ["notifications"],
     queryFn: async () => {
-      const { data } = await apiClient.get<Notification[]>(
-        "/api/v1/notifications"
-      );
+      const { data } = await apiClient.get<Notification[]>("/api/v1/notifications");
       return data;
     },
     staleTime: 30000,
@@ -22,8 +20,7 @@ export function useMarkRead() {
     mutationFn: async (id: string) => {
       await apiClient.put(`/api/v1/notifications/${id}/read`);
     },
-    onSuccess: () =>
-      queryClient.invalidateQueries({ queryKey: ["notifications"] }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["notifications"] }),
   });
 }
 
@@ -33,7 +30,6 @@ export function useMarkAllRead() {
     mutationFn: async () => {
       await apiClient.put("/api/v1/notifications/read-all");
     },
-    onSuccess: () =>
-      queryClient.invalidateQueries({ queryKey: ["notifications"] }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["notifications"] }),
   });
 }

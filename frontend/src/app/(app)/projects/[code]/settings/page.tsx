@@ -2,12 +2,58 @@
 
 /* eslint-disable react-hooks/set-state-in-effect */
 import { use, useState, useEffect } from "react";
-import { useProjectByCode, useUpdateProject, useDeleteProject, useProjectCustomFieldValues, useSaveProjectCustomFieldValues, useTestGitHubConnection, useTriggerGitHubSync, useGitHubStatus, useGitHubRepos, useGitHubAuthorize, useLinkGitHubRepo, useUnlinkGitHubRepo, useDisconnectGitHub, useProjectUsers, useAddProjectMember, useUpdateProjectMember, useRemoveProjectMember } from "@/queries/projects";
-import { useBoard, useCreateColumn, useUpdateColumn, useDeleteColumn, useReorderColumns } from "@/queries/kanban";
+import {
+  useProjectByCode,
+  useUpdateProject,
+  useDeleteProject,
+  useProjectCustomFieldValues,
+  useSaveProjectCustomFieldValues,
+  useTestGitHubConnection,
+  useTriggerGitHubSync,
+  useGitHubStatus,
+  useGitHubRepos,
+  useGitHubAuthorize,
+  useLinkGitHubRepo,
+  useUnlinkGitHubRepo,
+  useDisconnectGitHub,
+  useProjectUsers,
+  useAddProjectMember,
+  useUpdateProjectMember,
+  useRemoveProjectMember,
+} from "@/queries/projects";
+import {
+  useBoard,
+  useCreateColumn,
+  useUpdateColumn,
+  useDeleteColumn,
+  useReorderColumns,
+} from "@/queries/kanban";
 import { useTaskStates } from "@/queries/lookups";
 import { Skeleton } from "@/components/shared/loading-skeleton";
-import { Settings, Users, LayoutGrid, SlidersHorizontal, Github, Loader2, LinkIcon, Unlink, X, AlertTriangle, Trash2, Pencil, Check, GripVertical } from "lucide-react";
-import { DndContext, closestCenter, PointerSensor, useSensor, useSensors, type DragEndEvent } from "@dnd-kit/core";
+import {
+  Settings,
+  Users,
+  LayoutGrid,
+  SlidersHorizontal,
+  Github,
+  Loader2,
+  LinkIcon,
+  Unlink,
+  X,
+  AlertTriangle,
+  Trash2,
+  Pencil,
+  Check,
+  GripVertical,
+} from "lucide-react";
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy, useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { toast } from "sonner";
@@ -15,11 +61,7 @@ import { ProjectStatus, ProjectRole } from "@/types";
 import type { ProjectCustomFieldValue, ProjectMember } from "@/types";
 import { useSearchParams, useRouter } from "next/navigation";
 
-export default function ProjectSettingsPage({
-  params,
-}: {
-  params: Promise<{ code: string }>;
-}) {
+export default function ProjectSettingsPage({ params }: { params: Promise<{ code: string }> }) {
   const { code } = use(params);
   const router = useRouter();
   const { data: project, isLoading, error } = useProjectByCode(code);
@@ -107,24 +149,18 @@ export default function ProjectSettingsPage({
 
   return (
     <div className="space-y-8 max-w-3xl">
-      <p className="text-sm text-muted-foreground">
-        Configure project settings and integrations
-      </p>
+      <p className="text-sm text-muted-foreground">Configure project settings and integrations</p>
 
       {/* General settings */}
       <section className="rounded-lg border border-border bg-card p-6 space-y-4">
         <div className="flex items-center gap-2 mb-2">
           <Settings className="h-5 w-5 text-muted-foreground" />
-          <h2 className="text-lg font-semibold text-card-foreground">
-            General
-          </h2>
+          <h2 className="text-lg font-semibold text-card-foreground">General</h2>
         </div>
 
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-card-foreground mb-1">
-              Name
-            </label>
+            <label className="block text-sm font-medium text-card-foreground mb-1">Name</label>
             <input
               type="text"
               value={editName}
@@ -139,9 +175,7 @@ export default function ProjectSettingsPage({
             )}
           </div>
           <div>
-            <label className="block text-sm font-medium text-card-foreground mb-1">
-              Code
-            </label>
+            <label className="block text-sm font-medium text-card-foreground mb-1">Code</label>
             <input
               type="text"
               value={editCode}
@@ -153,9 +187,7 @@ export default function ProjectSettingsPage({
               className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground font-mono focus:outline-none focus:ring-2 focus:ring-ring"
             />
             {!codeValid && editCode !== project.code && (
-              <p className="text-xs text-destructive mt-1">
-                2-6 uppercase letters
-              </p>
+              <p className="text-xs text-destructive mt-1">2-6 uppercase letters</p>
             )}
           </div>
         </div>
@@ -171,14 +203,10 @@ export default function ProjectSettingsPage({
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-card-foreground mb-1">
-            Status
-          </label>
+          <label className="block text-sm font-medium text-card-foreground mb-1">Status</label>
           <select
             value={project.status}
-            onChange={(e) =>
-              handleStatusChange(e.target.value as ProjectStatus)
-            }
+            onChange={(e) => handleStatusChange(e.target.value as ProjectStatus)}
             className="rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
           >
             {Object.values(ProjectStatus).map((status) => (
@@ -191,9 +219,7 @@ export default function ProjectSettingsPage({
 
         {project.projectTemplateName && (
           <div>
-            <label className="block text-sm font-medium text-card-foreground mb-1">
-              Template
-            </label>
+            <label className="block text-sm font-medium text-card-foreground mb-1">Template</label>
             <p className="text-sm text-muted-foreground">{project.projectTemplateName}</p>
           </div>
         )}
@@ -228,17 +254,13 @@ export default function ProjectSettingsPage({
       <section className="rounded-lg border border-destructive/50 bg-destructive/5 p-6 space-y-4">
         <div className="flex items-center gap-2 mb-2">
           <AlertTriangle className="h-5 w-5 text-destructive" />
-          <h2 className="text-lg font-semibold text-destructive">
-            Danger Zone
-          </h2>
+          <h2 className="text-lg font-semibold text-destructive">Danger Zone</h2>
         </div>
         <p className="text-sm text-muted-foreground">
-          Deleting a project is permanent. All tickets, worklogs, comments, and
-          attachments will be removed. Type the project code{" "}
-          <span className="font-mono font-semibold text-foreground">
-            {project.code}
-          </span>{" "}
-          to confirm.
+          Deleting a project is permanent. All tickets, worklogs, comments, and attachments will be
+          removed. Type the project code{" "}
+          <span className="font-mono font-semibold text-foreground">{project.code}</span> to
+          confirm.
         </p>
         <div className="flex items-center gap-3">
           <input
@@ -321,25 +343,59 @@ function CustomFieldsSection({ projectId }: { projectId: string }) {
 
   const renderInput = (field: ProjectCustomFieldValue) => {
     const val = values[field.customFieldDefinitionId] || "";
-    const inputClass = "w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring";
+    const inputClass =
+      "w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring";
 
     switch (field.fieldType) {
       case "Number":
-        return <input type="number" value={val} onChange={(e) => handleChange(field.customFieldDefinitionId, e.target.value)} className={inputClass} />;
+        return (
+          <input
+            type="number"
+            value={val}
+            onChange={(e) => handleChange(field.customFieldDefinitionId, e.target.value)}
+            className={inputClass}
+          />
+        );
       case "Date":
-        return <input type="date" value={val} onChange={(e) => handleChange(field.customFieldDefinitionId, e.target.value)} className={inputClass} />;
+        return (
+          <input
+            type="date"
+            value={val}
+            onChange={(e) => handleChange(field.customFieldDefinitionId, e.target.value)}
+            className={inputClass}
+          />
+        );
       case "Select": {
         let opts: string[] = [];
-        try { opts = JSON.parse(field.options || "[]"); } catch { /* ignore */ }
+        try {
+          opts = JSON.parse(field.options || "[]");
+        } catch {
+          /* ignore */
+        }
         return (
-          <select value={val} onChange={(e) => handleChange(field.customFieldDefinitionId, e.target.value)} className={inputClass}>
+          <select
+            value={val}
+            onChange={(e) => handleChange(field.customFieldDefinitionId, e.target.value)}
+            className={inputClass}
+          >
             <option value="">-- Select --</option>
-            {opts.map((o) => <option key={o} value={o}>{o}</option>)}
+            {opts.map((o) => (
+              <option key={o} value={o}>
+                {o}
+              </option>
+            ))}
           </select>
         );
       }
       default:
-        return <input type="text" value={val} onChange={(e) => handleChange(field.customFieldDefinitionId, e.target.value)} className={inputClass} />;
+        return (
+          <input
+            type="text"
+            value={val}
+            onChange={(e) => handleChange(field.customFieldDefinitionId, e.target.value)}
+            className={inputClass}
+          />
+        );
     }
   };
 
@@ -347,9 +403,7 @@ function CustomFieldsSection({ projectId }: { projectId: string }) {
     <section className="rounded-lg border border-border bg-card p-6 space-y-4">
       <div className="flex items-center gap-2 mb-2">
         <SlidersHorizontal className="h-5 w-5 text-muted-foreground" />
-        <h2 className="text-lg font-semibold text-card-foreground">
-          Custom Fields
-        </h2>
+        <h2 className="text-lg font-semibold text-card-foreground">Custom Fields</h2>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -380,7 +434,17 @@ function CustomFieldsSection({ projectId }: { projectId: string }) {
   );
 }
 
-function GitHubIntegrationSection({ projectId, project }: { projectId: string; project: { externalSystem?: string; externalProjectId?: string; gitHubConnectedByUserId?: string } }) {
+function GitHubIntegrationSection({
+  projectId,
+  project,
+}: {
+  projectId: string;
+  project: {
+    externalSystem?: string;
+    externalProjectId?: string;
+    gitHubConnectedByUserId?: string;
+  };
+}) {
   const { data: ghStatus, refetch: refetchStatus } = useGitHubStatus();
   const { data: repos, isLoading: reposLoading } = useGitHubRepos(ghStatus?.connected ?? false);
   const authorize = useGitHubAuthorize();
@@ -465,7 +529,9 @@ function GitHubIntegrationSection({ projectId, project }: { projectId: string; p
       if (result.error) {
         toast.error(result.error);
       } else {
-        toast.success(`Synced ${result.synced} items${result.failed > 0 ? `, ${result.failed} failed` : ""}`);
+        toast.success(
+          `Synced ${result.synced} items${result.failed > 0 ? `, ${result.failed} failed` : ""}`
+        );
       }
     } catch {
       toast.error("Sync failed");
@@ -475,17 +541,18 @@ function GitHubIntegrationSection({ projectId, project }: { projectId: string; p
   const isConnected = ghStatus?.connected ?? false;
   const hasLinkedRepo = project.externalSystem === "GitHub" && !!project.externalProjectId;
 
-  const btnPrimary = "px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:opacity-90 transition-opacity disabled:opacity-50";
-  const btnOutline = "inline-flex items-center gap-1.5 px-4 py-2 rounded-lg border border-border text-sm font-medium text-foreground hover:bg-muted transition-colors disabled:opacity-50";
-  const btnDestructive = "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium text-destructive hover:bg-destructive/10 transition-colors disabled:opacity-50";
+  const btnPrimary =
+    "px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:opacity-90 transition-opacity disabled:opacity-50";
+  const btnOutline =
+    "inline-flex items-center gap-1.5 px-4 py-2 rounded-lg border border-border text-sm font-medium text-foreground hover:bg-muted transition-colors disabled:opacity-50";
+  const btnDestructive =
+    "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium text-destructive hover:bg-destructive/10 transition-colors disabled:opacity-50";
 
   return (
     <section className="rounded-lg border border-border bg-card p-6 space-y-4">
       <div className="flex items-center gap-2 mb-2">
         <Github className="h-5 w-5 text-muted-foreground" />
-        <h2 className="text-lg font-semibold text-card-foreground">
-          GitHub Integration
-        </h2>
+        <h2 className="text-lg font-semibold text-card-foreground">GitHub Integration</h2>
       </div>
 
       {/* State A: Not connected */}
@@ -494,11 +561,7 @@ function GitHubIntegrationSection({ projectId, project }: { projectId: string; p
           <p className="text-sm text-muted-foreground">
             Connect your GitHub account to sync issues and comments.
           </p>
-          <button
-            onClick={handleConnect}
-            disabled={authorize.isPending}
-            className={btnPrimary}
-          >
+          <button onClick={handleConnect} disabled={authorize.isPending} className={btnPrimary}>
             {authorize.isPending ? (
               <span className="inline-flex items-center gap-1.5">
                 <Loader2 className="h-4 w-4 animate-spin" />
@@ -521,8 +584,16 @@ function GitHubIntegrationSection({ projectId, project }: { projectId: string; p
             <p className="text-sm text-foreground">
               Connected as <span className="font-semibold">@{ghStatus!.login}</span>
             </p>
-            <button onClick={handleDisconnect} disabled={disconnect.isPending} className={btnDestructive}>
-              {disconnect.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <X className="h-4 w-4" />}
+            <button
+              onClick={handleDisconnect}
+              disabled={disconnect.isPending}
+              className={btnDestructive}
+            >
+              {disconnect.isPending ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <X className="h-4 w-4" />
+              )}
               Disconnect
             </button>
           </div>
@@ -540,7 +611,8 @@ function GitHubIntegrationSection({ projectId, project }: { projectId: string; p
               {reposLoading && <option disabled>Loading repositories...</option>}
               {repos?.map((r) => (
                 <option key={r.fullName} value={r.fullName}>
-                  {r.fullName}{r.isPrivate ? " (private)" : ""}
+                  {r.fullName}
+                  {r.isPrivate ? " (private)" : ""}
                 </option>
               ))}
             </select>
@@ -556,7 +628,9 @@ function GitHubIntegrationSection({ projectId, project }: { projectId: string; p
                 <Loader2 className="h-4 w-4 animate-spin" />
                 Linking...
               </span>
-            ) : "Link Repository"}
+            ) : (
+              "Link Repository"
+            )}
           </button>
         </div>
       )}
@@ -568,18 +642,35 @@ function GitHubIntegrationSection({ projectId, project }: { projectId: string; p
             <p className="text-sm text-foreground">
               Connected as <span className="font-semibold">@{ghStatus!.login}</span>
             </p>
-            <button onClick={handleDisconnect} disabled={disconnect.isPending} className={btnDestructive}>
-              {disconnect.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <X className="h-4 w-4" />}
+            <button
+              onClick={handleDisconnect}
+              disabled={disconnect.isPending}
+              className={btnDestructive}
+            >
+              {disconnect.isPending ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <X className="h-4 w-4" />
+              )}
               Disconnect
             </button>
           </div>
 
           <div className="flex items-center justify-between">
             <p className="text-sm text-foreground">
-              Repository: <span className="font-semibold font-mono">{project.externalProjectId}</span>
+              Repository:{" "}
+              <span className="font-semibold font-mono">{project.externalProjectId}</span>
             </p>
-            <button onClick={handleUnlinkRepo} disabled={unlinkRepo.isPending} className={btnDestructive}>
-              {unlinkRepo.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Unlink className="h-4 w-4" />}
+            <button
+              onClick={handleUnlinkRepo}
+              disabled={unlinkRepo.isPending}
+              className={btnDestructive}
+            >
+              {unlinkRepo.isPending ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Unlink className="h-4 w-4" />
+              )}
               Unlink
             </button>
           </div>
@@ -601,8 +692,8 @@ function GitHubIntegrationSection({ projectId, project }: { projectId: string; p
       {!isConnected && hasLinkedRepo && (
         <div className="space-y-3 mt-4 pt-4 border-t border-border">
           <p className="text-sm text-muted-foreground">
-            Repository <span className="font-mono font-semibold">{project.externalProjectId}</span> is linked via a legacy API token.
-            Connect your GitHub account for a better experience.
+            Repository <span className="font-mono font-semibold">{project.externalProjectId}</span>{" "}
+            is linked via a legacy API token. Connect your GitHub account for a better experience.
           </p>
           <div className="flex items-center gap-2">
             <button onClick={handleTest} disabled={testConnection.isPending} className={btnOutline}>
@@ -628,9 +719,12 @@ function MembersSection({ projectId, members }: { projectId: string; members: Pr
   const [addUserId, setAddUserId] = useState("");
   const [addRole, setAddRole] = useState<ProjectRole>(ProjectRole.Developer);
 
-  const inputClass = "rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring";
-  const btnPrimary = "px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:opacity-90 transition-opacity disabled:opacity-50";
-  const btnDestructive = "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium text-destructive hover:bg-destructive/10 transition-colors disabled:opacity-50";
+  const inputClass =
+    "rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring";
+  const btnPrimary =
+    "px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:opacity-90 transition-opacity disabled:opacity-50";
+  const btnDestructive =
+    "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium text-destructive hover:bg-destructive/10 transition-colors disabled:opacity-50";
 
   const existingUserIds = new Set(members.map((m) => m.userId));
   const availableUsers = users?.filter((u) => !existingUserIds.has(u.id)) ?? [];
@@ -649,7 +743,12 @@ function MembersSection({ projectId, members }: { projectId: string; members: Pr
 
   const handleRoleChange = async (member: ProjectMember, role: ProjectRole) => {
     try {
-      await updateMember.mutateAsync({ projectId, memberId: member.id, role, hourlyRateOverride: member.hourlyRateOverride });
+      await updateMember.mutateAsync({
+        projectId,
+        memberId: member.id,
+        role,
+        hourlyRateOverride: member.hourlyRateOverride,
+      });
       toast.success("Role updated");
     } catch {
       toast.error("Failed to update role");
@@ -710,7 +809,9 @@ function MembersSection({ projectId, members }: { projectId: string; members: Pr
                       className={inputClass}
                     >
                       {Object.values(ProjectRole).map((role) => (
-                        <option key={role} value={role}>{role}</option>
+                        <option key={role} value={role}>
+                          {role}
+                        </option>
                       ))}
                     </select>
                   </td>
@@ -735,22 +836,38 @@ function MembersSection({ projectId, members }: { projectId: string; members: Pr
         <div className="flex items-end gap-3">
           <div className="flex-1">
             <label className="block text-xs text-muted-foreground mb-1">User</label>
-            <select value={addUserId} onChange={(e) => setAddUserId(e.target.value)} className={`w-full ${inputClass}`}>
+            <select
+              value={addUserId}
+              onChange={(e) => setAddUserId(e.target.value)}
+              className={`w-full ${inputClass}`}
+            >
               <option value="">Select user...</option>
               {availableUsers.map((u) => (
-                <option key={u.id} value={u.id}>{u.displayName} ({u.email})</option>
+                <option key={u.id} value={u.id}>
+                  {u.displayName} ({u.email})
+                </option>
               ))}
             </select>
           </div>
           <div>
             <label className="block text-xs text-muted-foreground mb-1">Role</label>
-            <select value={addRole} onChange={(e) => setAddRole(e.target.value as ProjectRole)} className={inputClass}>
+            <select
+              value={addRole}
+              onChange={(e) => setAddRole(e.target.value as ProjectRole)}
+              className={inputClass}
+            >
               {Object.values(ProjectRole).map((role) => (
-                <option key={role} value={role}>{role}</option>
+                <option key={role} value={role}>
+                  {role}
+                </option>
               ))}
             </select>
           </div>
-          <button onClick={handleAdd} disabled={!addUserId || addMember.isPending} className={btnPrimary}>
+          <button
+            onClick={handleAdd}
+            disabled={!addUserId || addMember.isPending}
+            className={btnPrimary}
+          >
             {addMember.isPending ? "Adding..." : "Add"}
           </button>
         </div>
@@ -760,10 +877,26 @@ function MembersSection({ projectId, members }: { projectId: string; members: Pr
 }
 
 const COLOR_PRESETS = [
-  null, "#ef4444", "#f97316", "#eab308", "#22c55e", "#06b6d4", "#3b82f6", "#8b5cf6", "#ec4899", "#6b7280", "#000000",
+  null,
+  "#ef4444",
+  "#f97316",
+  "#eab308",
+  "#22c55e",
+  "#06b6d4",
+  "#3b82f6",
+  "#8b5cf6",
+  "#ec4899",
+  "#6b7280",
+  "#000000",
 ] as const;
 
-function ColorPicker({ value, onChange }: { value: string | undefined; onChange: (v: string | undefined) => void }) {
+function ColorPicker({
+  value,
+  onChange,
+}: {
+  value: string | undefined;
+  onChange: (v: string | undefined) => void;
+}) {
   return (
     <div className="flex items-center gap-1.5">
       {COLOR_PRESETS.map((color) => (
@@ -774,14 +907,16 @@ function ColorPicker({ value, onChange }: { value: string | undefined; onChange:
           className="rounded-full w-5 h-5 border transition-all flex items-center justify-center"
           style={{
             backgroundColor: color ?? "transparent",
-            borderColor: (value ?? null) === color ? "currentColor" : color ? color : "var(--border)",
-            boxShadow: (value ?? null) === color ? `0 0 0 2px var(--background), 0 0 0 4px ${color ?? "var(--foreground)"}` : "none",
+            borderColor:
+              (value ?? null) === color ? "currentColor" : color ? color : "var(--border)",
+            boxShadow:
+              (value ?? null) === color
+                ? `0 0 0 2px var(--background), 0 0 0 4px ${color ?? "var(--foreground)"}`
+                : "none",
           }}
           title={color ?? "None"}
         >
-          {color === null && (
-            <X className="h-3 w-3 text-muted-foreground" />
-          )}
+          {color === null && <X className="h-3 w-3 text-muted-foreground" />}
         </button>
       ))}
     </div>
@@ -798,11 +933,7 @@ function TaskStateMultiSelect({
   taskStates: { id: string; name: string; color: string }[];
 }) {
   const toggle = (id: string) => {
-    onChange(
-      selected.includes(id)
-        ? selected.filter((s) => s !== id)
-        : [...selected, id]
-    );
+    onChange(selected.includes(id) ? selected.filter((s) => s !== id) : [...selected, id]);
   };
 
   return (
@@ -862,7 +993,13 @@ function SortableColumnRow({
   deletePending,
   activeTaskStates,
 }: {
-  col: { id: string; name: string; wipLimit?: number; color?: string; taskStates: { id: string; name: string; color: string }[] };
+  col: {
+    id: string;
+    name: string;
+    wipLimit?: number;
+    color?: string;
+    taskStates: { id: string; name: string; color: string }[];
+  };
   isEditing: boolean;
   onStartEdit: () => void;
   onDelete: () => void;
@@ -874,15 +1011,28 @@ function SortableColumnRow({
   deletePending: boolean;
   activeTaskStates: { id: string; name: string; color: string }[];
 }) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: col.id });
-  const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.5 : 1 };
-  const btnOutline = "inline-flex items-center justify-center p-1.5 rounded-lg border border-border text-muted-foreground hover:bg-muted transition-colors disabled:opacity-50";
-  const btnDestructive = "inline-flex items-center gap-1.5 p-1.5 rounded-lg text-destructive hover:bg-destructive/10 transition-colors disabled:opacity-50";
-  const inputClass = "rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring";
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: col.id,
+  });
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+  const btnOutline =
+    "inline-flex items-center justify-center p-1.5 rounded-lg border border-border text-muted-foreground hover:bg-muted transition-colors disabled:opacity-50";
+  const btnDestructive =
+    "inline-flex items-center gap-1.5 p-1.5 rounded-lg text-destructive hover:bg-destructive/10 transition-colors disabled:opacity-50";
+  const inputClass =
+    "rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring";
 
   if (isEditing) {
     return (
-      <div ref={setNodeRef} style={style} className="px-3 py-3 rounded-lg border border-primary/30 bg-background space-y-3">
+      <div
+        ref={setNodeRef}
+        style={style}
+        className="px-3 py-3 rounded-lg border border-primary/30 bg-background space-y-3"
+      >
         <div className="flex items-center gap-2">
           <input
             type="text"
@@ -923,12 +1073,23 @@ function SortableColumnRow({
   }
 
   return (
-    <div ref={setNodeRef} style={style} className="flex items-center gap-2 px-3 py-2 rounded-lg border border-border/50 bg-background">
-      <button {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground p-0.5">
+    <div
+      ref={setNodeRef}
+      style={style}
+      className="flex items-center gap-2 px-3 py-2 rounded-lg border border-border/50 bg-background"
+    >
+      <button
+        {...attributes}
+        {...listeners}
+        className="cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground p-0.5"
+      >
         <GripVertical className="h-4 w-4" />
       </button>
       {col.color && (
-        <span className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: col.color }} />
+        <span
+          className="w-3 h-3 rounded-full flex-shrink-0"
+          style={{ backgroundColor: col.color }}
+        />
       )}
       <span className="flex-1 text-sm font-medium text-foreground">{col.name}</span>
       <div className="flex flex-wrap gap-1">
@@ -955,7 +1116,13 @@ function SortableColumnRow({
   );
 }
 
-function BoardConfigSection({ projectId, projectTemplateId }: { projectId: string; projectTemplateId?: string }) {
+function BoardConfigSection({
+  projectId,
+  projectTemplateId,
+}: {
+  projectId: string;
+  projectTemplateId?: string;
+}) {
   const { data: board, isLoading: boardLoading } = useBoard(projectId);
   const { data: taskStates } = useTaskStates(projectTemplateId);
   const createColumn = useCreateColumn();
@@ -968,12 +1135,19 @@ function BoardConfigSection({ projectId, projectTemplateId }: { projectId: strin
   const [newWipLimit, setNewWipLimit] = useState("");
   const [newColor, setNewColor] = useState<string | undefined>(undefined);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [editState, setEditState] = useState({ name: "", taskStateIds: [] as string[], wipLimit: "", color: undefined as string | undefined });
+  const [editState, setEditState] = useState({
+    name: "",
+    taskStateIds: [] as string[],
+    wipLimit: "",
+    color: undefined as string | undefined,
+  });
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
 
-  const inputClass = "rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring";
-  const btnPrimary = "px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:opacity-90 transition-opacity disabled:opacity-50";
+  const inputClass =
+    "rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring";
+  const btnPrimary =
+    "px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:opacity-90 transition-opacity disabled:opacity-50";
 
   const activeTaskStates = taskStates?.filter((ts) => ts.isActive) ?? [];
   const columns = board?.columns ?? [];
@@ -1020,7 +1194,7 @@ function BoardConfigSection({ projectId, projectTemplateId }: { projectId: strin
     }
   };
 
-  const startEditing = (col: typeof columns[0]) => {
+  const startEditing = (col: (typeof columns)[0]) => {
     setEditingId(col.id);
     setEditState({
       name: col.name,
@@ -1050,7 +1224,12 @@ function BoardConfigSection({ projectId, projectTemplateId }: { projectId: strin
   };
 
   const handleDeleteColumn = async (columnId: string) => {
-    if (!window.confirm("Delete this column? Tickets in this column will lose their column assignment but keep their task state.")) return;
+    if (
+      !window.confirm(
+        "Delete this column? Tickets in this column will lose their column assignment but keep their task state."
+      )
+    )
+      return;
     try {
       await deleteColumn.mutateAsync({ projectId, boardId: board.id, columnId });
       toast.success("Column deleted");
@@ -1146,16 +1325,14 @@ function BoardConfigSection({ projectId, projectTemplateId }: { projectId: strin
           <label className="block text-xs text-muted-foreground mb-1">Color</label>
           <ColorPicker value={newColor} onChange={setNewColor} />
         </div>
-        <button onClick={handleAddColumn} disabled={!newName.trim() || newTaskStateIds.length === 0 || createColumn.isPending} className={btnPrimary}>
+        <button
+          onClick={handleAddColumn}
+          disabled={!newName.trim() || newTaskStateIds.length === 0 || createColumn.isPending}
+          className={btnPrimary}
+        >
           {createColumn.isPending ? "Adding..." : "Add Column"}
         </button>
       </div>
     </section>
   );
 }
-
-
-
-
-
-

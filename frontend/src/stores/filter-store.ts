@@ -37,9 +37,7 @@ export const useFilterStore = create<FilterState>()(
         set((state) => ({
           activeFilters: {
             ...state.activeFilters,
-            [viewKey]: (state.activeFilters[viewKey] ?? []).filter(
-              (_, i) => i !== index
-            ),
+            [viewKey]: (state.activeFilters[viewKey] ?? []).filter((_, i) => i !== index),
           },
         })),
       clearFilters: (viewKey) =>
