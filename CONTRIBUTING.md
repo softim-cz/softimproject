@@ -11,7 +11,13 @@ Každý `git push` musí nejprve proběhnout lokálně přes plný build.
 - **Frontend:** `cd frontend && npm run build`
 - **Backend:** `cd backend && dotnet build -c Release`
 
-Oba musí projít bez chyb. Git `pre-push` hook to vynucuje automaticky (viz Outstanding setup níže).
+Oba musí projít bez chyb. Git `pre-push` hook to vynucuje automaticky — po klonu repa spusťte jednorázově:
+
+```bash
+bash scripts/install-hooks.sh
+```
+
+Hook se registruje jako `core.hooksPath = .githooks` a pouští se před každým `git push`. Obejít (zřídka, když opravdu víte proč) lze přes `git push --no-verify`.
 
 ### 2. EF migrace se aplikují automaticky při startu API
 
@@ -64,7 +70,7 @@ chore(deps): pin System.Security.Cryptography.Xml to 10.0.6
 
 Tyto položky ještě nejsou zavedené, dokud nebudou hotové, je pravidlo "best effort":
 
-- [ ] Pre-push git hook — spustí `npm run build` + `dotnet build` (bod 1)
+- [x] Pre-push git hook — spustí `npm run build` + `dotnet build` (bod 1)
 - [ ] `Database.Migrate()` v `Program.cs` v `using var scope` bloku (bod 2)
 - [ ] `frontend/.env.example` + `backend/src/SoftimProject.WebApi/appsettings.Example.json` (bod 3)
 - [ ] GitHub branch protection na `main` s "require status checks to pass" (bod 4)

@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+# Pre-push hook: refuse to push if local build fails.
+# Install once per clone: git config core.hooksPath .githooks
+# Bypass (discouraged): git push --no-verify
+
+set -e
+
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+cd "$REPO_ROOT"
+
+echo "[pre-push] Running frontend build..."
+(cd frontend && npm run build --silent) || {
+    echo "[pre-push] Frontend build FAILED. Push rejected."
+    echo "[pre-push] Fix the errors or bypass with: git push --no-verify"
+    exit 1
+}
+
+echo "[pre-push] Running backend build..."
+(cd backend && dotnet build -c Release --nologo -v minimal) || {
+    echo "[pre-push] Backend build FAILED. Push rejected."
+    echo "[pre-push] Fix the errors or bypass with: git push --no-verify"
+    exit 1
+}
+
+echo "[pre-push] All builds passed. Pushing..."
