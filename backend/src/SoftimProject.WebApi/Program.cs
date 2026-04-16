@@ -1,8 +1,10 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Identity.Web;
 using Serilog;
 using SoftimProject.Infrastructure;
 using SoftimProject.Infrastructure.Options;
+using SoftimProject.Infrastructure.Persistence;
 using SoftimProject.Application;
 using SoftimProject.WebApi.Hubs;
 using SoftimProject.WebApi.Middleware;
@@ -92,6 +94,15 @@ try
     builder.Services.AddHealthChecks();
 
     var app = builder.Build();
+
+    // Apply pending EF Core migrations on startup. Fail fast if the DB is unreachable.
+    using (var scope = app.Services.CreateScope())
+    {
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        Log.Information("Applying pending database migrations...");
+        await db.Database.MigrateAsync();
+        Log.Information("Database migrations up to date");
+    }
 
     app.UseMiddleware<ExceptionHandlingMiddleware>();
     app.UseSerilogRequestLogging();
