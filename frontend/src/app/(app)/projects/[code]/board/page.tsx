@@ -2,7 +2,7 @@
 
 import { use, useState, useCallback, useMemo, useRef, memo } from "react";
 import { useBoard, useMoveTicket } from "@/queries/kanban";
-import { useCreateTicket } from "@/queries/tickets";
+import { useCreateTicket, type CreateTicketPayload } from "@/queries/tickets";
 import { useProjectByCode } from "@/queries/projects";
 import {
   useViewConfiguration,

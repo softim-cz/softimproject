@@ -571,7 +571,9 @@ export default function TaskListPage({
         />
       )}
 
-      <CreateTicketDialog        projectTemplateId={project?.projectTemplateId}
+      <CreateTicketDialog
+        projectId={projectId}
+        projectTemplateId={project?.projectTemplateId}
         open={showCreateDialog}
         onClose={() => setShowCreateDialog(false)}
       />
