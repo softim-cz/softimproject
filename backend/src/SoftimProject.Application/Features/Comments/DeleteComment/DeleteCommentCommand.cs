@@ -11,7 +11,8 @@ public sealed record DeleteCommentCommand(
     Guid CommentId) : IRequest, IRequireProjectAccess;
 
 public sealed class DeleteCommentCommandHandler(
-    IApplicationDbContext dbContext) : IRequestHandler<DeleteCommentCommand>
+    IApplicationDbContext dbContext,
+    ICurrentUserService currentUserService) : IRequestHandler<DeleteCommentCommand>
 {
     public async Task Handle(DeleteCommentCommand request, CancellationToken cancellationToken)
     {
@@ -20,6 +21,16 @@ public sealed class DeleteCommentCommandHandler(
             request.TicketId,
             request.CommentId,
             cancellationToken);
+
+        var userId = currentUserService.UserId
+            ?? throw new UnauthorizedAccessException("Current user is not initialized.");
+
+        if (comment.AuthorId != userId
+            && !currentUserService.IsInRole("Admin")
+            && !currentUserService.IsInRole("Manager"))
+        {
+            throw new UnauthorizedAccessException("Only the author, Admin or Manager can delete this comment.");
+        }
 
         dbContext.Comments.Remove(comment);
 
