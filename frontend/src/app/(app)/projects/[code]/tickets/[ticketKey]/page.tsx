@@ -328,6 +328,7 @@ function CommentsSection({ projectId, ticketId }: { projectId: string; ticketId:
 
 function AttachmentsSection({ projectId, ticketId }: { projectId: string; ticketId: string }) {
   const { data: attachments, isLoading } = useAttachments(projectId, ticketId);
+  const { data: currentUser } = useCurrentUser();
   const deleteAttachment = useDeleteAttachment();
   const uploadAttachment = useUploadAttachment();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -340,7 +341,14 @@ function AttachmentsSection({ projectId, ticketId }: { projectId: string; ticket
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
   };
 
+  const canDelete = (uploadedById: string) =>
+    !!currentUser &&
+    (currentUser.id === uploadedById ||
+      currentUser.globalRole === GlobalRole.Admin ||
+      currentUser.globalRole === GlobalRole.Manager);
+
   const handleDelete = async (attachmentId: string) => {
+    if (!window.confirm("Delete this attachment?")) return;
     try {
       await deleteAttachment.mutateAsync({ projectId, ticketId, attachmentId });
       toast.success("Attachment deleted");
@@ -463,13 +471,17 @@ function AttachmentsSection({ projectId, ticketId }: { projectId: string; ticket
               >
                 <Download className="h-4 w-4" />
               </a>
-              <button
-                onClick={() => handleDelete(att.id)}
-                className="p-1 text-muted-foreground hover:text-destructive rounded"
-                title="Delete"
-              >
-                <Trash2 className="h-4 w-4" />
-              </button>
+              {canDelete(att.uploadedById) && (
+                <button
+                  onClick={() => handleDelete(att.id)}
+                  disabled={deleteAttachment.isPending}
+                  className="p-1 text-muted-foreground hover:text-destructive rounded disabled:opacity-50"
+                  title="Delete"
+                  aria-label="Delete attachment"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              )}
             </div>
           ))}
         </div>

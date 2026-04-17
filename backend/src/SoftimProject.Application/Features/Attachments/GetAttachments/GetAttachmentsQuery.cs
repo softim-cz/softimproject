@@ -11,6 +11,7 @@ public sealed record AttachmentDto(
     string BlobUrl,
     string ContentType,
     long FileSizeBytes,
+    Guid UploadedById,
     string UploadedByName,
     DateTime CreatedAt);
 
@@ -32,6 +33,7 @@ public sealed class GetAttachmentsQueryHandler(IApplicationDbContext dbContext)
                 a.BlobUrl,
                 a.ContentType,
                 a.FileSizeBytes,
+                a.UploadedById,
                 a.UploadedBy.DisplayName,
                 a.CreatedAt))
             .ToListAsync(cancellationToken);

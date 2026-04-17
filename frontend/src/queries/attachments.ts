@@ -9,6 +9,7 @@ export interface AttachmentDto {
   blobUrl: string;
   contentType: string;
   fileSizeBytes: number;
+  uploadedById: string;
   uploadedByName: string;
   createdAt: string;
 }
