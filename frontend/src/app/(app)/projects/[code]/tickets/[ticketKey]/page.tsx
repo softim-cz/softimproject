@@ -1,10 +1,15 @@
 "use client";
 
-import { use } from "react";
+import { use, useRef, useState } from "react";
 import { useTicketByNumber } from "@/queries/tickets";
 import { useProjectByCode } from "@/queries/projects";
 import { useComments, useCreateComment } from "@/queries/comments";
-import { useAttachments, useDeleteAttachment } from "@/queries/attachments";
+import {
+  MAX_ATTACHMENT_SIZE_BYTES,
+  useAttachments,
+  useDeleteAttachment,
+  useUploadAttachment,
+} from "@/queries/attachments";
 import { PriorityBadge } from "@/components/shared/priority-badge";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { Skeleton } from "@/components/shared/loading-skeleton";
@@ -22,6 +27,7 @@ import {
   Download,
   Trash2,
   FileText,
+  UploadCloud,
 } from "lucide-react";
 import Link from "next/link";
 import { useForm } from "react-hook-form";
@@ -185,6 +191,10 @@ function CommentsSection({ projectId, ticketId }: { projectId: string; ticketId:
 function AttachmentsSection({ projectId, ticketId }: { projectId: string; ticketId: string }) {
   const { data: attachments, isLoading } = useAttachments(projectId, ticketId);
   const deleteAttachment = useDeleteAttachment();
+  const uploadAttachment = useUploadAttachment();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const [uploading, setUploading] = useState<{ name: string; percent: number } | null>(null);
 
   const formatFileSize = (bytes: number) => {
     if (bytes < 1024) return `${bytes} B`;
@@ -201,6 +211,44 @@ function AttachmentsSection({ projectId, ticketId }: { projectId: string; ticket
     }
   };
 
+  const uploadFiles = async (files: FileList | File[]) => {
+    const list = Array.from(files);
+    for (const file of list) {
+      if (file.size > MAX_ATTACHMENT_SIZE_BYTES) {
+        toast.error(`${file.name} is larger than 50 MB`);
+        continue;
+      }
+      setUploading({ name: file.name, percent: 0 });
+      try {
+        await uploadAttachment.mutateAsync({
+          projectId,
+          ticketId,
+          file,
+          onProgress: (percent) => setUploading({ name: file.name, percent }),
+        });
+        toast.success(`Uploaded ${file.name}`);
+      } catch {
+        toast.error(`Failed to upload ${file.name}`);
+      }
+    }
+    setUploading(null);
+  };
+
+  const handleFileInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (event.target.files && event.target.files.length > 0) {
+      void uploadFiles(event.target.files);
+    }
+    event.target.value = "";
+  };
+
+  const handleDrop = (event: React.DragEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    setIsDragging(false);
+    if (event.dataTransfer.files && event.dataTransfer.files.length > 0) {
+      void uploadFiles(event.dataTransfer.files);
+    }
+  };
+
   return (
     <div className="rounded-lg border border-border bg-card p-4">
       <h3 className="text-sm font-semibold text-foreground flex items-center gap-2 mb-3">
@@ -208,9 +256,49 @@ function AttachmentsSection({ projectId, ticketId }: { projectId: string; ticket
         Attachments
       </h3>
 
+      <div
+        onDragOver={(event) => {
+          event.preventDefault();
+          setIsDragging(true);
+        }}
+        onDragLeave={() => setIsDragging(false)}
+        onDrop={handleDrop}
+        onClick={() => fileInputRef.current?.click()}
+        className={`mb-3 flex flex-col items-center justify-center gap-1 rounded border-2 border-dashed p-4 text-center text-sm cursor-pointer transition-colors ${
+          isDragging
+            ? "border-primary bg-primary/5 text-foreground"
+            : "border-border text-muted-foreground hover:border-primary/60 hover:text-foreground"
+        } ${uploading ? "pointer-events-none opacity-60" : ""}`}
+      >
+        <UploadCloud className="h-5 w-5" />
+        {uploading ? (
+          <>
+            <span className="truncate max-w-full">Uploading {uploading.name}</span>
+            <div className="w-full max-w-xs h-1.5 rounded bg-muted overflow-hidden">
+              <div
+                className="h-full bg-primary transition-all"
+                style={{ width: `${uploading.percent}%` }}
+              />
+            </div>
+          </>
+        ) : (
+          <>
+            <span>Drop files here or click to upload</span>
+            <span className="text-xs">Max 50 MB per file</span>
+          </>
+        )}
+        <input
+          ref={fileInputRef}
+          type="file"
+          multiple
+          className="hidden"
+          onChange={handleFileInputChange}
+        />
+      </div>
+
       {isLoading && <Skeleton className="h-16 w-full" />}
 
-      {attachments && attachments.length === 0 && (
+      {attachments && attachments.length === 0 && !uploading && (
         <p className="text-sm text-muted-foreground">No attachments yet.</p>
       )}
 
