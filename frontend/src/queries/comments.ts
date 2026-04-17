@@ -77,3 +77,60 @@ export function useCreateComment() {
     },
   });
 }
+
+export function useUpdateComment() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      projectId,
+      ticketId,
+      commentId,
+      content,
+    }: {
+      projectId: string;
+      ticketId: string;
+      commentId: string;
+      content: string;
+    }) => {
+      await apiClient.put(
+        `/api/v1/projects/${projectId}/tickets/${ticketId}/comments/${commentId}`,
+        { projectId, ticketId, commentId, content }
+      );
+    },
+    onSuccess: async (_, { projectId, ticketId }) => {
+      await queryClient.invalidateQueries({
+        queryKey: queryKeys.comments.ticket(projectId, ticketId),
+      });
+      await queryClient.invalidateQueries({
+        queryKey: queryKeys.tickets.detail(projectId, ticketId),
+      });
+    },
+  });
+}
+
+export function useDeleteComment() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      projectId,
+      ticketId,
+      commentId,
+    }: {
+      projectId: string;
+      ticketId: string;
+      commentId: string;
+    }) => {
+      await apiClient.delete(
+        `/api/v1/projects/${projectId}/tickets/${ticketId}/comments/${commentId}`
+      );
+    },
+    onSuccess: async (_, { projectId, ticketId }) => {
+      await queryClient.invalidateQueries({
+        queryKey: queryKeys.comments.ticket(projectId, ticketId),
+      });
+      await queryClient.invalidateQueries({
+        queryKey: queryKeys.tickets.detail(projectId, ticketId),
+      });
+    },
+  });
+}

@@ -3,7 +3,14 @@
 import { use, useRef, useState } from "react";
 import { useTicketByNumber } from "@/queries/tickets";
 import { useProjectByCode } from "@/queries/projects";
-import { useComments, useCreateComment } from "@/queries/comments";
+import {
+  useComments,
+  useCreateComment,
+  useDeleteComment,
+  useUpdateComment,
+} from "@/queries/comments";
+import { useCurrentUser } from "@/queries/auth";
+import { GlobalRole } from "@/types";
 import {
   MAX_ATTACHMENT_SIZE_BYTES,
   useAttachments,
@@ -28,6 +35,8 @@ import {
   Trash2,
   FileText,
   UploadCloud,
+  Pencil,
+  X,
 } from "lucide-react";
 import Link from "next/link";
 import { useForm } from "react-hook-form";
@@ -80,8 +89,148 @@ function ChecklistSection({ items }: { items: ChecklistItem[] }) {
   );
 }
 
+function CommentCard({
+  comment,
+  projectId,
+  ticketId,
+  canManage,
+}: {
+  comment: Comment;
+  projectId: string;
+  ticketId: string;
+  canManage: boolean;
+}) {
+  const updateComment = useUpdateComment();
+  const deleteComment = useDeleteComment();
+  const [isEditing, setIsEditing] = useState(false);
+  const [draft, setDraft] = useState(comment.content);
+
+  const handleSave = async () => {
+    const content = draft.trim();
+    if (!content) {
+      toast.error("Comment cannot be empty");
+      return;
+    }
+    try {
+      await updateComment.mutateAsync({
+        projectId,
+        ticketId,
+        commentId: comment.id,
+        content,
+      });
+      toast.success("Comment updated");
+      setIsEditing(false);
+    } catch {
+      toast.error("Failed to update comment");
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!window.confirm("Delete this comment?")) return;
+    try {
+      await deleteComment.mutateAsync({ projectId, ticketId, commentId: comment.id });
+      toast.success("Comment deleted");
+    } catch {
+      toast.error("Failed to delete comment");
+    }
+  };
+
+  return (
+    <div className="rounded-lg border border-border p-4">
+      <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center gap-2">
+          <div className="h-6 w-6 rounded-full bg-primary-navy text-white flex items-center justify-center text-[10px] font-bold">
+            {comment.author.displayName
+              .split(" ")
+              .map((n) => n[0])
+              .join("")
+              .slice(0, 2)}
+          </div>
+          <span className="text-sm font-medium text-foreground">{comment.author.displayName}</span>
+          {comment.isInternal && (
+            <span className="text-[10px] px-1.5 py-0.5 rounded bg-yellow-100 text-yellow-700 font-medium">
+              Internal
+            </span>
+          )}
+          {comment.updatedAt && (
+            <span
+              className="text-[10px] text-muted-foreground italic"
+              title={format(new Date(comment.updatedAt), "MMM d, yyyy HH:mm")}
+            >
+              edited
+            </span>
+          )}
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-muted-foreground">
+            {format(new Date(comment.createdAt), "MMM d, yyyy HH:mm")}
+          </span>
+          {canManage && !isEditing && (
+            <>
+              <button
+                onClick={() => {
+                  setDraft(comment.content);
+                  setIsEditing(true);
+                }}
+                className="p-1 text-muted-foreground hover:text-foreground rounded"
+                title="Edit"
+                aria-label="Edit comment"
+              >
+                <Pencil className="h-3.5 w-3.5" />
+              </button>
+              <button
+                onClick={handleDelete}
+                disabled={deleteComment.isPending}
+                className="p-1 text-muted-foreground hover:text-destructive rounded disabled:opacity-50"
+                title="Delete"
+                aria-label="Delete comment"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+              </button>
+            </>
+          )}
+        </div>
+      </div>
+
+      {isEditing ? (
+        <div className="space-y-2">
+          <textarea
+            value={draft}
+            onChange={(event) => setDraft(event.target.value)}
+            rows={3}
+            className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring resize-none"
+          />
+          <div className="flex items-center justify-end gap-2">
+            <button
+              type="button"
+              onClick={() => setIsEditing(false)}
+              disabled={updateComment.isPending}
+              className="inline-flex items-center gap-1 px-2.5 py-1 rounded text-xs text-muted-foreground hover:text-foreground disabled:opacity-50"
+            >
+              <X className="h-3.5 w-3.5" />
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={handleSave}
+              disabled={updateComment.isPending}
+              className="inline-flex items-center gap-1 px-2.5 py-1 rounded bg-primary text-primary-foreground text-xs font-medium hover:opacity-90 disabled:opacity-50"
+            >
+              <Send className="h-3.5 w-3.5" />
+              Save
+            </button>
+          </div>
+        </div>
+      ) : (
+        <p className="text-sm text-foreground whitespace-pre-wrap">{comment.content}</p>
+      )}
+    </div>
+  );
+}
+
 function CommentsSection({ projectId, ticketId }: { projectId: string; ticketId: string }) {
   const { data: comments, isLoading } = useComments(projectId, ticketId);
+  const { data: currentUser } = useCurrentUser();
   const createComment = useCreateComment();
   const {
     register,
@@ -151,33 +300,22 @@ function CommentsSection({ projectId, ticketId }: { projectId: string; ticketId:
 
       {comments && comments.length > 0 && (
         <div className="space-y-3">
-          {comments.map((comment: Comment) => (
-            <div key={comment.id} className="rounded-lg border border-border p-4">
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center gap-2">
-                  <div className="h-6 w-6 rounded-full bg-primary-navy text-white flex items-center justify-center text-[10px] font-bold">
-                    {comment.author.displayName
-                      .split(" ")
-                      .map((n) => n[0])
-                      .join("")
-                      .slice(0, 2)}
-                  </div>
-                  <span className="text-sm font-medium text-foreground">
-                    {comment.author.displayName}
-                  </span>
-                  {comment.isInternal && (
-                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-yellow-100 text-yellow-700 font-medium">
-                      Internal
-                    </span>
-                  )}
-                </div>
-                <span className="text-xs text-muted-foreground">
-                  {format(new Date(comment.createdAt), "MMM d, yyyy HH:mm")}
-                </span>
-              </div>
-              <p className="text-sm text-foreground whitespace-pre-wrap">{comment.content}</p>
-            </div>
-          ))}
+          {comments.map((comment: Comment) => {
+            const canManage =
+              !!currentUser &&
+              (currentUser.id === comment.author.id ||
+                currentUser.globalRole === GlobalRole.Admin ||
+                currentUser.globalRole === GlobalRole.Manager);
+            return (
+              <CommentCard
+                key={comment.id}
+                comment={comment}
+                projectId={projectId}
+                ticketId={ticketId}
+                canManage={canManage}
+              />
+            );
+          })}
         </div>
       )}
 

@@ -21,7 +21,8 @@ public sealed class UpdateCommentCommandValidator : AbstractValidator<UpdateComm
 }
 
 public sealed class UpdateCommentCommandHandler(
-    IApplicationDbContext dbContext) : IRequestHandler<UpdateCommentCommand>
+    IApplicationDbContext dbContext,
+    ICurrentUserService currentUserService) : IRequestHandler<UpdateCommentCommand>
 {
     public async Task Handle(UpdateCommentCommand request, CancellationToken cancellationToken)
     {
@@ -31,7 +32,18 @@ public sealed class UpdateCommentCommandHandler(
             request.CommentId,
             cancellationToken);
 
+        var userId = currentUserService.UserId
+            ?? throw new UnauthorizedAccessException("Current user is not initialized.");
+
+        if (comment.AuthorId != userId
+            && !currentUserService.IsInRole("Admin")
+            && !currentUserService.IsInRole("Manager"))
+        {
+            throw new UnauthorizedAccessException("Only the author, Admin or Manager can edit this comment.");
+        }
+
         comment.Content = request.Content;
+        comment.UpdatedAt = DateTime.UtcNow;
 
         if (comment.Ticket is not null)
         {
