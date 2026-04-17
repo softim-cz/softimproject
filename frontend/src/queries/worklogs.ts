@@ -43,12 +43,21 @@ export function useCreateWorklog() {
   });
 }
 
+export interface UpdateWorklogRequest {
+  projectId: string;
+  worklogId: string;
+  date: string;
+  hours: number;
+  description?: string;
+  isBillable: boolean;
+  invoiced?: string;
+}
+
 export function useUpdateWorklog() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({ id, ...worklog }: Partial<Worklog> & { id: string }) => {
-      const { data } = await apiClient.put<Worklog>(`/api/v1/worklogs/${id}`, worklog);
-      return data;
+    mutationFn: async (request: UpdateWorklogRequest) => {
+      await apiClient.put(`/api/v1/worklogs/${request.worklogId}`, request);
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.worklogs.all() }),
   });
@@ -57,8 +66,8 @@ export function useUpdateWorklog() {
 export function useDeleteWorklog() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (id: string) => {
-      await apiClient.delete(`/api/v1/worklogs/${id}`);
+    mutationFn: async ({ projectId, worklogId }: { projectId: string; worklogId: string }) => {
+      await apiClient.delete(`/api/v1/worklogs/${worklogId}`, { params: { projectId } });
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.worklogs.all() }),
   });

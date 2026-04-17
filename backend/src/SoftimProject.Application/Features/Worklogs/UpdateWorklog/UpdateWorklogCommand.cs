@@ -10,19 +10,33 @@ public sealed record UpdateWorklogCommand(
     DateOnly Date,
     decimal Hours,
     string? Description,
-    bool IsBillable) : IRequest, IRequireProjectAccess;
+    bool IsBillable,
+    string? Invoiced) : IRequest, IRequireProjectAccess;
 
 public sealed class UpdateWorklogCommandHandler(
-    IApplicationDbContext dbContext) : IRequestHandler<UpdateWorklogCommand>
+    IApplicationDbContext dbContext,
+    ICurrentUserService currentUserService) : IRequestHandler<UpdateWorklogCommand>
 {
     public async Task Handle(UpdateWorklogCommand request, CancellationToken cancellationToken)
     {
         var worklog = await dbContext.GetWorklogForProjectAsync(request.ProjectId, request.WorklogId, cancellationToken);
 
+        var userId = currentUserService.UserId
+            ?? throw new UnauthorizedAccessException("Current user is not initialized.");
+
+        if (worklog.UserId != userId
+            && !currentUserService.IsInRole("Admin")
+            && !currentUserService.IsInRole("Manager"))
+        {
+            throw new UnauthorizedAccessException("Only the worklog owner, Admin or Manager can edit this worklog.");
+        }
+
         worklog.Date = request.Date;
         worklog.Hours = request.Hours;
         worklog.Description = request.Description;
         worklog.IsBillable = request.IsBillable;
+        worklog.Invoiced = request.Invoiced;
+        worklog.UpdatedAt = DateTime.UtcNow;
 
         await dbContext.SaveChangesAsync(cancellationToken);
     }

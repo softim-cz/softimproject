@@ -1,17 +1,19 @@
 "use client";
 
 import { use, useState } from "react";
-import { useWorklogs, useCreateWorklog } from "@/queries/worklogs";
+import { useWorklogs, useCreateWorklog, useDeleteWorklog } from "@/queries/worklogs";
 import { useProjectByCode } from "@/queries/projects";
+import { useCurrentUser } from "@/queries/auth";
 import { TableSkeleton } from "@/components/shared/loading-skeleton";
 import { EmptyState } from "@/components/shared/empty-state";
-import { Clock, Plus, X } from "lucide-react";
+import { EditWorklogDialog } from "@/components/shared/edit-worklog-dialog";
+import { Clock, Plus, X, Pencil, Trash2 } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { createWorklogSchema, type CreateWorklogInput } from "@/schemas/worklog";
 import { toast } from "sonner";
 import { format } from "date-fns";
-import type { Worklog } from "@/types";
+import { GlobalRole, type Worklog } from "@/types";
 
 function AddWorklogDialog({
   open,
@@ -134,7 +136,34 @@ export default function ProjectWorklogsPage({ params }: { params: Promise<{ code
   const { data: project } = useProjectByCode(code);
   const projectId = project?.id ?? "";
   const { data: worklogs, isLoading, error } = useWorklogs({ projectId });
+  const { data: currentUser } = useCurrentUser();
+  const deleteWorklog = useDeleteWorklog();
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [editingWorklog, setEditingWorklog] = useState<Worklog | null>(null);
+
+  const canEdit = (worklog: Worklog) =>
+    !!currentUser &&
+    currentUser.permissions.timeTrackingUpdate &&
+    (worklog.userId === currentUser.id ||
+      currentUser.globalRole === GlobalRole.Admin ||
+      currentUser.globalRole === GlobalRole.Manager);
+
+  const canDelete = (worklog: Worklog) =>
+    !!currentUser &&
+    currentUser.permissions.timeTrackingDelete &&
+    (worklog.userId === currentUser.id ||
+      currentUser.globalRole === GlobalRole.Admin ||
+      currentUser.globalRole === GlobalRole.Manager);
+
+  const handleDelete = async (worklog: Worklog) => {
+    if (!window.confirm("Delete this worklog?")) return;
+    try {
+      await deleteWorklog.mutateAsync({ projectId: worklog.projectId, worklogId: worklog.id });
+      toast.success("Worklog deleted");
+    } catch {
+      toast.error("Failed to delete worklog");
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -188,6 +217,9 @@ export default function ProjectWorklogsPage({ params }: { params: Promise<{ code
                 <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                   Source
                 </th>
+                <th className="px-4 py-3 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider w-24">
+                  Actions
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
@@ -211,6 +243,31 @@ export default function ProjectWorklogsPage({ params }: { params: Promise<{ code
                     )}
                   </td>
                   <td className="px-4 py-3 text-sm text-muted-foreground">{worklog.source}</td>
+                  <td className="px-4 py-3 text-sm">
+                    <div className="flex items-center justify-end gap-1">
+                      {canEdit(worklog) && (
+                        <button
+                          onClick={() => setEditingWorklog(worklog)}
+                          className="p-1 text-muted-foreground hover:text-foreground rounded"
+                          title="Edit"
+                          aria-label="Edit worklog"
+                        >
+                          <Pencil className="h-3.5 w-3.5" />
+                        </button>
+                      )}
+                      {canDelete(worklog) && (
+                        <button
+                          onClick={() => handleDelete(worklog)}
+                          disabled={deleteWorklog.isPending}
+                          className="p-1 text-muted-foreground hover:text-destructive rounded disabled:opacity-50"
+                          title="Delete"
+                          aria-label="Delete worklog"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      )}
+                    </div>
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -222,6 +279,11 @@ export default function ProjectWorklogsPage({ params }: { params: Promise<{ code
         open={dialogOpen}
         onClose={() => setDialogOpen(false)}
         projectId={projectId}
+      />
+      <EditWorklogDialog
+        worklog={editingWorklog}
+        open={!!editingWorklog}
+        onClose={() => setEditingWorklog(null)}
       />
     </div>
   );
