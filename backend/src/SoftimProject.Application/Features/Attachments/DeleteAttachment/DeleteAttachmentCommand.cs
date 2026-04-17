@@ -11,7 +11,8 @@ public sealed record DeleteAttachmentCommand(
 
 public sealed class DeleteAttachmentCommandHandler(
     IApplicationDbContext dbContext,
-    IBlobStorageService blobStorageService) : IRequestHandler<DeleteAttachmentCommand>
+    IBlobStorageService blobStorageService,
+    ICurrentUserService currentUserService) : IRequestHandler<DeleteAttachmentCommand>
 {
     public async Task Handle(DeleteAttachmentCommand request, CancellationToken cancellationToken)
     {
@@ -20,6 +21,16 @@ public sealed class DeleteAttachmentCommandHandler(
             request.TicketId,
             request.AttachmentId,
             cancellationToken);
+
+        var userId = currentUserService.UserId
+            ?? throw new UnauthorizedAccessException("Current user is not initialized.");
+
+        if (attachment.UploadedById != userId
+            && !currentUserService.IsInRole("Admin")
+            && !currentUserService.IsInRole("Manager"))
+        {
+            throw new UnauthorizedAccessException("Only the uploader, Admin or Manager can delete this attachment.");
+        }
 
         var blobName = new Uri(attachment.BlobUrl).AbsolutePath.TrimStart('/');
         await blobStorageService.DeleteAsync("ticket-attachments", blobName, cancellationToken);
