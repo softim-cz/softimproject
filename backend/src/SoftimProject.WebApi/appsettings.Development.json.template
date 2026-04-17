@@ -1,0 +1,48 @@
+{
+  "_comment": "Copy this file to appsettings.Development.json (gitignored) and fill in local values. Real secrets NEVER belong in any committed file. Use dotnet user-secrets or a local-only copy.",
+
+  "Serilog": {
+    "MinimumLevel": {
+      "Default": "Debug",
+      "Override": {
+        "Microsoft.AspNetCore": "Information",
+        "Microsoft.EntityFrameworkCore.Database.Command": "Information"
+      }
+    }
+  },
+
+  "AzureAd": {
+    "Instance": "https://login.microsoftonline.com/",
+    "TenantId": "YOUR_TENANT_ID",
+    "ClientId": "YOUR_CLIENT_ID",
+    "Audience": "api://YOUR_CLIENT_ID"
+  },
+
+  "ConnectionStrings": {
+    "_note": "For quick local setup use LocalDB. For real dev DB use a private connection string via user-secrets.",
+    "DefaultConnection": "Server=(localdb)\\MSSQLLocalDB;Database=SoftimProject;Trusted_Connection=True;TrustServerCertificate=True;"
+  },
+
+  "AzureBlobStorage": {
+    "_note": "UseDevelopmentStorage=true targets Azurite (run via docker-compose or Azure Storage Explorer).",
+    "ConnectionString": "UseDevelopmentStorage=true",
+    "ContainerName": "ticket-attachments"
+  },
+
+  "AzureOpenAI": {
+    "_note": "Leave empty to disable AI features locally.",
+    "Endpoint": "",
+    "DeploymentName": "",
+    "ApiKey": ""
+  },
+
+  "Frontend": {
+    "BaseUrl": "http://localhost:3000"
+  },
+
+  "GitHub": {
+    "ClientId": "",
+    "ClientSecret": "",
+    "CallbackUrl": "http://localhost:5249/api/v1/github/callback"
+  }
+}

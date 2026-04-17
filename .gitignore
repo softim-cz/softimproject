@@ -11,6 +11,13 @@
 *.sln.docstates
 *.env
 
+# Local-only app settings (never commit real creds).
+# Templates with placeholders live in appsettings.Example.json and
+# appsettings.Development.json.template.
+appsettings.Development.json
+appsettings.Development.local.json
+appsettings.Local.json
+
 # User-specific files (MonoDevelop/Xamarin Studio)
 *.userprefs
 
