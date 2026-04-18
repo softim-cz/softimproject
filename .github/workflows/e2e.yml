@@ -1,0 +1,167 @@
+name: E2E (Playwright)
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+concurrency:
+  group: e2e-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  e2e:
+    name: Playwright smoke
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    services:
+      mssql:
+        image: mcr.microsoft.com/mssql/server:2022-latest
+        env:
+          ACCEPT_EULA: "Y"
+          MSSQL_SA_PASSWORD: "YourStrong@Passw0rd"
+          MSSQL_PID: Developer
+        ports:
+          - 1433:1433
+        options: >-
+          --health-cmd "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P 'YourStrong@Passw0rd' -C -Q 'SELECT 1'"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+
+      azurite:
+        image: mcr.microsoft.com/azure-storage/azurite
+        ports:
+          - 10000:10000
+          - 10001:10001
+          - 10002:10002
+
+    env:
+      ConnectionStrings__DefaultConnection: "Server=localhost,1433;Database=SoftimProject_E2E;User Id=sa;Password=YourStrong@Passw0rd;Encrypt=False;TrustServerCertificate=True;"
+      AzureBlobStorage__ConnectionString: "DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://127.0.0.1:10000/devstoreaccount1;"
+      AzureBlobStorage__ContainerName: "ticket-attachments"
+      DevAuth__Enabled: "true"
+      DevAuth__DefaultUserId: "dev:admin"
+      DevAuth__SeedOnStartup: "true"
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_URLS: "http://localhost:5249"
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Restore backend
+        working-directory: backend
+        run: dotnet restore
+
+      - name: Build backend
+        working-directory: backend
+        run: dotnet build --no-restore --configuration Release
+
+      - name: Install frontend deps
+        working-directory: frontend
+        run: npm ci
+
+      - name: Install Playwright browsers
+        working-directory: frontend
+        run: npx playwright install --with-deps chromium
+
+      - name: Start backend API
+        working-directory: backend
+        run: |
+          nohup dotnet run --no-build --configuration Release \
+            --project src/SoftimProject.WebApi > ../.dev-logs/api.log 2>&1 &
+          echo "API_PID=$!" >> $GITHUB_ENV
+        env:
+          Frontend__BaseUrl: "http://localhost:3000"
+
+      - name: Wait for API health
+        run: |
+          mkdir -p .dev-logs
+          for i in {1..60}; do
+            if curl -fsS http://localhost:5249/health >/dev/null 2>&1; then
+              echo "API is up after ${i}s"
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "API did not become healthy in time. Last log lines:"
+          tail -n 100 .dev-logs/api.log || true
+          exit 1
+
+      - name: Build frontend
+        working-directory: frontend
+        env:
+          NEXT_PUBLIC_API_URL: "http://localhost:5249"
+          NEXT_PUBLIC_SIGNALR_URL: "http://localhost:5249/hubs"
+          NEXT_PUBLIC_DEV_AUTH: "true"
+          NEXT_PUBLIC_DEV_USER_ID: "dev:admin"
+          NEXT_PUBLIC_AZURE_AD_CLIENT_ID: "00000000-0000-0000-0000-000000000000"
+          NEXT_PUBLIC_AZURE_AD_TENANT_ID: "00000000-0000-0000-0000-000000000000"
+        run: npm run build
+
+      - name: Start frontend
+        working-directory: frontend
+        run: |
+          nohup npm run start > ../.dev-logs/fe.log 2>&1 &
+          echo "FE_PID=$!" >> $GITHUB_ENV
+
+      - name: Wait for frontend
+        run: |
+          for i in {1..60}; do
+            if curl -fsS http://localhost:3000 >/dev/null 2>&1; then
+              echo "FE is up after ${i}s"
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "FE did not become ready. Last log lines:"
+          tail -n 100 .dev-logs/fe.log || true
+          exit 1
+
+      - name: Run Playwright tests
+        working-directory: frontend
+        run: npx playwright test
+
+      - name: Stop backend
+        if: always()
+        run: |
+          if [ -n "${API_PID:-}" ]; then kill "$API_PID" 2>/dev/null || true; fi
+          if [ -n "${FE_PID:-}" ]; then kill "$FE_PID" 2>/dev/null || true; fi
+
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: frontend/playwright-report/
+          retention-days: 7
+
+      - name: Upload API log
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: api-log
+          path: .dev-logs/api.log
+          retention-days: 7
+
+      - name: Upload FE log
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fe-log
+          path: .dev-logs/fe.log
+          retention-days: 7
