@@ -11,6 +11,13 @@
     }
   },
 
+  "DevAuth": {
+    "_note": "Dev-only auth bypass. When Enabled=true the API accepts X-Dev-User-Id (matching a seeded user's EntraObjectId) instead of Entra tokens. Gated by IsDevelopment() — never runs in Production. SeedOnStartup runs DatabaseSeeder.",
+    "Enabled": true,
+    "DefaultUserId": "dev:admin",
+    "SeedOnStartup": true
+  },
+
   "AzureAd": {
     "Instance": "https://login.microsoftonline.com/",
     "TenantId": "YOUR_TENANT_ID",
@@ -24,7 +31,7 @@
   },
 
   "AzureBlobStorage": {
-    "_note": "UseDevelopmentStorage=true targets Azurite (run via docker-compose or Azure Storage Explorer).",
+    "_note": "UseDevelopmentStorage=true targets Azurite (run locally via `npx azurite` — see scripts/dev-up.sh).",
     "ConnectionString": "UseDevelopmentStorage=true",
     "ContainerName": "ticket-attachments"
   },

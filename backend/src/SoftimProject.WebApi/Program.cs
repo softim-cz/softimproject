@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Identity.Web;
@@ -5,7 +6,9 @@ using Serilog;
 using SoftimProject.Infrastructure;
 using SoftimProject.Infrastructure.Options;
 using SoftimProject.Infrastructure.Persistence;
+using SoftimProject.Infrastructure.Persistence.Seeding;
 using SoftimProject.Application;
+using SoftimProject.WebApi.Authentication;
 using SoftimProject.WebApi.Hubs;
 using SoftimProject.WebApi.Middleware;
 
@@ -32,29 +35,45 @@ try
     builder.Services.AddHttpClient();
 
     // Authentication & Authorization
-    builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-        .AddMicrosoftIdentityWebApi(builder.Configuration.GetSection("AzureAd"));
+    var devAuthEnabled = builder.Environment.IsDevelopment()
+        && builder.Configuration.GetValue<bool>("DevAuth:Enabled");
+
+    if (devAuthEnabled)
+    {
+        Log.Warning("DevAuth scheme is ENABLED. This must never run in Production.");
+        builder.Services.AddAuthentication(DevAuthenticationHandler.SchemeName)
+            .AddScheme<AuthenticationSchemeOptions, DevAuthenticationHandler>(
+                DevAuthenticationHandler.SchemeName, _ => { });
+    }
+    else
+    {
+        builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+            .AddMicrosoftIdentityWebApi(builder.Configuration.GetSection("AzureAd"));
+    }
     builder.Services.AddAuthorization();
 
     // Allow SignalR to read the access token from the query string (WebSockets/SSE don't support headers)
-    builder.Services.Configure<JwtBearerOptions>(JwtBearerDefaults.AuthenticationScheme, options =>
+    if (!devAuthEnabled)
     {
-        var existingOnMessageReceived = options.Events?.OnMessageReceived;
-        options.Events ??= new JwtBearerEvents();
-        options.Events.OnMessageReceived = async context =>
+        builder.Services.Configure<JwtBearerOptions>(JwtBearerDefaults.AuthenticationScheme, options =>
         {
-            var accessToken = context.Request.Query["access_token"];
-            var path = context.HttpContext.Request.Path;
-            if (!string.IsNullOrEmpty(accessToken) && path.StartsWithSegments("/hubs"))
+            var existingOnMessageReceived = options.Events?.OnMessageReceived;
+            options.Events ??= new JwtBearerEvents();
+            options.Events.OnMessageReceived = async context =>
             {
-                context.Token = accessToken;
-            }
-            if (existingOnMessageReceived != null)
-            {
-                await existingOnMessageReceived(context);
-            }
-        };
-    });
+                var accessToken = context.Request.Query["access_token"];
+                var path = context.HttpContext.Request.Path;
+                if (!string.IsNullOrEmpty(accessToken) && path.StartsWithSegments("/hubs"))
+                {
+                    context.Token = accessToken;
+                }
+                if (existingOnMessageReceived != null)
+                {
+                    await existingOnMessageReceived(context);
+                }
+            };
+        });
+    }
 
     // API
     builder.Services.AddControllers();
@@ -90,6 +109,12 @@ try
         });
     });
 
+    // Seeder (dev only).
+    if (devAuthEnabled)
+    {
+        builder.Services.AddScoped<DatabaseSeeder>();
+    }
+
     // Health Checks
     builder.Services.AddHealthChecks();
 
@@ -102,6 +127,13 @@ try
         Log.Information("Applying pending database migrations...");
         await db.Database.MigrateAsync();
         Log.Information("Database migrations up to date");
+
+        if (devAuthEnabled && app.Configuration.GetValue<bool>("DevAuth:SeedOnStartup"))
+        {
+            var seeder = scope.ServiceProvider.GetRequiredService<DatabaseSeeder>();
+            await seeder.SeedAsync();
+            Log.Information("Database seed complete");
+        }
     }
 
     app.UseMiddleware<ExceptionHandlingMiddleware>();

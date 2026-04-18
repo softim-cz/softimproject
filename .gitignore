@@ -18,6 +18,10 @@ appsettings.Development.json
 appsettings.Development.local.json
 appsettings.Local.json
 
+# Local dev stack runtime artifacts (scripts/dev-up.sh).
+.dev-logs/
+.azurite/
+
 # User-specific files (MonoDevelop/Xamarin Studio)
 *.userprefs
 

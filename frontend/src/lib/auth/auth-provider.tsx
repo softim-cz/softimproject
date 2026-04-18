@@ -3,16 +3,17 @@
 import { MsalProvider } from "@azure/msal-react";
 import { PublicClientApplication, type AuthenticationResult } from "@azure/msal-browser";
 import { msalConfig } from "./msal-config";
+import { isDevAuthMode } from "./dev-mode";
 import { ReactNode, useEffect, useRef, useState } from "react";
 
-const msalInstance = new PublicClientApplication(msalConfig);
+const msalInstance = isDevAuthMode ? null : new PublicClientApplication(msalConfig);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [isInitialized, setIsInitialized] = useState(false);
+  const [isInitialized, setIsInitialized] = useState(isDevAuthMode);
   const initializing = useRef(false);
 
   useEffect(() => {
-    if (initializing.current) return;
+    if (isDevAuthMode || !msalInstance || initializing.current) return;
     initializing.current = true;
 
     msalInstance
@@ -37,6 +38,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   if (!isInitialized) return null;
-
+  if (isDevAuthMode || !msalInstance) return <>{children}</>;
   return <MsalProvider instance={msalInstance}>{children}</MsalProvider>;
 }

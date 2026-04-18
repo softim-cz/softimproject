@@ -90,24 +90,61 @@ NEXT_PUBLIC_AZURE_AD_TENANT_ID=<tenant-id>
 NEXT_PUBLIC_SIGNALR_URL=http://localhost:5249/hubs
 ```
 
-## První spuštění (lokálně)
+## Rychlý start (lokální dev stack)
+
+Bez Azure přístupu — LocalDB + Azurite (blob emulátor) + DevAuth bypass místo Entra přihlášení. Vhodné pro denní vývoj i manuální smoke testy PR větví.
 
 ```bash
-# 1) Backend – obnovení, build, migrace DB, spuštění API
+# jednorázově: kopie šablon
+cp backend/src/SoftimProject.WebApi/appsettings.Development.json.template \
+   backend/src/SoftimProject.WebApi/appsettings.Development.json   # gitignored
+cp frontend/.env.example frontend/.env.local                        # gitignored
+# v .env.local nastav NEXT_PUBLIC_DEV_AUTH=true
+
+# deps (také jednorázově)
+cd backend  && dotnet restore && cd ..
+cd frontend && npm install    && cd ..
+
+# start: API + FE + Azurite v jedné konzoli
+bash scripts/dev-up.sh
+# API:      http://localhost:5249  (Swagger na /swagger)
+# FE:       http://localhost:3000
+# Azurite:  127.0.0.1:10000-10002  (blob/queue/table)
+# Ctrl-C    ukončí vše
+```
+
+Skript nastartuje SqlLocalDB, pustí Azurite na pozadí (logy v `.dev-logs/`), pustí API (které samo aplikuje migrace a naseedí data) a FE v popředí.
+
+### Dev uživatelé (seed)
+
+Backend běží s DevAuth schématem: místo Entra tokenu čte hlavičku `X-Dev-User-Id`. Frontend v `NEXT_PUBLIC_DEV_AUTH=true` módu skipne MSAL a tu hlavičku posílá automaticky. Výchozí uživatel je `dev:admin`, přepnout se dá v prohlížeči přes `localStorage.setItem('softim-dev-user-id', 'dev:manager')`.
+
+| EntraObjectId | Global role | Project role (Demo Project) |
+|---|---|---|
+| `dev:admin` | Admin | ProjectManager |
+| `dev:manager` | Manager | ProjectManager |
+| `dev:user` | User | Developer |
+| `dev:external` | User | Guest |
+
+Seednutý `Demo Project` (`code=DEMO`) obsahuje 2 tickety, 1 komentář a 1 worklog — připraveno pro E2E/smoke testy.
+
+> **Nikdy v produkci.** `DevAuth` registrace je v `Program.cs` gated přes `builder.Environment.IsDevelopment() && DevAuth:Enabled`. Azure App Service běží v `Production` env a token bypass tam není dostupný.
+
+## Plný setup (proti reálným Azure zdrojům)
+
+Pro práci s GitHub OAuth sync, Azure OpenAI, produkční Entra auth apod. — vyplňte reálné hodnoty v `appsettings.Development.json` (nebo `dotnet user-secrets`) a `frontend/.env.local`. `DevAuth:Enabled` nastavte na `false`.
+
+```bash
+# 1) Backend
 cd backend
 dotnet restore
 dotnet build
-dotnet ef database update \
-  --project src/SoftimProject.Infrastructure \
-  --startup-project src/SoftimProject.WebApi
-dotnet run --project src/SoftimProject.WebApi
-# API běží na http://localhost:5249 (Swagger: /swagger)
+dotnet run --project src/SoftimProject.WebApi  # migrace proběhnou automaticky
 
 # 2) Frontend – v novém terminálu
 cd frontend
 npm install
 npm run dev
-# Frontend běží na http://localhost:3000
 
 # 3) MCP server – volitelně, v dalším terminálu
 dotnet run --project backend/src/SoftimProject.McpServer
