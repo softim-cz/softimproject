@@ -1,4 +1,5 @@
 import axios from "axios";
+import { isDevAuthMode, getDevUserId } from "@/lib/auth/dev-mode";
 
 const apiClient = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_URL || "http://localhost:5249",
@@ -13,6 +14,10 @@ export function setTokenProvider(fn: () => Promise<string | null>) {
 }
 
 apiClient.interceptors.request.use(async (config) => {
+  if (isDevAuthMode) {
+    config.headers["X-Dev-User-Id"] = getDevUserId();
+    return config;
+  }
   if (getTokenFn) {
     const token = await getTokenFn();
     if (token) {
