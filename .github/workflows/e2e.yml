@@ -82,6 +82,7 @@ jobs:
       - name: Start backend API
         working-directory: backend
         run: |
+          mkdir -p ../.dev-logs
           nohup dotnet run --no-build --configuration Release \
             --project src/SoftimProject.WebApi > ../.dev-logs/api.log 2>&1 &
           echo "API_PID=$!" >> $GITHUB_ENV
@@ -90,16 +91,15 @@ jobs:
 
       - name: Wait for API health
         run: |
-          mkdir -p .dev-logs
-          for i in {1..60}; do
+          for i in {1..90}; do
             if curl -fsS http://localhost:5249/health >/dev/null 2>&1; then
-              echo "API is up after ${i}s"
+              echo "API is up after $((i * 2))s"
               exit 0
             fi
             sleep 2
           done
           echo "API did not become healthy in time. Last log lines:"
-          tail -n 100 .dev-logs/api.log || true
+          tail -n 200 .dev-logs/api.log || true
           exit 1
 
       - name: Build frontend
@@ -116,6 +116,7 @@ jobs:
       - name: Start frontend
         working-directory: frontend
         run: |
+          mkdir -p ../.dev-logs
           nohup npm run start > ../.dev-logs/fe.log 2>&1 &
           echo "FE_PID=$!" >> $GITHUB_ENV
 
@@ -123,13 +124,13 @@ jobs:
         run: |
           for i in {1..60}; do
             if curl -fsS http://localhost:3000 >/dev/null 2>&1; then
-              echo "FE is up after ${i}s"
+              echo "FE is up after $((i * 2))s"
               exit 0
             fi
             sleep 2
           done
           echo "FE did not become ready. Last log lines:"
-          tail -n 100 .dev-logs/fe.log || true
+          tail -n 200 .dev-logs/fe.log || true
           exit 1
 
       - name: Run Playwright tests
