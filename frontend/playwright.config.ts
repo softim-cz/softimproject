@@ -1,7 +1,9 @@
 import { defineConfig, devices } from "@playwright/test";
 
-const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? "http://localhost:3000";
-const apiURL = process.env.PLAYWRIGHT_API_URL ?? "http://localhost:5249";
+const fePort = process.env.FE_PORT ?? "3000";
+const apiPort = process.env.API_PORT ?? "5249";
+const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? `http://localhost:${fePort}`;
+const apiURL = process.env.PLAYWRIGHT_API_URL ?? `http://localhost:${apiPort}`;
 
 export default defineConfig({
   testDir: "./e2e",

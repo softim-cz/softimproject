@@ -20,6 +20,18 @@ TEMPLATE="$BE_DIR/$API_PROJECT/appsettings.Development.json.template"
 LOG_DIR="$ROOT/.dev-logs"
 AZURITE_DIR="$ROOT/.azurite"
 
+# Per-machine overrides (gitignored). Good place to set FE_PORT or
+# API_PORT when the defaults collide with something else on this box.
+if [[ -f "$ROOT/.dev-up.env" ]]; then
+  # shellcheck disable=SC1091
+  source "$ROOT/.dev-up.env"
+fi
+
+FE_PORT="${FE_PORT:-3000}"
+API_PORT="${API_PORT:-5249}"
+export Frontend__BaseUrl="http://localhost:$FE_PORT"
+export ASPNETCORE_URLS="http://localhost:$API_PORT"
+
 mkdir -p "$LOG_DIR" "$AZURITE_DIR"
 
 BE_PID=""
@@ -61,12 +73,13 @@ echo "[dev-up] starting Azurite (blob on :10000, logs in .dev-logs/azurite.log).
 AZ_PID=$!
 
 # 4. Start BE in background. Migrations + seeder run on startup.
-echo "[dev-up] starting API (http://localhost:5249, logs in .dev-logs/api.log)..."
+echo "[dev-up] starting API (http://localhost:$API_PORT, logs in .dev-logs/api.log)..."
 (cd "$BE_DIR" && dotnet run --project "$API_PROJECT") \
   >"$LOG_DIR/api.log" 2>&1 &
 BE_PID=$!
 
 # 5. FE in foreground.
-echo "[dev-up] starting frontend (http://localhost:3000)..."
+echo "[dev-up] starting frontend (http://localhost:$FE_PORT)..."
+echo "[dev-up] for Playwright in another terminal: export PLAYWRIGHT_BASE_URL=http://localhost:$FE_PORT"
 echo "[dev-up] Ctrl-C stops everything."
-cd "$FE_DIR" && npm run dev
+cd "$FE_DIR" && npm run dev -- -p "$FE_PORT"

@@ -115,6 +115,8 @@ bash scripts/dev-up.sh
 
 Skript nastartuje SqlLocalDB, pustí Azurite na pozadí (logy v `.dev-logs/`), pustí API (které samo aplikuje migrace a naseedí data) a FE v popředí.
 
+**Per-machine overrides:** pokud máš kolizi s jiným projektem na portu 3000/5249, vytvoř `.dev-up.env` v rootu (gitignored) a nastav např. `FE_PORT=3100`. Script zdroje souboru automaticky, Playwright `playwright.config.ts` tyhle env vars také respektuje. CORS a BE URL se propagují přes env.
+
 ### Dev uživatelé (seed)
 
 Backend běží s DevAuth schématem: místo Entra tokenu čte hlavičku `X-Dev-User-Id`. Frontend v `NEXT_PUBLIC_DEV_AUTH=true` módu skipne MSAL a tu hlavičku posílá automaticky. Výchozí uživatel je `dev:admin`, přepnout se dá v prohlížeči přes `localStorage.setItem('softim-dev-user-id', 'dev:manager')`.
