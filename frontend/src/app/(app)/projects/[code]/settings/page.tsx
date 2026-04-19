@@ -299,7 +299,9 @@ export default function ProjectSettingsPage({ params }: { params: Promise<{ code
 function ClientPortalLink({ token }: { token: string }) {
   const [copied, setCopied] = useState(false);
   const url =
-    typeof window !== "undefined" ? `${window.location.origin}/portal/${token}` : `/portal/${token}`;
+    typeof window !== "undefined"
+      ? `${window.location.origin}/portal/${token}`
+      : `/portal/${token}`;
 
   const handleCopy = async () => {
     try {
@@ -325,7 +327,11 @@ function ClientPortalLink({ token }: { token: string }) {
         className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
         title="Copy link"
       >
-        {copied ? <Check className="h-3.5 w-3.5 text-green-600" /> : <Copy className="h-3.5 w-3.5" />}
+        {copied ? (
+          <Check className="h-3.5 w-3.5 text-green-600" />
+        ) : (
+          <Copy className="h-3.5 w-3.5" />
+        )}
         {copied ? "Copied" : "Copy"}
       </button>
       <a

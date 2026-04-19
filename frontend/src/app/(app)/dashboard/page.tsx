@@ -248,9 +248,7 @@ function TicketsByStateChart() {
 
   const items = stats?.ticketsByState ?? [];
   if (items.length === 0)
-    return (
-      <p className="text-sm text-muted-foreground text-center py-8">No tickets yet.</p>
-    );
+    return <p className="text-sm text-muted-foreground text-center py-8">No tickets yet.</p>;
 
   return (
     <ResponsiveContainer width="100%" height={250}>
@@ -279,9 +277,7 @@ function TicketsByStateChart() {
           }}
         />
         <Legend
-          formatter={(value) => (
-            <span className="text-xs text-muted-foreground">{value}</span>
-          )}
+          formatter={(value) => <span className="text-xs text-muted-foreground">{value}</span>}
         />
       </PieChart>
     </ResponsiveContainer>

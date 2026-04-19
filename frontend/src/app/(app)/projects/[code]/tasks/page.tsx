@@ -258,7 +258,11 @@ export default function TaskListPage({ params }: { params: Promise<{ code: strin
     setPage(1);
   }, [activeFilters]);
 
-  const { data: tickets, isLoading, error } = useTickets(projectId, { ...serverParams, page, pageSize: 25 });
+  const {
+    data: tickets,
+    isLoading,
+    error,
+  } = useTickets(projectId, { ...serverParams, page, pageSize: 25 });
 
   const savedConfig = useMemo<TaskListConfig>(() => {
     if (!viewConfig?.configurationJson) return {};
@@ -470,94 +474,94 @@ export default function TaskListPage({ params }: { params: Promise<{ code: strin
           />
         ) : (
           <>
-          <div className="rounded-lg border border-border overflow-auto flex-1">
-            <table className="w-full" style={{ minWidth: table.getTotalSize() }}>
-              <thead>
-                {table.getHeaderGroups().map((headerGroup) => (
-                  <tr key={headerGroup.id} className="bg-muted/50">
-                    {headerGroup.headers.map((header) => (
-                      <th
-                        key={header.id}
-                        className="relative px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider select-none"
-                        style={{ width: header.getSize() }}
-                      >
-                        {header.isPlaceholder ? null : (
-                          <button
-                            onClick={header.column.getToggleSortingHandler()}
-                            className="flex items-center gap-1 hover:text-foreground transition-colors"
-                          >
-                            {flexRender(header.column.columnDef.header, header.getContext())}
-                            {header.column.getIsSorted() === "asc" ? (
-                              <ArrowUp className="h-3 w-3" />
-                            ) : header.column.getIsSorted() === "desc" ? (
-                              <ArrowDown className="h-3 w-3" />
-                            ) : (
-                              <ArrowUpDown className="h-3 w-3 opacity-30" />
-                            )}
-                          </button>
-                        )}
-                        <div
-                          onMouseDown={header.getResizeHandler()}
-                          onTouchStart={header.getResizeHandler()}
-                          className={cn(
-                            "absolute right-0 top-0 h-full w-1 cursor-col-resize select-none touch-none",
-                            header.column.getIsResizing() ? "bg-primary" : "hover:bg-border"
+            <div className="rounded-lg border border-border overflow-auto flex-1">
+              <table className="w-full" style={{ minWidth: table.getTotalSize() }}>
+                <thead>
+                  {table.getHeaderGroups().map((headerGroup) => (
+                    <tr key={headerGroup.id} className="bg-muted/50">
+                      {headerGroup.headers.map((header) => (
+                        <th
+                          key={header.id}
+                          className="relative px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider select-none"
+                          style={{ width: header.getSize() }}
+                        >
+                          {header.isPlaceholder ? null : (
+                            <button
+                              onClick={header.column.getToggleSortingHandler()}
+                              className="flex items-center gap-1 hover:text-foreground transition-colors"
+                            >
+                              {flexRender(header.column.columnDef.header, header.getContext())}
+                              {header.column.getIsSorted() === "asc" ? (
+                                <ArrowUp className="h-3 w-3" />
+                              ) : header.column.getIsSorted() === "desc" ? (
+                                <ArrowDown className="h-3 w-3" />
+                              ) : (
+                                <ArrowUpDown className="h-3 w-3 opacity-30" />
+                              )}
+                            </button>
                           )}
-                        />
-                      </th>
-                    ))}
-                  </tr>
-                ))}
-              </thead>
-              <tbody className="divide-y divide-border">
-                {table.getRowModel().rows.map((row) => (
-                  <tr
-                    key={row.id}
-                    className={cn(
-                      "hover:bg-muted/30 cursor-pointer transition-colors",
-                      selectedTicket?.id === row.original.id && "bg-muted/50"
-                    )}
-                    onClick={() => setSelectedTicket(row.original)}
-                  >
-                    {row.getVisibleCells().map((cell) => (
-                      <td
-                        key={cell.id}
-                        className="px-4 py-3"
-                        style={{ width: cell.column.getSize() }}
-                      >
-                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                      </td>
-                    ))}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          {tickets && tickets.totalPages > 1 && (
-            <div className="flex items-center justify-between pt-3">
-              <p className="text-sm text-muted-foreground">
-                Page {tickets.page} of {tickets.totalPages}
-              </p>
-              <div className="flex items-center gap-1">
-                <button
-                  onClick={() => setPage((p) => p - 1)}
-                  disabled={!tickets.hasPreviousPage}
-                  className="inline-flex items-center gap-1 px-2 py-1.5 text-sm border border-border rounded-lg hover:bg-muted transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-                >
-                  <ChevronLeft className="h-4 w-4" />
-                  Prev
-                </button>
-                <button
-                  onClick={() => setPage((p) => p + 1)}
-                  disabled={!tickets.hasNextPage}
-                  className="inline-flex items-center gap-1 px-2 py-1.5 text-sm border border-border rounded-lg hover:bg-muted transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-                >
-                  Next
-                  <ChevronRight className="h-4 w-4" />
-                </button>
-              </div>
+                          <div
+                            onMouseDown={header.getResizeHandler()}
+                            onTouchStart={header.getResizeHandler()}
+                            className={cn(
+                              "absolute right-0 top-0 h-full w-1 cursor-col-resize select-none touch-none",
+                              header.column.getIsResizing() ? "bg-primary" : "hover:bg-border"
+                            )}
+                          />
+                        </th>
+                      ))}
+                    </tr>
+                  ))}
+                </thead>
+                <tbody className="divide-y divide-border">
+                  {table.getRowModel().rows.map((row) => (
+                    <tr
+                      key={row.id}
+                      className={cn(
+                        "hover:bg-muted/30 cursor-pointer transition-colors",
+                        selectedTicket?.id === row.original.id && "bg-muted/50"
+                      )}
+                      onClick={() => setSelectedTicket(row.original)}
+                    >
+                      {row.getVisibleCells().map((cell) => (
+                        <td
+                          key={cell.id}
+                          className="px-4 py-3"
+                          style={{ width: cell.column.getSize() }}
+                        >
+                          {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
-          )}
+            {tickets && tickets.totalPages > 1 && (
+              <div className="flex items-center justify-between pt-3">
+                <p className="text-sm text-muted-foreground">
+                  Page {tickets.page} of {tickets.totalPages}
+                </p>
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={() => setPage((p) => p - 1)}
+                    disabled={!tickets.hasPreviousPage}
+                    className="inline-flex items-center gap-1 px-2 py-1.5 text-sm border border-border rounded-lg hover:bg-muted transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                    Prev
+                  </button>
+                  <button
+                    onClick={() => setPage((p) => p + 1)}
+                    disabled={!tickets.hasNextPage}
+                    className="inline-flex items-center gap-1 px-2 py-1.5 text-sm border border-border rounded-lg hover:bg-muted transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    Next
+                    <ChevronRight className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
+            )}
           </>
         )}
       </div>
