@@ -2,13 +2,34 @@
 
 import { useProjects } from "@/queries/projects";
 import { useWorklogs } from "@/queries/worklogs";
+import { useDashboardStats } from "@/queries/stats";
 import { HealthIndicator } from "@/components/shared/health-indicator";
 import { CardSkeleton } from "@/components/shared/loading-skeleton";
 import { EmptyState } from "@/components/shared/empty-state";
-import { FolderKanban, Clock, Plus, TrendingUp, AlertTriangle, CheckCircle2 } from "lucide-react";
+import {
+  FolderKanban,
+  Clock,
+  Plus,
+  TrendingUp,
+  AlertTriangle,
+  CheckCircle2,
+  ListTodo,
+} from "lucide-react";
 import Link from "next/link";
-import { format, startOfWeek, endOfWeek } from "date-fns";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
+import { format, startOfWeek, endOfWeek, isPast, isToday } from "date-fns";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
+  Legend,
+} from "recharts";
 import type { Project } from "@/types";
 
 function ProjectHealthCards() {
@@ -220,6 +241,115 @@ function DashboardStats() {
   );
 }
 
+function TicketsByStateChart() {
+  const { data: stats, isLoading } = useDashboardStats();
+
+  if (isLoading) return <div className="h-64 animate-pulse rounded-lg bg-muted" />;
+
+  const items = stats?.ticketsByState ?? [];
+  if (items.length === 0)
+    return (
+      <p className="text-sm text-muted-foreground text-center py-8">No tickets yet.</p>
+    );
+
+  return (
+    <ResponsiveContainer width="100%" height={250}>
+      <PieChart>
+        <Pie
+          data={items}
+          dataKey="count"
+          nameKey="stateName"
+          cx="50%"
+          cy="50%"
+          innerRadius={60}
+          outerRadius={90}
+          paddingAngle={3}
+        >
+          {items.map((item) => (
+            <Cell key={item.stateId} fill={item.stateColor} />
+          ))}
+        </Pie>
+        <Tooltip
+          formatter={(value) => [`${value ?? 0} tickets`, ""]}
+          contentStyle={{
+            background: "var(--card)",
+            border: "1px solid var(--border)",
+            borderRadius: "8px",
+            color: "var(--card-foreground)",
+          }}
+        />
+        <Legend
+          formatter={(value) => (
+            <span className="text-xs text-muted-foreground">{value}</span>
+          )}
+        />
+      </PieChart>
+    </ResponsiveContainer>
+  );
+}
+
+function MyOpenTickets() {
+  const { data: stats, isLoading } = useDashboardStats();
+
+  if (isLoading)
+    return (
+      <div className="space-y-2">
+        {Array.from({ length: 3 }).map((_, i) => (
+          <div key={i} className="h-14 animate-pulse rounded-lg bg-muted" />
+        ))}
+      </div>
+    );
+
+  const tickets = stats?.myOpenTickets ?? [];
+
+  if (tickets.length === 0)
+    return (
+      <div className="flex items-center gap-3 py-6 text-muted-foreground">
+        <CheckCircle2 className="h-5 w-5 text-green-500 shrink-0" />
+        <span className="text-sm">No open tickets assigned to you.</span>
+      </div>
+    );
+
+  return (
+    <div className="space-y-2">
+      {tickets.map((ticket) => {
+        const overdue =
+          ticket.dueDate && !isToday(new Date(ticket.dueDate)) && isPast(new Date(ticket.dueDate));
+        return (
+          <Link
+            key={ticket.id}
+            href={`/projects/${ticket.projectCode}/tickets/${ticket.key}`}
+            className="flex items-center justify-between gap-3 rounded-lg border border-border bg-card px-4 py-3 hover:shadow-sm transition-shadow"
+          >
+            <div className="flex items-center gap-3 min-w-0">
+              <span className="text-xs font-mono text-muted-foreground shrink-0">{ticket.key}</span>
+              <span className="text-sm text-foreground truncate">{ticket.title}</span>
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              {overdue && <AlertTriangle className="h-3.5 w-3.5 text-destructive" />}
+              <span
+                className="text-xs px-2 py-0.5 rounded-full font-medium"
+                style={{ background: ticket.taskStateColor + "22", color: ticket.taskStateColor }}
+              >
+                {ticket.taskStateName}
+              </span>
+              <span
+                className="text-xs px-2 py-0.5 rounded-full font-medium"
+                style={{
+                  background: ticket.ticketPriorityColor + "22",
+                  color: ticket.ticketPriorityColor,
+                }}
+              >
+                {ticket.ticketPriorityName}
+              </span>
+            </div>
+          </Link>
+        );
+      })}
+    </div>
+  );
+}
+
 export default function DashboardPage() {
   return (
     <div className="space-y-8">
@@ -240,11 +370,28 @@ export default function DashboardPage() {
         <ProjectHealthCards />
       </section>
 
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <section>
+          <h2 className="text-lg font-semibold text-foreground mb-4">Hours Logged This Week</h2>
+          <div className="rounded-lg border border-border bg-card p-5">
+            <WeeklyHoursChart />
+          </div>
+        </section>
+
+        <section>
+          <h2 className="text-lg font-semibold text-foreground mb-4">Tickets by State</h2>
+          <div className="rounded-lg border border-border bg-card p-5">
+            <TicketsByStateChart />
+          </div>
+        </section>
+      </div>
+
       <section>
-        <h2 className="text-lg font-semibold text-foreground mb-4">Hours Logged This Week</h2>
-        <div className="rounded-lg border border-border bg-card p-5">
-          <WeeklyHoursChart />
-        </div>
+        <h2 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+          <ListTodo className="h-5 w-5" />
+          My Open Tickets
+        </h2>
+        <MyOpenTickets />
       </section>
     </div>
   );

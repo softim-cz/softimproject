@@ -54,4 +54,7 @@ export const queryKeys = {
     status: () => ["github", "status"] as const,
     repos: () => ["github", "repos"] as const,
   },
+  stats: {
+    dashboard: () => ["stats", "dashboard"] as const,
+  },
 };
