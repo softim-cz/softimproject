@@ -3,6 +3,7 @@ using SoftimProject.Application.Features.Tickets.CreateTicket;
 using SoftimProject.Application.Features.Tickets.DeleteTicket;
 using SoftimProject.Application.Features.Tickets.GetTicketById;
 using SoftimProject.Application.Features.Tickets.GetTicketByNumber;
+using SoftimProject.Application.Common;
 using SoftimProject.Application.Features.Tickets.GetTickets;
 using SoftimProject.Application.Features.Tickets.MoveTicket;
 using SoftimProject.Application.Features.Tickets.UpdateTicket;
@@ -14,7 +15,7 @@ namespace SoftimProject.WebApi.Controllers;
 public class TicketsController : ApiControllerBase
 {
     [HttpGet]
-    public async Task<ActionResult<List<TicketListItemDto>>> GetAll(
+    public async Task<ActionResult<PagedResult<TicketListItemDto>>> GetAll(
         Guid projectId,
         [FromQuery] Guid? taskStateId = null,
         [FromQuery] Guid? ticketPriorityId = null,
@@ -25,7 +26,9 @@ public class TicketsController : ApiControllerBase
         [FromQuery] string? ticketPriorityName = null,
         [FromQuery] string? assignee = null,
         [FromQuery] string? taskTypeName = null,
-        [FromQuery] DateOnly? dueDate = null)
+        [FromQuery] DateOnly? dueDate = null,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 25)
     {
         return Ok(await Mediator.Send(new GetTicketsQuery(
             projectId,
@@ -38,7 +41,9 @@ public class TicketsController : ApiControllerBase
             ticketPriorityName,
             assignee,
             taskTypeName,
-            dueDate)));
+            dueDate,
+            page,
+            pageSize)));
     }
 
     [HttpGet("{ticketId:guid}")]

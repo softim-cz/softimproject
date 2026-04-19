@@ -23,7 +23,17 @@ import { useFilterStore, EMPTY_FILTERS, type FilterCondition } from "@/stores/fi
 import { exportXlsx } from "@/queries/export";
 import { CreateTicketDialog } from "@/components/tickets/CreateTicketDialog";
 import { useProjectByCode } from "@/queries/projects";
-import { List, Settings2, ArrowUpDown, ArrowUp, ArrowDown, Download, Plus } from "lucide-react";
+import {
+  List,
+  Settings2,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
+  Download,
+  Plus,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import type { Ticket } from "@/types";
@@ -235,6 +245,7 @@ export default function TaskListPage({ params }: { params: Promise<{ code: strin
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
   const [showColumnSettings, setShowColumnSettings] = useState(false);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [page, setPage] = useState(1);
   const viewKey = `TaskList:${projectId}`;
   const activeFilters = useFilterStore((s) => s.activeFilters[viewKey] ?? EMPTY_FILTERS);
 
@@ -243,7 +254,11 @@ export default function TaskListPage({ params }: { params: Promise<{ code: strin
     [activeFilters]
   );
 
-  const { data: tickets, isLoading, error } = useTickets(projectId, serverParams);
+  useEffect(() => {
+    setPage(1);
+  }, [activeFilters]);
+
+  const { data: tickets, isLoading, error } = useTickets(projectId, { ...serverParams, page, pageSize: 25 });
 
   const savedConfig = useMemo<TaskListConfig>(() => {
     if (!viewConfig?.configurationJson) return {};
@@ -265,8 +280,9 @@ export default function TaskListPage({ params }: { params: Promise<{ code: strin
   }, [savedConfig]);
 
   const filteredTickets = useMemo(() => {
-    if (!tickets || localFilters.length === 0) return tickets ?? [];
-    return tickets.filter((t) =>
+    const items = tickets?.items ?? [];
+    if (localFilters.length === 0) return items;
+    return items.filter((t) =>
       localFilters.every((f) => {
         const val = getFieldValue(t, f.field);
         switch (f.operator) {
@@ -379,8 +395,9 @@ export default function TaskListPage({ params }: { params: Promise<{ code: strin
 
         <div className="flex items-center justify-between mb-4 mt-2">
           <p className="text-sm text-muted-foreground">
-            {filteredTickets.length} task{filteredTickets.length !== 1 ? "s" : ""}
-            {activeFilters.length > 0 && tickets ? ` (of ${tickets.length})` : ""}
+            {localFilters.length > 0
+              ? `${filteredTickets.length} of ${tickets?.totalCount ?? 0} tasks`
+              : `${tickets?.totalCount ?? 0} task${(tickets?.totalCount ?? 0) !== 1 ? "s" : ""}`}
           </p>
           <div className="flex items-center gap-2">
             <button
@@ -445,13 +462,14 @@ export default function TaskListPage({ params }: { params: Promise<{ code: strin
           </div>
         </div>
 
-        {!tickets || tickets.length === 0 ? (
+        {!tickets?.items?.length ? (
           <EmptyState
             icon={<List className="h-12 w-12" />}
             title="No tasks yet"
             description="Create tickets on the board or add them via the API."
           />
         ) : (
+          <>
           <div className="rounded-lg border border-border overflow-auto flex-1">
             <table className="w-full" style={{ minWidth: table.getTotalSize() }}>
               <thead>
@@ -515,6 +533,32 @@ export default function TaskListPage({ params }: { params: Promise<{ code: strin
               </tbody>
             </table>
           </div>
+          {tickets && tickets.totalPages > 1 && (
+            <div className="flex items-center justify-between pt-3">
+              <p className="text-sm text-muted-foreground">
+                Page {tickets.page} of {tickets.totalPages}
+              </p>
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => setPage((p) => p - 1)}
+                  disabled={!tickets.hasPreviousPage}
+                  className="inline-flex items-center gap-1 px-2 py-1.5 text-sm border border-border rounded-lg hover:bg-muted transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                  Prev
+                </button>
+                <button
+                  onClick={() => setPage((p) => p + 1)}
+                  disabled={!tickets.hasNextPage}
+                  className="inline-flex items-center gap-1 px-2 py-1.5 text-sm border border-border rounded-lg hover:bg-muted transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  Next
+                  <ChevronRight className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+          )}
+          </>
         )}
       </div>
 

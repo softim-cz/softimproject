@@ -1,5 +1,6 @@
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using SoftimProject.Application.Common;
 using SoftimProject.Application.Interfaces;
 
 namespace SoftimProject.Application.Features.Tickets.GetTickets;
@@ -45,12 +46,14 @@ public sealed record GetTicketsQuery(
     string? TicketPriorityName = null,
     string? AssigneeName = null,
     string? TaskTypeName = null,
-    DateOnly? DueDate = null) : IRequest<List<TicketListItemDto>>, IRequireProjectAccess;
+    DateOnly? DueDate = null,
+    int Page = 1,
+    int PageSize = 25) : IRequest<PagedResult<TicketListItemDto>>, IRequireProjectAccess;
 
 public sealed class GetTicketsQueryHandler(
-    IApplicationDbContext dbContext) : IRequestHandler<GetTicketsQuery, List<TicketListItemDto>>
+    IApplicationDbContext dbContext) : IRequestHandler<GetTicketsQuery, PagedResult<TicketListItemDto>>
 {
-    public async Task<List<TicketListItemDto>> Handle(GetTicketsQuery request, CancellationToken cancellationToken)
+    public async Task<PagedResult<TicketListItemDto>> Handle(GetTicketsQuery request, CancellationToken cancellationToken)
     {
         var query = dbContext.Tickets
             .AsNoTracking()
@@ -87,8 +90,16 @@ public sealed class GetTicketsQueryHandler(
         if (request.DueDate.HasValue)
             query = query.Where(t => t.DueDate == request.DueDate.Value);
 
-        return await query
-            .OrderByDescending(t => t.CreatedAt)
+        var ordered = query.OrderByDescending(t => t.CreatedAt);
+
+        var totalCount = await ordered.CountAsync(cancellationToken);
+
+        var page = Math.Max(1, request.Page);
+        var pageSize = Math.Clamp(request.PageSize, 1, 100);
+
+        var items = await ordered
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
             .Select(t => new TicketListItemDto(
                 t.Id,
                 t.Number,
@@ -115,5 +126,7 @@ public sealed class GetTicketsQueryHandler(
                 t.Attachments.Count,
                 t.CreatedAt))
             .ToListAsync(cancellationToken);
+
+        return new PagedResult<TicketListItemDto>(items, totalCount, page, pageSize);
     }
 }

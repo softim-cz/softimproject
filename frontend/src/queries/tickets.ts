@@ -15,6 +15,18 @@ export interface TicketQueryParams extends QueryParams {
   assignee?: string;
   taskTypeName?: string;
   dueDate?: string;
+  page?: number;
+  pageSize?: number;
+}
+
+export interface PagedResult<T> {
+  items: T[];
+  totalCount: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
+  hasNextPage: boolean;
+  hasPreviousPage: boolean;
 }
 
 export function useTickets(projectId: string, params?: TicketQueryParams) {
@@ -23,9 +35,10 @@ export function useTickets(projectId: string, params?: TicketQueryParams) {
   return useQuery({
     queryKey: queryKeys.tickets.list(projectId, normalizedParams),
     queryFn: async () => {
-      const { data } = await apiClient.get<Ticket[]>(`/api/v1/projects/${projectId}/tickets`, {
-        params: normalizedParams,
-      });
+      const { data } = await apiClient.get<PagedResult<Ticket>>(
+        `/api/v1/projects/${projectId}/tickets`,
+        { params: normalizedParams }
+      );
       return data;
     },
     enabled: !!projectId,
