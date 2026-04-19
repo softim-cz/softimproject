@@ -37,6 +37,10 @@ public sealed class DatabaseSeeder(ApplicationDbContext dbContext, ILogger<Datab
         public static readonly Guid FeatureTaskType = new("c0000000-0000-0000-0000-000000000004");
 
         public static readonly Guid DemoProject = new("d0000000-0000-0000-0000-000000000001");
+        public static readonly Guid DemoBoard = new("d0000000-0000-0000-0000-000000000020");
+        public static readonly Guid ColumnTodo = new("d0000000-0000-0000-0000-000000000021");
+        public static readonly Guid ColumnInProgress = new("d0000000-0000-0000-0000-000000000022");
+        public static readonly Guid ColumnDone = new("d0000000-0000-0000-0000-000000000023");
         public static readonly Guid TicketOne = new("d0000000-0000-0000-0000-000000000011");
         public static readonly Guid TicketTwo = new("d0000000-0000-0000-0000-000000000012");
 
@@ -66,6 +70,7 @@ public sealed class DatabaseSeeder(ApplicationDbContext dbContext, ILogger<Datab
         await dbContext.SaveChangesAsync(cancellationToken);
 
         await SeedTicketsAsync(cancellationToken);
+        await SeedKanbanBoardAsync(cancellationToken);
 
         await dbContext.SaveChangesAsync(cancellationToken);
         logger.LogInformation("Dev data seeded");
@@ -334,5 +339,55 @@ public sealed class DatabaseSeeder(ApplicationDbContext dbContext, ILogger<Datab
                 CreatedAt = now
             });
         }
+    }
+
+    private async Task SeedKanbanBoardAsync(CancellationToken ct)
+    {
+        if (await dbContext.KanbanBoards.AnyAsync(b => b.Id == Ids.DemoBoard, ct)) return;
+
+        var todoState = await dbContext.TaskStates.FindAsync([Ids.StateTodo], ct);
+        var inProgressState = await dbContext.TaskStates.FindAsync([Ids.StateInProgress], ct);
+        var doneState = await dbContext.TaskStates.FindAsync([Ids.StateDone], ct);
+
+        var board = new KanbanBoard
+        {
+            Id = Ids.DemoBoard,
+            ProjectId = Ids.DemoProject,
+            Name = "Demo Board",
+            IsDefault = true,
+            CreatedAt = DateTime.UtcNow,
+            Columns =
+            [
+                new KanbanColumn
+                {
+                    Id = Ids.ColumnTodo,
+                    Name = "Todo",
+                    Position = 1,
+                    Color = "#3b82f6",
+                    CreatedAt = DateTime.UtcNow,
+                    MapsToTaskStates = todoState is not null ? [todoState] : [],
+                },
+                new KanbanColumn
+                {
+                    Id = Ids.ColumnInProgress,
+                    Name = "In Progress",
+                    Position = 2,
+                    Color = "#f59e0b",
+                    CreatedAt = DateTime.UtcNow,
+                    MapsToTaskStates = inProgressState is not null ? [inProgressState] : [],
+                },
+                new KanbanColumn
+                {
+                    Id = Ids.ColumnDone,
+                    Name = "Done",
+                    Position = 3,
+                    Color = "#22c55e",
+                    CreatedAt = DateTime.UtcNow,
+                    MapsToTaskStates = doneState is not null ? [doneState] : [],
+                },
+            ],
+        };
+
+        dbContext.KanbanBoards.Add(board);
     }
 }
