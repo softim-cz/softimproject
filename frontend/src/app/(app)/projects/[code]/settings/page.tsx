@@ -45,6 +45,8 @@ import {
   Pencil,
   Check,
   GripVertical,
+  Copy,
+  ExternalLink,
 } from "lucide-react";
 import {
   DndContext,
@@ -224,7 +226,7 @@ export default function ProjectSettingsPage({ params }: { params: Promise<{ code
           </div>
         )}
 
-        <div>
+        <div className="space-y-2">
           <label className="flex items-center gap-2 text-sm cursor-pointer">
             <input
               type="checkbox"
@@ -235,6 +237,9 @@ export default function ProjectSettingsPage({ params }: { params: Promise<{ code
             />
             Client portal access enabled
           </label>
+          {project.clientAccessEnabled && project.clientAccessToken && (
+            <ClientPortalLink token={project.clientAccessToken} />
+          )}
         </div>
       </section>
 
@@ -287,6 +292,52 @@ export default function ProjectSettingsPage({ params }: { params: Promise<{ code
           </button>
         </div>
       </section>
+    </div>
+  );
+}
+
+function ClientPortalLink({ token }: { token: string }) {
+  const [copied, setCopied] = useState(false);
+  const url =
+    typeof window !== "undefined" ? `${window.location.origin}/portal/${token}` : `/portal/${token}`;
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch {
+      toast.error("Failed to copy link");
+    }
+  };
+
+  return (
+    <div className="flex items-center gap-2 rounded-lg border border-border bg-muted/30 px-3 py-2">
+      <input
+        type="text"
+        value={url}
+        readOnly
+        className="flex-1 bg-transparent text-xs text-foreground font-mono focus:outline-none"
+        onFocus={(e) => e.currentTarget.select()}
+      />
+      <button
+        onClick={handleCopy}
+        className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+        title="Copy link"
+      >
+        {copied ? <Check className="h-3.5 w-3.5 text-green-600" /> : <Copy className="h-3.5 w-3.5" />}
+        {copied ? "Copied" : "Copy"}
+      </button>
+      <a
+        href={url}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+        title="Open portal"
+      >
+        <ExternalLink className="h-3.5 w-3.5" />
+        Open
+      </a>
     </div>
   );
 }

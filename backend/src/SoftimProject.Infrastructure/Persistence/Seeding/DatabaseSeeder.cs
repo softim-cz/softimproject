@@ -240,8 +240,19 @@ public sealed class DatabaseSeeder(ApplicationDbContext dbContext, ILogger<Datab
                 ProjectStateId = Ids.ActiveProjectState,
                 ProjectTemplateId = Ids.DefaultTemplate,
                 NextTicketNumber = 3,
+                ClientAccessToken = "demo-portal-token",
+                ClientAccessEnabled = true,
                 CreatedAt = DateTime.UtcNow
             });
+        }
+        else
+        {
+            var existing = await dbContext.Projects.FirstAsync(p => p.Id == Ids.DemoProject, ct);
+            if (string.IsNullOrEmpty(existing.ClientAccessToken))
+            {
+                existing.ClientAccessToken = "demo-portal-token";
+                existing.ClientAccessEnabled = true;
+            }
         }
 
         var memberships = new[]

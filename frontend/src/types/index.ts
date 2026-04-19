@@ -108,6 +108,7 @@ export interface Project {
   isOverBudget: boolean;
   isOverDeadline: boolean;
   clientAccessEnabled: boolean;
+  clientAccessToken?: string;
   externalSystem?: string;
   externalProjectId?: string;
   gitHubConnectedByUserId?: string;

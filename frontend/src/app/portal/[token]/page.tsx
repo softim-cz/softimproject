@@ -22,7 +22,7 @@ function createPortalClient(token: string) {
 
 interface PortalData {
   project: Project;
-  board: KanbanBoard;
+  board: KanbanBoard | null;
   totalHours: number;
   comments: Comment[];
 }
@@ -167,7 +167,7 @@ export default function PortalPage({ params }: { params: Promise<{ token: string
               </div>
               <div>
                 <p className="text-2xl font-bold text-card-foreground">
-                  {board.columns.reduce((sum, c) => sum + c.tickets.length, 0)}
+                  {board?.columns.reduce((sum, c) => sum + c.tickets.length, 0) ?? 0}
                 </p>
                 <p className="text-sm text-muted-foreground">Total Tickets</p>
               </div>
@@ -178,7 +178,7 @@ export default function PortalPage({ params }: { params: Promise<{ token: string
         {/* Board */}
         <section>
           <h2 className="text-lg font-semibold text-foreground mb-4">Project Board</h2>
-          {board.columns.length > 0 ? (
+          {board && board.columns.length > 0 ? (
             <div className="flex gap-4 overflow-x-auto pb-4">
               {board.columns
                 .sort((a, b) => a.position - b.position)
