@@ -46,14 +46,18 @@ export function SignalRProvider({ children }: { children: ReactNode }) {
 
     const baseUrl = process.env.NEXT_PUBLIC_SIGNALR_URL || "http://localhost:5249/hubs";
 
-    const buildConnection = (hub: string) =>
-      new HubConnectionBuilder()
+    const isDevMode = process.env.NEXT_PUBLIC_DEV_AUTH === "true";
+
+    const buildConnection = (hub: string) => {
+      const builder = new HubConnectionBuilder()
         .withUrl(`${baseUrl}/${hub}`, {
           accessTokenFactory: async () => (await getAccessTokenRef.current()) || "",
         })
-        .withAutomaticReconnect([0, 2000, 5000, 10000, 30000])
-        .configureLogging(LogLevel.Warning)
-        .build();
+        .configureLogging(LogLevel.Warning);
+      // In dev mode there is no real token so hubs won't connect; skip retries to avoid noise.
+      if (!isDevMode) builder.withAutomaticReconnect([0, 2000, 5000, 10000, 30000]);
+      return builder.build();
+    };
 
     const kanban = buildConnection("kanban");
     const notifications = buildConnection("notifications");

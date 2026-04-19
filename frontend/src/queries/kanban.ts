@@ -106,7 +106,9 @@ export function useMoveTicket() {
       position: number;
     }) => {
       await apiClient.put(`/api/v1/projects/${projectId}/tickets/${ticketId}/move`, {
-        targetColumnId,
+        projectId,
+        ticketId,
+        columnId: targetColumnId,
         position,
       });
     },
