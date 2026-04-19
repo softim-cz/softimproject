@@ -68,7 +68,7 @@ export function useCreateComment() {
     }) => {
       const { data } = await apiClient.post<Comment>(
         `/api/v1/projects/${projectId}/tickets/${ticketId}/comments`,
-        { content, isInternal }
+        { projectId, ticketId, content, isInternal }
       );
       return data;
     },
