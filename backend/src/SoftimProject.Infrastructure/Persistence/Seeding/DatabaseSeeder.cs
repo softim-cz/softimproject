@@ -343,51 +343,57 @@ public sealed class DatabaseSeeder(ApplicationDbContext dbContext, ILogger<Datab
 
     private async Task SeedKanbanBoardAsync(CancellationToken ct)
     {
-        if (await dbContext.KanbanBoards.AnyAsync(b => b.Id == Ids.DemoBoard, ct)) return;
-
-        var todoState = await dbContext.TaskStates.FindAsync([Ids.StateTodo], ct);
-        var inProgressState = await dbContext.TaskStates.FindAsync([Ids.StateInProgress], ct);
-        var doneState = await dbContext.TaskStates.FindAsync([Ids.StateDone], ct);
-
-        var board = new KanbanBoard
+        if (!await dbContext.KanbanBoards.AnyAsync(b => b.Id == Ids.DemoBoard, ct))
         {
-            Id = Ids.DemoBoard,
-            ProjectId = Ids.DemoProject,
-            Name = "Demo Board",
-            IsDefault = true,
-            CreatedAt = DateTime.UtcNow,
-            Columns =
-            [
-                new KanbanColumn
-                {
-                    Id = Ids.ColumnTodo,
-                    Name = "Todo",
-                    Position = 1,
-                    Color = "#3b82f6",
-                    CreatedAt = DateTime.UtcNow,
-                    MapsToTaskStates = todoState is not null ? [todoState] : [],
-                },
-                new KanbanColumn
-                {
-                    Id = Ids.ColumnInProgress,
-                    Name = "In Progress",
-                    Position = 2,
-                    Color = "#f59e0b",
-                    CreatedAt = DateTime.UtcNow,
-                    MapsToTaskStates = inProgressState is not null ? [inProgressState] : [],
-                },
-                new KanbanColumn
-                {
-                    Id = Ids.ColumnDone,
-                    Name = "Done",
-                    Position = 3,
-                    Color = "#22c55e",
-                    CreatedAt = DateTime.UtcNow,
-                    MapsToTaskStates = doneState is not null ? [doneState] : [],
-                },
-            ],
-        };
+            var todoState = await dbContext.TaskStates.FindAsync([Ids.StateTodo], ct);
+            var inProgressState = await dbContext.TaskStates.FindAsync([Ids.StateInProgress], ct);
+            var doneState = await dbContext.TaskStates.FindAsync([Ids.StateDone], ct);
 
-        dbContext.KanbanBoards.Add(board);
+            dbContext.KanbanBoards.Add(new KanbanBoard
+            {
+                Id = Ids.DemoBoard,
+                ProjectId = Ids.DemoProject,
+                Name = "Demo Board",
+                IsDefault = true,
+                CreatedAt = DateTime.UtcNow,
+                Columns =
+                [
+                    new KanbanColumn
+                    {
+                        Id = Ids.ColumnTodo,
+                        Name = "Todo",
+                        Position = 1,
+                        Color = "#3b82f6",
+                        CreatedAt = DateTime.UtcNow,
+                        MapsToTaskStates = todoState is not null ? [todoState] : [],
+                    },
+                    new KanbanColumn
+                    {
+                        Id = Ids.ColumnInProgress,
+                        Name = "In Progress",
+                        Position = 2,
+                        Color = "#f59e0b",
+                        CreatedAt = DateTime.UtcNow,
+                        MapsToTaskStates = inProgressState is not null ? [inProgressState] : [],
+                    },
+                    new KanbanColumn
+                    {
+                        Id = Ids.ColumnDone,
+                        Name = "Done",
+                        Position = 3,
+                        Color = "#22c55e",
+                        CreatedAt = DateTime.UtcNow,
+                        MapsToTaskStates = doneState is not null ? [doneState] : [],
+                    },
+                ],
+            });
+        }
+
+        // Assign seeded tickets to columns — idempotent, runs on every startup.
+        var t1 = await dbContext.Tickets.FindAsync([Ids.TicketOne], ct);
+        if (t1 is not null && t1.ColumnId != Ids.ColumnTodo) t1.ColumnId = Ids.ColumnTodo;
+
+        var t2 = await dbContext.Tickets.FindAsync([Ids.TicketTwo], ct);
+        if (t2 is not null && t2.ColumnId != Ids.ColumnInProgress) t2.ColumnId = Ids.ColumnInProgress;
     }
 }
