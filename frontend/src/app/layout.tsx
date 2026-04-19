@@ -17,7 +17,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "SoftimProject",
+  title: "ProjectMan",
   description: "Internal project management tool for Softim.cz",
 };
 

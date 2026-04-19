@@ -396,7 +396,7 @@ function StepLookups() {
       <div>
         <h2 className="text-xl font-semibold text-foreground">Map Lookups</h2>
         <p className="text-sm text-muted-foreground mt-1">
-          Map EasyProject trackers, statuses, and priorities to SoftimProject equivalents.
+          Map EasyProject trackers, statuses, and priorities to ProjectMan equivalents.
           Auto-suggested mappings are pre-filled.
         </p>
       </div>
@@ -552,8 +552,8 @@ function StepUsers() {
       <div>
         <h2 className="text-xl font-semibold text-foreground">Map Users</h2>
         <p className="text-sm text-muted-foreground mt-1">
-          Map EasyProject users to existing SoftimProject users. Users matched by email are shown
-          with a green check. Unmatched users will be created as inactive.
+          Map EasyProject users to existing ProjectMan users. Users matched by email are shown with
+          a green check. Unmatched users will be created as inactive.
         </p>
       </div>
 

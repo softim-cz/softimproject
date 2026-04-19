@@ -81,18 +81,18 @@ export function Sidebar({ collapsed }: { collapsed: boolean }) {
       <div className="flex items-center justify-between p-4 border-b border-white/10">
         {!collapsed && (
           <Link href="/dashboard" className="flex items-center gap-2">
-            <div className="h-8 w-8 rounded-lg bg-accent-orange flex items-center justify-center font-bold text-white text-sm">
-              S
+            <div className="h-8 w-8 rounded-lg bg-accent-orange flex items-center justify-center font-bold text-white text-xs tracking-tight">
+              PM
             </div>
-            <span className="text-lg font-bold tracking-tight">Softim</span>
+            <span className="text-lg font-bold tracking-tight">ProjectMan</span>
           </Link>
         )}
         {collapsed && (
           <Link
             href="/dashboard"
-            className="h-8 w-8 rounded-lg bg-accent-orange flex items-center justify-center font-bold text-white text-sm mx-auto"
+            className="h-8 w-8 rounded-lg bg-accent-orange flex items-center justify-center font-bold text-white text-xs tracking-tight mx-auto"
           >
-            S
+            PM
           </Link>
         )}
       </div>

@@ -115,8 +115,8 @@ export default function PortalPage({ params }: { params: Promise<{ token: string
       <header className="border-b border-border bg-card px-6 py-4">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="h-8 w-8 rounded-lg bg-accent-orange flex items-center justify-center font-bold text-white text-sm">
-              S
+            <div className="h-8 w-8 rounded-lg bg-accent-orange flex items-center justify-center font-bold text-white text-xs tracking-tight">
+              PM
             </div>
             <div>
               <h1 className="text-lg font-bold text-card-foreground">{project.name}</h1>
@@ -194,7 +194,7 @@ export default function PortalPage({ params }: { params: Promise<{ token: string
 
       {/* Footer */}
       <footer className="border-t border-border mt-12 py-4 text-center text-xs text-muted-foreground">
-        Powered by SoftimProject - Softim.cz s.r.o.
+        Powered by ProjectMan - Softim.cz s.r.o.
       </footer>
     </div>
   );
