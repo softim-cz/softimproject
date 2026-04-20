@@ -17,11 +17,12 @@
 --        tickets, which already use the Czech IDs, but kept as a safety net).
 --     2. Deletes the English duplicate rows from TaskStates and
 --        TicketPriorities.
---     3. Renames the surviving Czech rows to a bilingual form
---        ("Nový / New", etc.) and assigns a sane SortOrder + IsDefault.
+--     3. Normalizes the surviving Czech rows: assigns a sane SortOrder and
+--        sets "Nový" + "C) Normální" as defaults. Names stay Czech-only;
+--        multilingual support will be introduced later as a separate feature.
 --
---   After commit, the Default template carries exactly 11 bilingual states
---   and 4 bilingual priorities.
+--   After commit, the Default template carries exactly 11 states and 4
+--   priorities — all Czech-named, deduplicated.
 --
 -- Run via Azure Portal -> SQL Database -> Query editor or SSMS against the
 -- production DB behind softimproject-api.azurewebsites.net. The script is
@@ -140,27 +141,27 @@ DELETE FROM TicketPriorities
 WHERE Id IN (@EnLow, @EnMedium, @EnHigh, @EnCritical);
 
 -- =============================================================================
--- 4. Rename the surviving Czech rows to bilingual form and assign a logical
---    workflow SortOrder. "Nový" becomes the template's default state;
---    "C) Normální / Medium" becomes the default priority.
+-- 4. Normalize the surviving Czech rows: names stay Czech-only, SortOrder
+--    follows the workflow, "Nový" becomes the template's default state and
+--    "C) Normální" the default priority.
 -- =============================================================================
 
-UPDATE TaskStates SET Name = N'Nový / New',                            SortOrder = 10,  IsDefault = 1, UpdatedAt = @Now WHERE Id = @CsNovy;
-UPDATE TaskStates SET Name = N'Přiřazeno / Assigned',                  SortOrder = 20,  IsDefault = 0, UpdatedAt = @Now WHERE Id = @CsPrirazeno;
-UPDATE TaskStates SET Name = N'V realizaci / In progress',             SortOrder = 30,  IsDefault = 0, UpdatedAt = @Now WHERE Id = @CsVRealizaci;
-UPDATE TaskStates SET Name = N'Otestováno / Tested',                   SortOrder = 40,  IsDefault = 0, UpdatedAt = @Now WHERE Id = @CsOtestovano;
-UPDATE TaskStates SET Name = N'Ke schválení / Review',                 SortOrder = 50,  IsDefault = 0, UpdatedAt = @Now WHERE Id = @CsKeSchvaleni;
-UPDATE TaskStates SET Name = N'Vráceno klientem / Returned by client', SortOrder = 60,  IsDefault = 0, UpdatedAt = @Now WHERE Id = @CsVracenoKlient;
-UPDATE TaskStates SET Name = N'Na klientovi / On client',              SortOrder = 70,  IsDefault = 0, UpdatedAt = @Now WHERE Id = @CsNaKlientovi;
-UPDATE TaskStates SET Name = N'Čeká na podpis / Awaiting signature',   SortOrder = 80,  IsDefault = 0, UpdatedAt = @Now WHERE Id = @CsCekaNaPodpis;
-UPDATE TaskStates SET Name = N'Hotovo / Done',                         SortOrder = 90,  IsDefault = 0, UpdatedAt = @Now WHERE Id = @CsHotovo;
-UPDATE TaskStates SET Name = N'Odloženo / Postponed',                  SortOrder = 100, IsDefault = 0, UpdatedAt = @Now WHERE Id = @CsOdlozeno;
-UPDATE TaskStates SET Name = N'Zrušeno / Cancelled',                   SortOrder = 110, IsDefault = 0, UpdatedAt = @Now WHERE Id = @CsZruseno;
+UPDATE TaskStates SET Name = N'Nový',             SortOrder = 10,  IsDefault = 1, UpdatedAt = @Now WHERE Id = @CsNovy;
+UPDATE TaskStates SET Name = N'Přiřazeno',        SortOrder = 20,  IsDefault = 0, UpdatedAt = @Now WHERE Id = @CsPrirazeno;
+UPDATE TaskStates SET Name = N'V realizaci',      SortOrder = 30,  IsDefault = 0, UpdatedAt = @Now WHERE Id = @CsVRealizaci;
+UPDATE TaskStates SET Name = N'Otestováno',       SortOrder = 40,  IsDefault = 0, UpdatedAt = @Now WHERE Id = @CsOtestovano;
+UPDATE TaskStates SET Name = N'Ke schválení',     SortOrder = 50,  IsDefault = 0, UpdatedAt = @Now WHERE Id = @CsKeSchvaleni;
+UPDATE TaskStates SET Name = N'Vráceno klientem', SortOrder = 60,  IsDefault = 0, UpdatedAt = @Now WHERE Id = @CsVracenoKlient;
+UPDATE TaskStates SET Name = N'Na klientovi',     SortOrder = 70,  IsDefault = 0, UpdatedAt = @Now WHERE Id = @CsNaKlientovi;
+UPDATE TaskStates SET Name = N'Čeká na podpis',   SortOrder = 80,  IsDefault = 0, UpdatedAt = @Now WHERE Id = @CsCekaNaPodpis;
+UPDATE TaskStates SET Name = N'Hotovo',           SortOrder = 90,  IsDefault = 0, UpdatedAt = @Now WHERE Id = @CsHotovo;
+UPDATE TaskStates SET Name = N'Odloženo',         SortOrder = 100, IsDefault = 0, UpdatedAt = @Now WHERE Id = @CsOdlozeno;
+UPDATE TaskStates SET Name = N'Zrušeno',          SortOrder = 110, IsDefault = 0, UpdatedAt = @Now WHERE Id = @CsZruseno;
 
-UPDATE TicketPriorities SET Name = N'A) Urgentní / Critical', SortOrder = 10, IsDefault = 0, UpdatedAt = @Now WHERE Id = @CsPrA;
-UPDATE TicketPriorities SET Name = N'B) Vysoká / High',       SortOrder = 20, IsDefault = 0, UpdatedAt = @Now WHERE Id = @CsPrB;
-UPDATE TicketPriorities SET Name = N'C) Normální / Medium',   SortOrder = 30, IsDefault = 1, UpdatedAt = @Now WHERE Id = @CsPrC;
-UPDATE TicketPriorities SET Name = N'D) Nízká / Low',         SortOrder = 40, IsDefault = 0, UpdatedAt = @Now WHERE Id = @CsPrD;
+UPDATE TicketPriorities SET Name = N'A) Urgentní', SortOrder = 10, IsDefault = 0, UpdatedAt = @Now WHERE Id = @CsPrA;
+UPDATE TicketPriorities SET Name = N'B) Vysoká',   SortOrder = 20, IsDefault = 0, UpdatedAt = @Now WHERE Id = @CsPrB;
+UPDATE TicketPriorities SET Name = N'C) Normální', SortOrder = 30, IsDefault = 1, UpdatedAt = @Now WHERE Id = @CsPrC;
+UPDATE TicketPriorities SET Name = N'D) Nízká',    SortOrder = 40, IsDefault = 0, UpdatedAt = @Now WHERE Id = @CsPrD;
 
 -- =============================================================================
 -- Verification — all four counters MUST be zero before you COMMIT.
@@ -189,7 +190,7 @@ FROM (
     GROUP BY Name HAVING COUNT(*) > 1
 ) dupes;
 
--- Final listing — 11 states, 4 priorities, all bilingual.
+-- Final listing — 11 states, 4 priorities.
 SELECT 'final_task_states' AS summary, SortOrder, Name, IsDefault, IsClosedState
 FROM TaskStates
 WHERE ProjectTemplateId = '00000000-0000-0000-0000-000000000001'
