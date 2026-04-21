@@ -26,8 +26,10 @@
 --
 -- Run via Azure Portal -> SQL Database -> Query editor or SSMS against the
 -- production DB behind softimproject-api.azurewebsites.net. The script is
--- wrapped in an explicit transaction and ends WITHOUT committing — review the
--- verification output, then run `COMMIT TRANSACTION;` (or `ROLLBACK;`).
+-- wrapped in an explicit transaction. After applying all changes it runs the
+-- verification checks and COMMITs automatically when all four bad_rows are
+-- zero, otherwise ROLLBACKs and raises an error. The two SELECTs at the very
+-- bottom show the final, persisted state.
 -- =============================================================================
 
 SET XACT_ABORT ON;
@@ -197,33 +199,46 @@ UPDATE TicketPriorities SET Name = N'C) Normální', SortOrder = 30, IsDefault =
 UPDATE TicketPriorities SET Name = N'D) Nízká',    SortOrder = 40, IsDefault = 0, UpdatedAt = @Now WHERE Id = @CsPrD;
 
 -- =============================================================================
--- Verification — all four counters MUST be zero before you COMMIT.
+-- Verification — all four counters MUST be zero. The script commits
+-- automatically if they are, otherwise rolls back and raises an error.
+-- (Azure Portal Query editor drops pending transactions when the session
+-- ends, so relying on a manual COMMIT step is unreliable there.)
 -- =============================================================================
 
-SELECT 'tickets_still_on_english_state' AS check_name, COUNT(*) AS bad_rows
-FROM Tickets
-WHERE TaskStateId IN (@EnBacklog, @EnTodo, @EnInProgress, @EnReview, @EnDone, @EnClosed);
+DECLARE @bad_tickets_state    int = (SELECT COUNT(*) FROM Tickets WHERE TaskStateId IN (@EnBacklog, @EnTodo, @EnInProgress, @EnReview, @EnDone, @EnClosed));
+DECLARE @bad_tickets_priority int = (SELECT COUNT(*) FROM Tickets WHERE TicketPriorityId IN (@EnLow, @EnMedium, @EnHigh, @EnCritical));
+DECLARE @bad_kanban_state     int = (SELECT COUNT(*) FROM KanbanColumnTaskState WHERE TaskStateId IN (@EnBacklog, @EnTodo, @EnInProgress, @EnReview, @EnDone, @EnClosed));
+DECLARE @bad_dup_names        int = (
+    SELECT COUNT(*) FROM (
+        SELECT Name FROM TaskStates
+        WHERE ProjectTemplateId = '00000000-0000-0000-0000-000000000001'
+        GROUP BY Name HAVING COUNT(*) > 1
+        UNION ALL
+        SELECT Name FROM TicketPriorities
+        WHERE ProjectTemplateId = '00000000-0000-0000-0000-000000000001'
+        GROUP BY Name HAVING COUNT(*) > 1
+    ) d
+);
 
-SELECT 'tickets_still_on_english_priority' AS check_name, COUNT(*) AS bad_rows
-FROM Tickets
-WHERE TicketPriorityId IN (@EnLow, @EnMedium, @EnHigh, @EnCritical);
+SELECT
+    @bad_tickets_state    AS tickets_still_on_english_state,
+    @bad_tickets_priority AS tickets_still_on_english_priority,
+    @bad_kanban_state     AS kanban_columns_still_on_english_state,
+    @bad_dup_names        AS default_template_has_duplicate_names;
 
-SELECT 'kanban_columns_still_on_english_state' AS check_name, COUNT(*) AS bad_rows
-FROM KanbanColumnTaskState
-WHERE TaskStateId IN (@EnBacklog, @EnTodo, @EnInProgress, @EnReview, @EnDone, @EnClosed);
+IF @bad_tickets_state = 0 AND @bad_tickets_priority = 0 AND @bad_kanban_state = 0 AND @bad_dup_names = 0
+BEGIN
+    COMMIT TRANSACTION;
+    PRINT 'All checks passed — transaction COMMITTED.';
+END
+ELSE
+BEGIN
+    ROLLBACK TRANSACTION;
+    RAISERROR('Verification failed — transaction ROLLED BACK. Inspect the bad_rows output above.', 16, 1);
+END
 
-SELECT 'default_template_has_duplicate_names' AS check_name, COUNT(*) AS bad_rows
-FROM (
-    SELECT Name FROM TaskStates
-    WHERE ProjectTemplateId = '00000000-0000-0000-0000-000000000001'
-    GROUP BY Name HAVING COUNT(*) > 1
-    UNION ALL
-    SELECT Name FROM TicketPriorities
-    WHERE ProjectTemplateId = '00000000-0000-0000-0000-000000000001'
-    GROUP BY Name HAVING COUNT(*) > 1
-) dupes;
-
--- Final listing — 11 states, 4 priorities.
+-- Final listing — runs after the transaction is closed, so the values you
+-- see here are the real, persisted state (11 states, 4 priorities).
 SELECT 'final_task_states' AS summary, SortOrder, Name, IsDefault, IsClosedState
 FROM TaskStates
 WHERE ProjectTemplateId = '00000000-0000-0000-0000-000000000001'
@@ -233,10 +248,3 @@ SELECT 'final_ticket_priorities' AS summary, SortOrder, Name, IsDefault
 FROM TicketPriorities
 WHERE ProjectTemplateId = '00000000-0000-0000-0000-000000000001'
 ORDER BY SortOrder;
-
--- =============================================================================
--- All four checks returned bad_rows = 0 and final listings look right?
---   -> COMMIT TRANSACTION;
--- Anything unexpected?
---   -> ROLLBACK TRANSACTION;
--- =============================================================================
