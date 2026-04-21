@@ -1044,7 +1044,9 @@ function TaskStateMultiSelect({
               />
               <span className={cn(isOwnedByOther && "text-muted-foreground")}>{ts.name}</span>
               {isOwnedByOther && (
-                <span className="ml-auto text-xs text-muted-foreground italic">in &quot;{owner}&quot;</span>
+                <span className="ml-auto text-xs text-muted-foreground italic">
+                  in &quot;{owner}&quot;
+                </span>
               )}
             </label>
           );
