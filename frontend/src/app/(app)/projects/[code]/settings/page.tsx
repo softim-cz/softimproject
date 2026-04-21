@@ -47,6 +47,8 @@ import {
   GripVertical,
   Copy,
   ExternalLink,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 import {
   DndContext,
@@ -59,6 +61,7 @@ import {
 import { SortableContext, verticalListSortingStrategy, useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 import { ProjectStatus, ProjectRole } from "@/types";
 import type { ProjectCustomFieldValue, ProjectMember } from "@/types";
 import { useSearchParams, useRouter } from "next/navigation";
@@ -984,10 +987,12 @@ function TaskStateMultiSelect({
   selected,
   onChange,
   taskStates,
+  stateAssignments = {},
 }: {
   selected: string[];
   onChange: (ids: string[]) => void;
   taskStates: { id: string; name: string; color: string }[];
+  stateAssignments?: Record<string, string>; // stateId -> owning column name (for states assigned to a different column)
 }) {
   const toggle = (id: string) => {
     onChange(selected.includes(id) ? selected.filter((s) => s !== id) : [...selected, id]);
@@ -1014,24 +1019,36 @@ function TaskStateMultiSelect({
         })}
       </div>
       <div className="border border-input rounded-lg bg-background max-h-32 overflow-y-auto">
-        {taskStates.map((ts) => (
-          <label
-            key={ts.id}
-            className="flex items-center gap-2 px-3 py-1.5 text-sm cursor-pointer hover:bg-muted transition-colors"
-          >
-            <input
-              type="checkbox"
-              checked={selected.includes(ts.id)}
-              onChange={() => toggle(ts.id)}
-              className="rounded"
-            />
-            <span
-              className="w-2.5 h-2.5 rounded-full flex-shrink-0"
-              style={{ backgroundColor: ts.color }}
-            />
-            {ts.name}
-          </label>
-        ))}
+        {taskStates.map((ts) => {
+          const owner = stateAssignments[ts.id];
+          const isOwnedByOther = owner && !selected.includes(ts.id);
+          return (
+            <label
+              key={ts.id}
+              className="flex items-center gap-2 px-3 py-1.5 text-sm cursor-pointer hover:bg-muted transition-colors"
+              title={
+                isOwnedByOther
+                  ? `Currently in column "${owner}" — selecting will move it here.`
+                  : undefined
+              }
+            >
+              <input
+                type="checkbox"
+                checked={selected.includes(ts.id)}
+                onChange={() => toggle(ts.id)}
+                className="rounded"
+              />
+              <span
+                className="w-2.5 h-2.5 rounded-full flex-shrink-0"
+                style={{ backgroundColor: ts.color }}
+              />
+              <span className={cn(isOwnedByOther && "text-muted-foreground")}>{ts.name}</span>
+              {isOwnedByOther && (
+                <span className="ml-auto text-xs text-muted-foreground italic">in &quot;{owner}&quot;</span>
+              )}
+            </label>
+          );
+        })}
       </div>
     </div>
   );
@@ -1042,6 +1059,7 @@ function SortableColumnRow({
   isEditing,
   onStartEdit,
   onDelete,
+  onToggleVisibility,
   editState,
   onEditChange,
   onSaveEdit,
@@ -1049,17 +1067,21 @@ function SortableColumnRow({
   updatePending,
   deletePending,
   activeTaskStates,
+  stateAssignments,
 }: {
   col: {
     id: string;
     name: string;
     wipLimit?: number;
     color?: string;
+    isVisible: boolean;
+    ticketCount: number;
     taskStates: { id: string; name: string; color: string }[];
   };
   isEditing: boolean;
   onStartEdit: () => void;
   onDelete: () => void;
+  onToggleVisibility: () => void;
   editState: { name: string; taskStateIds: string[]; wipLimit: string; color: string | undefined };
   onEditChange: (patch: Partial<typeof editState>) => void;
   onSaveEdit: () => void;
@@ -1067,6 +1089,7 @@ function SortableColumnRow({
   updatePending: boolean;
   deletePending: boolean;
   activeTaskStates: { id: string; name: string; color: string }[];
+  stateAssignments: Record<string, string>;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: col.id,
@@ -1119,6 +1142,7 @@ function SortableColumnRow({
             selected={editState.taskStateIds}
             onChange={(ids) => onEditChange({ taskStateIds: ids })}
             taskStates={activeTaskStates}
+            stateAssignments={stateAssignments}
           />
         </div>
         <div>
@@ -1129,11 +1153,21 @@ function SortableColumnRow({
     );
   }
 
+  const canHide = col.ticketCount === 0;
+  const hideTitle = col.isVisible
+    ? canHide
+      ? "Hide column on board"
+      : `Cannot hide — column has ${col.ticketCount} ticket${col.ticketCount === 1 ? "" : "s"}`
+    : "Show column on board";
+
   return (
     <div
       ref={setNodeRef}
       style={style}
-      className="flex items-center gap-2 px-3 py-2 rounded-lg border border-border/50 bg-background"
+      className={cn(
+        "flex items-center gap-2 px-3 py-2 rounded-lg border border-border/50 bg-background",
+        !col.isVisible && "opacity-60"
+      )}
     >
       <button
         {...attributes}
@@ -1148,7 +1182,12 @@ function SortableColumnRow({
           style={{ backgroundColor: col.color }}
         />
       )}
-      <span className="flex-1 text-sm font-medium text-foreground">{col.name}</span>
+      <span className="flex-1 text-sm font-medium text-foreground">
+        {col.name}
+        {!col.isVisible && (
+          <span className="ml-2 text-xs text-muted-foreground italic">(hidden)</span>
+        )}
+      </span>
       <div className="flex flex-wrap gap-1">
         {col.taskStates.map((ts) => (
           <span
@@ -1163,6 +1202,14 @@ function SortableColumnRow({
       <span className="text-xs text-muted-foreground w-16 text-center">
         WIP: {col.wipLimit ?? "\u2013"}
       </span>
+      <button
+        onClick={onToggleVisibility}
+        disabled={col.isVisible && !canHide}
+        className={btnOutline}
+        title={hideTitle}
+      >
+        {col.isVisible ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
+      </button>
       <button onClick={onStartEdit} className={btnOutline} title="Edit">
         <Pencil className="h-4 w-4" />
       </button>
@@ -1263,6 +1310,7 @@ function BoardConfigSection({
 
   const handleSaveEdit = async () => {
     if (!editingId || !editState.name.trim() || editState.taskStateIds.length === 0) return;
+    const originalColumn = columns.find((c) => c.id === editingId);
     try {
       await updateColumn.mutateAsync({
         projectId,
@@ -1272,6 +1320,7 @@ function BoardConfigSection({
         wipLimit: editState.wipLimit ? parseInt(editState.wipLimit, 10) : undefined,
         mapsToTaskStateIds: editState.taskStateIds,
         color: editState.color,
+        isVisible: originalColumn?.isVisible ?? true,
       });
       toast.success("Column updated");
       setEditingId(null);
@@ -1311,6 +1360,35 @@ function BoardConfigSection({
     }
   };
 
+  const handleToggleVisibility = async (col: (typeof columns)[0]) => {
+    try {
+      await updateColumn.mutateAsync({
+        projectId,
+        boardId: board.id,
+        columnId: col.id,
+        name: col.name,
+        wipLimit: col.wipLimit,
+        mapsToTaskStateIds: col.taskStates.map((ts) => ts.id),
+        color: col.color,
+        isVisible: !col.isVisible,
+      });
+      toast.success(col.isVisible ? "Column hidden" : "Column shown");
+    } catch (err) {
+      const message =
+        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ??
+        "Failed to toggle visibility";
+      toast.error(message);
+    }
+  };
+
+  // stateId -> column name where that state currently lives (for conflict hints).
+  const stateOwners = columns.reduce<Record<string, string>>((acc, c) => {
+    c.taskStates.forEach((ts) => {
+      acc[ts.id] = c.name;
+    });
+    return acc;
+  }, {});
+
   return (
     <section className="rounded-lg border border-border bg-card p-6 space-y-4">
       <div className="flex items-center gap-2 mb-2">
@@ -1324,22 +1402,38 @@ function BoardConfigSection({
         <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
           <SortableContext items={columns.map((c) => c.id)} strategy={verticalListSortingStrategy}>
             <div className="space-y-1">
-              {columns.map((col) => (
-                <SortableColumnRow
-                  key={col.id}
-                  col={col}
-                  isEditing={editingId === col.id}
-                  onStartEdit={() => startEditing(col)}
-                  onDelete={() => handleDeleteColumn(col.id)}
-                  editState={editState}
-                  onEditChange={(patch) => setEditState((prev) => ({ ...prev, ...patch }))}
-                  onSaveEdit={handleSaveEdit}
-                  onCancelEdit={() => setEditingId(null)}
-                  updatePending={updateColumn.isPending}
-                  deletePending={deleteColumn.isPending}
-                  activeTaskStates={activeTaskStates}
-                />
-              ))}
+              {columns.map((col) => {
+                const ticketCount = col.tickets?.length ?? 0;
+                const assignmentsForThisRow = Object.fromEntries(
+                  Object.entries(stateOwners).filter(([, owner]) => owner !== col.name)
+                );
+                return (
+                  <SortableColumnRow
+                    key={col.id}
+                    col={{
+                      id: col.id,
+                      name: col.name,
+                      wipLimit: col.wipLimit,
+                      color: col.color,
+                      isVisible: col.isVisible,
+                      ticketCount,
+                      taskStates: col.taskStates,
+                    }}
+                    isEditing={editingId === col.id}
+                    onStartEdit={() => startEditing(col)}
+                    onDelete={() => handleDeleteColumn(col.id)}
+                    onToggleVisibility={() => handleToggleVisibility(col)}
+                    editState={editState}
+                    onEditChange={(patch) => setEditState((prev) => ({ ...prev, ...patch }))}
+                    onSaveEdit={handleSaveEdit}
+                    onCancelEdit={() => setEditingId(null)}
+                    updatePending={updateColumn.isPending}
+                    deletePending={deleteColumn.isPending}
+                    activeTaskStates={activeTaskStates}
+                    stateAssignments={assignmentsForThisRow}
+                  />
+                );
+              })}
             </div>
           </SortableContext>
         </DndContext>
@@ -1376,6 +1470,7 @@ function BoardConfigSection({
             selected={newTaskStateIds}
             onChange={setNewTaskStateIds}
             taskStates={activeTaskStates}
+            stateAssignments={stateOwners}
           />
         </div>
         <div>

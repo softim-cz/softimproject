@@ -50,6 +50,7 @@ export function useUpdateColumn() {
       wipLimit?: number;
       mapsToTaskStateIds: string[];
       color?: string;
+      isVisible?: boolean;
     }) => {
       await apiClient.put(
         `/api/v1/projects/${payload.projectId}/boards/${payload.boardId}/columns/${payload.columnId}`,

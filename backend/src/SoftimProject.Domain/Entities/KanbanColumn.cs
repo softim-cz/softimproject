@@ -8,6 +8,7 @@ public class KanbanColumn
     public int Position { get; set; }
     public int? WipLimit { get; set; }
     public string? Color { get; set; }
+    public bool IsVisible { get; set; } = true;
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     // Navigation properties

@@ -159,6 +159,7 @@ export interface KanbanColumn {
   position: number;
   wipLimit?: number;
   color?: string;
+  isVisible: boolean;
   taskStates: { id: string; name: string; color: string }[];
   tickets: Ticket[];
 }

@@ -307,11 +307,13 @@ function buildSwimlanes(
   board: KanbanBoard,
   groupBy: GroupBy
 ): { name: string; columns: KanbanColumnType[] }[] {
+  const visibleColumns = board.columns.filter((c) => c.isVisible);
+
   if (groupBy === "none") {
-    return [{ name: "", columns: board.columns }];
+    return [{ name: "", columns: visibleColumns }];
   }
 
-  const allTickets = board.columns.flatMap((c) =>
+  const allTickets = visibleColumns.flatMap((c) =>
     c.tickets.map((t) => ({ ...t, _columnId: c.id }))
   );
 
@@ -319,7 +321,7 @@ function buildSwimlanes(
 
   return groupNames.map((name) => ({
     name,
-    columns: board.columns.map((col) => ({
+    columns: visibleColumns.map((col) => ({
       ...col,
       tickets: col.tickets.filter((t) => getSwimlaneName(t, groupBy) === name),
     })),

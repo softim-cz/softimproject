@@ -39,6 +39,23 @@ public sealed class CreateColumnCommandHandler(
             .Where(ts => request.MapsToTaskStateIds.Contains(ts.Id))
             .ToListAsync(cancellationToken);
 
+        // Take over any state already mapped by another column on the same board
+        // — each TaskState belongs to at most one column per board.
+        var conflictingColumns = await dbContext.KanbanColumns
+            .Include(c => c.MapsToTaskStates)
+            .Where(c => c.BoardId == request.BoardId
+                && c.MapsToTaskStates.Any(ts => request.MapsToTaskStateIds.Contains(ts.Id)))
+            .ToListAsync(cancellationToken);
+
+        foreach (var otherColumn in conflictingColumns)
+        {
+            var toRemove = otherColumn.MapsToTaskStates
+                .Where(ts => request.MapsToTaskStateIds.Contains(ts.Id))
+                .ToList();
+            foreach (var ts in toRemove)
+                otherColumn.MapsToTaskStates.Remove(ts);
+        }
+
         var column = new KanbanColumn
         {
             Id = Guid.NewGuid(),

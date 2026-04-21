@@ -40,6 +40,7 @@ public sealed class GetDefaultBoardQueryHandler(
             c.Position,
             c.WipLimit,
             c.Color,
+            c.IsVisible,
             c.MapsToTaskStates.Select(ts => new BoardColumnTaskStateDto(
                 ts.Id,
                 ts.Name,

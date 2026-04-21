@@ -36,6 +36,7 @@ public sealed record BoardColumnDto(
     int Position,
     int? WipLimit,
     string? Color,
+    bool IsVisible,
     List<BoardColumnTaskStateDto> TaskStates,
     List<BoardTicketDto> Tickets);
 
@@ -67,6 +68,7 @@ public sealed class GetBoardQueryHandler(
                     c.Position,
                     c.WipLimit,
                     c.Color,
+                    c.IsVisible,
                     c.MapsToTaskStates.OrderBy(ts => ts.SortOrder).Select(ts => new BoardColumnTaskStateDto(
                         ts.Id,
                         ts.Name,
