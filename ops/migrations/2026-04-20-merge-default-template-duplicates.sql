@@ -97,11 +97,21 @@ SET TicketPriorityId = CASE TicketPriorityId
 WHERE TicketPriorityId IN (@EnLow, @EnMedium, @EnHigh, @EnCritical);
 
 -- =============================================================================
--- 2. Remap KanbanColumn <-> TaskState join rows. First drop any English join
---    rows whose column already has the canonical Czech state mapped (avoids
---    violating the composite unique key after the UPDATE).
+-- 2. Remap KanbanColumn <-> TaskState join rows. The PK is
+--    (KanbanColumnId, TaskStateId), so before we UPDATE we must eliminate any
+--    situation where two source rows in the same column would end up on the
+--    same canonical TaskStateId.
+--
+--    Two cases produce collisions:
+--      a) English row + the canonical Czech row already coexist in the column
+--         (e.g. column has both Backlog and Nový -> after UPDATE, two "Nový").
+--      b) Two English rows in the same column map to the same canonical row
+--         (e.g. column has both Backlog and Todo -> both collapse to Nový).
+--
+--    Drop in both cases, leaving exactly one row per (column, canonical).
 -- =============================================================================
 
+-- Case (a): English row where the canonical Czech row already exists
 DELETE kcts_dup
 FROM KanbanColumnTaskState kcts_dup
 WHERE kcts_dup.TaskStateId IN (@EnBacklog, @EnTodo, @EnInProgress, @EnReview, @EnDone, @EnClosed)
@@ -118,6 +128,29 @@ WHERE kcts_dup.TaskStateId IN (@EnBacklog, @EnTodo, @EnInProgress, @EnReview, @E
             END
   );
 
+-- Case (b): two English rows in the same column share a canonical target.
+-- Rank them within (column, canonical) and keep only rn = 1.
+;WITH ranked AS (
+    SELECT
+        KanbanColumnId,
+        TaskStateId,
+        ROW_NUMBER() OVER (
+            PARTITION BY KanbanColumnId, CASE TaskStateId
+                WHEN @EnBacklog    THEN @CsNovy
+                WHEN @EnTodo       THEN @CsNovy
+                WHEN @EnInProgress THEN @CsVRealizaci
+                WHEN @EnReview     THEN @CsKeSchvaleni
+                WHEN @EnDone       THEN @CsHotovo
+                WHEN @EnClosed     THEN @CsHotovo
+            END
+            ORDER BY TaskStateId
+        ) AS rn
+    FROM KanbanColumnTaskState
+    WHERE TaskStateId IN (@EnBacklog, @EnTodo, @EnInProgress, @EnReview, @EnDone, @EnClosed)
+)
+DELETE FROM ranked WHERE rn > 1;
+
+-- Remap the surviving English rows to their canonical Czech TaskState.
 UPDATE KanbanColumnTaskState
 SET TaskStateId = CASE TaskStateId
         WHEN @EnBacklog    THEN @CsNovy
