@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using SoftimProject.Application.Common;
 using SoftimProject.Application.Interfaces;
 using SoftimProject.Domain.Entities;
+using SoftimProject.Domain.Enums;
 
 namespace SoftimProject.Application.Features.Kanban.UpdateColumn;
 
@@ -15,7 +16,10 @@ public sealed record UpdateColumnCommand(
     int? WipLimit,
     List<Guid> MapsToTaskStateIds,
     string? Color,
-    bool IsVisible = true) : IRequest, IRequireProjectAccess;
+    bool IsVisible = true) : IRequest, IRequireProjectRole
+{
+    public ProjectRole RequiredProjectRole => ProjectRole.ProjectManager;
+}
 
 public sealed class UpdateColumnCommandHandler(
     IApplicationDbContext dbContext) : IRequestHandler<UpdateColumnCommand>

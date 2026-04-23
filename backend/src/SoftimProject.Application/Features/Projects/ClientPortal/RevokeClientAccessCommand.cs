@@ -2,10 +2,14 @@ using MediatR;
 using Microsoft.EntityFrameworkCore;
 using SoftimProject.Application.Common;
 using SoftimProject.Application.Interfaces;
+using SoftimProject.Domain.Enums;
 
 namespace SoftimProject.Application.Features.Projects.ClientPortal;
 
-public sealed record RevokeClientAccessCommand(Guid ProjectId) : IRequest, IRequireProjectAccess;
+public sealed record RevokeClientAccessCommand(Guid ProjectId) : IRequest, IRequireProjectRole
+{
+    public ProjectRole RequiredProjectRole => ProjectRole.ProjectManager;
+}
 
 public sealed class RevokeClientAccessCommandHandler(IApplicationDbContext dbContext)
     : IRequestHandler<RevokeClientAccessCommand>

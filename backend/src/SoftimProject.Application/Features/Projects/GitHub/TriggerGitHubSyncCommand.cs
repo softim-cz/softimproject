@@ -9,7 +9,10 @@ using SoftimProject.Domain.Enums;
 
 namespace SoftimProject.Application.Features.Projects.GitHub;
 
-public sealed record TriggerGitHubSyncCommand(Guid ProjectId) : IRequest<TriggerGitHubSyncResult>, IRequireProjectAccess;
+public sealed record TriggerGitHubSyncCommand(Guid ProjectId) : IRequest<TriggerGitHubSyncResult>, IRequireProjectRole
+{
+    public ProjectRole RequiredProjectRole => ProjectRole.ProjectManager;
+}
 
 public sealed record TriggerGitHubSyncResult(int Synced, int Failed, string? Error);
 

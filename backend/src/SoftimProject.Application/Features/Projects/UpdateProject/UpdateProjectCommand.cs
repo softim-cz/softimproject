@@ -26,9 +26,10 @@ public sealed record UpdateProjectCommand(
     string? ExternalProjectId = null,
     string? ExternalApiToken = null,
     string? WebhookSecret = null,
-    bool? ClientAccessEnabled = null) : IRequest, IRequireProjectAccess
+    bool? ClientAccessEnabled = null) : IRequest, IRequireProjectRole
 {
     public Guid ProjectId => Id;
+    public ProjectRole RequiredProjectRole => ProjectRole.ProjectManager;
 }
 
 public sealed class UpdateProjectCommandValidator : AbstractValidator<UpdateProjectCommand>

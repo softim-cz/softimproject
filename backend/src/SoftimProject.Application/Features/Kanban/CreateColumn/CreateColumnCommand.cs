@@ -3,6 +3,7 @@ using MediatR;
 using Microsoft.EntityFrameworkCore;
 using SoftimProject.Application.Interfaces;
 using SoftimProject.Domain.Entities;
+using SoftimProject.Domain.Enums;
 
 namespace SoftimProject.Application.Features.Kanban.CreateColumn;
 
@@ -12,7 +13,10 @@ public sealed record CreateColumnCommand(
     string Name,
     int? WipLimit,
     List<Guid> MapsToTaskStateIds,
-    string? Color) : IRequest<Guid>, IRequireProjectAccess;
+    string? Color) : IRequest<Guid>, IRequireProjectRole
+{
+    public ProjectRole RequiredProjectRole => ProjectRole.ProjectManager;
+}
 
 public sealed class CreateColumnCommandValidator : AbstractValidator<CreateColumnCommand>
 {

@@ -1,12 +1,16 @@
 using MediatR;
 using SoftimProject.Application.Interfaces;
 using SoftimProject.Domain.Entities;
+using SoftimProject.Domain.Enums;
 
 namespace SoftimProject.Application.Features.Kanban.CreateBoard;
 
 public sealed record CreateBoardCommand(
     Guid ProjectId,
-    string Name) : IRequest<Guid>, IRequireProjectAccess;
+    string Name) : IRequest<Guid>, IRequireProjectRole
+{
+    public ProjectRole RequiredProjectRole => ProjectRole.ProjectManager;
+}
 
 public sealed class CreateBoardCommandHandler(
     IApplicationDbContext dbContext) : IRequestHandler<CreateBoardCommand, Guid>

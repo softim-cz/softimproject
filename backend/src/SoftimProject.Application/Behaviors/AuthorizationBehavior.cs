@@ -2,6 +2,7 @@ using MediatR;
 using Microsoft.EntityFrameworkCore;
 using SoftimProject.Application.Interfaces;
 using SoftimProject.Domain.Entities;
+using SoftimProject.Domain.Enums;
 
 namespace SoftimProject.Application.Behaviors;
 
@@ -18,6 +19,23 @@ public sealed class AuthorizationBehavior<TRequest, TResponse>(
             var hasAccess = await currentUserService.HasProjectAccessAsync(projectRequest.ProjectId, cancellationToken);
             if (!hasAccess)
                 throw new UnauthorizedAccessException($"User does not have access to project {projectRequest.ProjectId}");
+        }
+
+        if (request is IRequireProjectRole projectRoleRequest)
+        {
+            // Admin bypasses the project-role check; project membership was already verified above.
+            if (!currentUserService.IsInRole("Admin") && currentUserService.UserId.HasValue)
+            {
+                var userId = currentUserService.UserId.Value;
+                var membershipRole = await dbContext.ProjectMembers
+                    .Where(pm => pm.ProjectId == projectRoleRequest.ProjectId && pm.UserId == userId)
+                    .Select(pm => (ProjectRole?)pm.Role)
+                    .FirstOrDefaultAsync(cancellationToken);
+
+                if (membershipRole is null || !SatisfiesProjectRole(membershipRole.Value, projectRoleRequest.RequiredProjectRole))
+                    throw new UnauthorizedAccessException(
+                        $"User does not have the required project role '{projectRoleRequest.RequiredProjectRole}' in project {projectRoleRequest.ProjectId}");
+            }
         }
 
         if (request is IRequireRole roleRequest)
@@ -47,6 +65,16 @@ public sealed class AuthorizationBehavior<TRequest, TResponse>(
 
         return await next(cancellationToken);
     }
+
+    // Hierarchy: ProjectManager ≫ Developer ≫ Guest. Admin is handled by bypass above.
+    // A membership role satisfies a required role iff it is at least as privileged.
+    private static bool SatisfiesProjectRole(ProjectRole membership, ProjectRole required) => required switch
+    {
+        ProjectRole.ProjectManager => membership == ProjectRole.ProjectManager,
+        ProjectRole.Developer => membership == ProjectRole.ProjectManager || membership == ProjectRole.Developer,
+        ProjectRole.Guest => true,
+        _ => false
+    };
 
     private static bool CheckPermission(ApplicationRole role, PermissionArea area, PermissionOperation operation)
     {

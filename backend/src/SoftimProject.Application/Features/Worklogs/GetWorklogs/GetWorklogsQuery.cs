@@ -56,8 +56,10 @@ public sealed class GetWorklogsQueryHandler(
         if (request.UserId.HasValue)
             query = query.Where(w => w.UserId == request.UserId.Value);
 
+        // Without a ProjectId filter, non-admin callers only ever see their own worklogs.
+        // When a ProjectId is provided, row-level visibility is enforced by project membership
+        // (the controller-level IRequireProjectAccess guard, applied per request).
         if (!currentUserService.IsInRole("Admin")
-            && !currentUserService.IsInRole("Manager")
             && !request.ProjectId.HasValue
             && currentUserService.UserId.HasValue)
         {

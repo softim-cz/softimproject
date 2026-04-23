@@ -3,10 +3,14 @@ using Microsoft.EntityFrameworkCore;
 using Octokit;
 using SoftimProject.Application.Common;
 using SoftimProject.Application.Interfaces;
+using SoftimProject.Domain.Enums;
 
 namespace SoftimProject.Application.Features.Projects.GitHub;
 
-public sealed record LinkGitHubRepoCommand(Guid ProjectId, string RepositoryFullName) : IRequest, IRequireProjectAccess;
+public sealed record LinkGitHubRepoCommand(Guid ProjectId, string RepositoryFullName) : IRequest, IRequireProjectRole
+{
+    public ProjectRole RequiredProjectRole => ProjectRole.ProjectManager;
+}
 
 public sealed class LinkGitHubRepoCommandHandler(
     IApplicationDbContext dbContext,

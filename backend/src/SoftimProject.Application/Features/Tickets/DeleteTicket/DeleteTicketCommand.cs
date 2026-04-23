@@ -2,10 +2,14 @@ using MediatR;
 using Microsoft.EntityFrameworkCore;
 using SoftimProject.Application.Common;
 using SoftimProject.Application.Interfaces;
+using SoftimProject.Domain.Enums;
 
 namespace SoftimProject.Application.Features.Tickets.DeleteTicket;
 
-public sealed record DeleteTicketCommand(Guid ProjectId, Guid TicketId) : IRequest, IRequireProjectAccess;
+public sealed record DeleteTicketCommand(Guid ProjectId, Guid TicketId) : IRequest, IRequireProjectRole
+{
+    public ProjectRole RequiredProjectRole => ProjectRole.ProjectManager;
+}
 
 public sealed class DeleteTicketCommandHandler(
     IApplicationDbContext dbContext) : IRequestHandler<DeleteTicketCommand>

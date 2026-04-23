@@ -20,7 +20,10 @@ public sealed record CreateProjectCommand(
     Guid? ProjectTypeId = null,
     Guid? ProjectStateId = null,
     Guid? ParentProjectId = null,
-    Guid? ProjectTemplateId = null) : IRequest<Guid>;
+    Guid? ProjectTemplateId = null) : IRequest<Guid>, IRequireRole
+{
+    public string RequiredRole => "Admin";
+}
 
 public sealed class CreateProjectCommandValidator : AbstractValidator<CreateProjectCommand>
 {

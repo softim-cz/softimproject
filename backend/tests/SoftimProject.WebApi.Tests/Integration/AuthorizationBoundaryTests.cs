@@ -1,12 +1,13 @@
 using System.Net;
 using System.Net.Http.Headers;
+using System.Net.Http.Json;
 using FluentAssertions;
 
 namespace SoftimProject.WebApi.Tests.Integration;
 
-// End-to-end check that the IRequireProjectAccess pipeline behavior (AuthorizationBehavior)
-// translates a cross-project call into HTTP 403. One test per entry-point family keeps the
-// matrix readable; the comprehensive endpoint sweep lives in #22.
+// End-to-end check that the authorization pipeline behaviors (IRequireProjectAccess and
+// IRequireProjectRole) translate a forbidden call into HTTP 403. Tests are grouped by marker
+// interface; the role-matrix cases exercise the hierarchy Admin > ProjectManager > Developer > Guest.
 public sealed class AuthorizationBoundaryTests : IClassFixture<IntegrationTestFactory>
 {
     private readonly IntegrationTestFactory _factory;
@@ -69,5 +70,111 @@ public sealed class AuthorizationBoundaryTests : IClassFixture<IntegrationTestFa
         var response = await client.GetAsync($"/api/v1/projects/{TestDataSeeder.ProjectBId}");
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
+    }
+
+    // --- Role-matrix cases — AuthorizationBehavior.IRequireProjectRole ---
+    // These assert that the *authorization* check fires (403) regardless of whether the
+    // target entity exists. The check runs before the handler body, so using a real board
+    // id vs. a random guid would still produce the same outcome for the forbidden cases.
+
+    [Fact]
+    public async Task Developer_cannot_update_board_on_own_project_pm_required()
+    {
+        using var client = ClientAs(TestDataSeeder.UserAOid);
+        var payload = new
+        {
+            projectId = TestDataSeeder.ProjectAId,
+            boardId = TestDataSeeder.ProjectABoardId,
+            name = "Renamed",
+        };
+
+        var response = await client.PutAsJsonAsync(
+            $"/api/v1/projects/{TestDataSeeder.ProjectAId}/boards/{TestDataSeeder.ProjectABoardId}",
+            payload);
+
+        response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+    }
+
+    [Fact]
+    public async Task ProjectManager_can_update_board_on_own_project()
+    {
+        using var client = ClientAs(TestDataSeeder.PmAOid);
+        var payload = new
+        {
+            projectId = TestDataSeeder.ProjectAId,
+            boardId = TestDataSeeder.ProjectABoardId,
+            name = "Renamed by PM",
+        };
+
+        var response = await client.PutAsJsonAsync(
+            $"/api/v1/projects/{TestDataSeeder.ProjectAId}/boards/{TestDataSeeder.ProjectABoardId}",
+            payload);
+
+        response.StatusCode.Should().Be(HttpStatusCode.NoContent);
+    }
+
+    [Fact]
+    public async Task Guest_cannot_update_ticket_developer_required()
+    {
+        using var client = ClientAs(TestDataSeeder.GuestAOid);
+        var payload = new
+        {
+            projectId = TestDataSeeder.ProjectAId,
+            ticketId = Guid.NewGuid(),
+            title = "t",
+            description = (string?)null,
+            ticketPriorityId = Guid.NewGuid(),
+            taskStateId = Guid.NewGuid(),
+            assigneeId = (Guid?)null,
+            dueDate = (DateOnly?)null,
+            estimatedHours = (decimal?)null,
+        };
+
+        var response = await client.PutAsJsonAsync(
+            $"/api/v1/projects/{TestDataSeeder.ProjectAId}/tickets/{payload.ticketId}",
+            payload);
+
+        response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+    }
+
+    [Fact]
+    public async Task Guest_cannot_create_worklog_developer_required()
+    {
+        using var client = ClientAs(TestDataSeeder.GuestAOid);
+        var payload = new
+        {
+            projectId = TestDataSeeder.ProjectAId,
+            ticketId = (Guid?)null,
+            date = DateOnly.FromDateTime(DateTime.UtcNow),
+            hours = 1.0m,
+            description = "guest worklog",
+            isBillable = false,
+        };
+
+        var response = await client.PostAsJsonAsync("/api/v1/worklogs", payload);
+
+        response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+    }
+
+    [Fact]
+    public async Task Developer_cannot_delete_ticket_pm_required()
+    {
+        using var client = ClientAs(TestDataSeeder.UserAOid);
+
+        var response = await client.DeleteAsync(
+            $"/api/v1/projects/{TestDataSeeder.ProjectAId}/tickets/{Guid.NewGuid()}");
+
+        response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+    }
+
+    [Fact]
+    public async Task Non_admin_cannot_create_project()
+    {
+        using var client = ClientAs(TestDataSeeder.UserAOid);
+        var payload = new { name = "New", code = "NEWP" };
+
+        var response = await client.PostAsJsonAsync("/api/v1/projects", payload);
+
+        response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
     }
 }

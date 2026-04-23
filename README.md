@@ -234,21 +234,35 @@ Token je unikátní v rámci všech projektů (`IX_Projects_ClientAccessToken` f
 
 ## Autorizační vrstva — co chrání jaký guard
 
-Backend má tři typy pipeline-level guardů napojených na MediatR `AuthorizationBehavior`. Handler je vlastně business logika, kontrola přístupu běží _před_ ním:
+Backend má čtyři marker interfaces napojené na MediatR `AuthorizationBehavior`. Handler je vlastně business logika, kontrola přístupu běží _před_ ním:
 
 | Guard                    | Kde se aplikuje                                                         | Co kontroluje                                                             | Odpověď při selhání           |
 | ------------------------ | ----------------------------------------------------------------------- | ------------------------------------------------------------------------- | ----------------------------- |
-| `IRequireProjectAccess`  | Každý command/query napojený na konkrétní projekt (`ProjectId` property) | Uživatel je member projektu **nebo** má `GlobalRole.Admin`                | `UnauthorizedAccessException` → HTTP 403 |
-| `IRequireRole`           | Akce vyžadující konkrétní `GlobalRole`                                  | Uživatel je v dané globální roli (nebo má claim)                          | `UnauthorizedAccessException` → HTTP 403 |
+| `IRequireProjectAccess`  | Command/query napojený na konkrétní projekt (čtení, Guest-povolené zápisy) | Uživatel je member projektu **nebo** má `GlobalRole.Admin`                | `UnauthorizedAccessException` → HTTP 403 |
+| `IRequireProjectRole`    | Zápisové operace, kde záleží na roli v projektu (PM vs Developer)       | Uživatel má hierarchicky dostatečnou `ProjectRole` na daném projektu; Admin bypass | `UnauthorizedAccessException` → HTTP 403 |
+| `IRequireRole`           | Akce vyžadující konkrétní `GlobalRole` (např. `CreateProject` → Admin)  | Uživatel je v dané globální roli (nebo má claim)                          | `UnauthorizedAccessException` → HTTP 403 |
 | `IRequirePermission`     | Akce napojené na `PermissionArea` + `PermissionOperation` (worklogy, reporty) | Alespoň jedna z `UserApplicationRoles` má flag na matici; Admin bypass | `UnauthorizedAccessException` → HTTP 403 |
 
-Kromě toho:
+### Matice rolí
+
+Hierarchie: **Admin ≫ ProjectManager ≫ Developer ≫ Guest**. `IRequireProjectRole` porovnává členství hierarchicky — role, která je požadována jako `Developer`, je splněna i `ProjectManager`em; `Guest` ji nesplňuje.
+
+| Role                         | Rozsah           | Co může                                                                                                     |
+| ---------------------------- | ---------------- | ----------------------------------------------------------------------------------------------------------- |
+| `GlobalRole.Admin`           | global           | Vše, napříč všemi projekty (bypass pro `IRequireProjectAccess` i `IRequireProjectRole`)                     |
+| `ProjectRole.ProjectManager` | per-projekt      | Vše na projektu **kromě** smazání projektu samotného (Admin-only)                                           |
+| `ProjectRole.Developer`      | per-projekt      | Read vše na projektu, Create ticket/comment/worklog, Update & Move ticket, Update/Delete **jen vlastních** zápisů |
+| `ProjectRole.Guest`          | per-projekt (klientský portál) | Create task, Read task, Comment (Create + Read), Update/Delete vlastních comment/attachment/checklist       |
+
+- `GlobalRole.Manager` je legacy; nová autorizační logika ho nepoužívá a v budoucnu ho odstraníme.
+- Ownership na úrovni záznamů (comment/worklog/attachment update/delete) řeší handler inline: povoluje autora, PM daného projektu, nebo Admina.
+
+### Další ochrany
 
 - `[Authorize]` na `ApiControllerBase` zajišťuje, že anonymní požadavky skončí na 401 ještě před MediatR pipeline. Výjimky: klientský portál (`/api/v1/portal/{token}`), OAuth callbacky.
 - DevAuth scheme (`X-Dev-User-Id` header) běží jen v `IsDevelopment()` a je kompletně oddělený od Entra JWT cesty.
-- Ownership na úrovni jednotlivých záznamů (komentáře, worklogy, přílohy) řeší `ProjectResourceGuards` v handlerech — guard ví, že uživatel patří do projektu, ale samotný zápis/mazání kontroluje, jestli je autorem nebo má roli Manager/Admin.
 
-Pokrytí integračními testy: `SoftimProject.WebApi.Tests.Integration.AuthorizationBoundaryTests` ověřuje `IRequireProjectAccess` end-to-end (userA → ProjectB → 403, userA → ProjectA → 200, Admin → ProjectB → 200). Kompletní matici všech endpointů pokryje #22.
+Pokrytí integračními testy: `SoftimProject.WebApi.Tests.Integration.AuthorizationBoundaryTests` pokrývá oba pipeline guardy — cross-project isolation (`IRequireProjectAccess`) i role-matrix případy (Developer zablokován na PM-only akcích, Guest zablokován na Developer-only akcích, Admin & PM bypass).
 
 ## Související dokumenty
 

@@ -3,11 +3,15 @@ using MediatR;
 using Microsoft.EntityFrameworkCore;
 using SoftimProject.Application.Common;
 using SoftimProject.Application.Interfaces;
+using SoftimProject.Domain.Enums;
 
 namespace SoftimProject.Application.Features.Projects.ClientPortal;
 
 public sealed record GenerateClientAccessTokenCommand(Guid ProjectId)
-    : IRequest<string>, IRequireProjectAccess;
+    : IRequest<string>, IRequireProjectRole
+{
+    public ProjectRole RequiredProjectRole => ProjectRole.ProjectManager;
+}
 
 public sealed class GenerateClientAccessTokenCommandHandler(IApplicationDbContext dbContext)
     : IRequestHandler<GenerateClientAccessTokenCommand, string>
