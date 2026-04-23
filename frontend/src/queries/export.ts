@@ -5,18 +5,36 @@ export interface ExportColumn {
   header: string;
 }
 
+export interface ExportFilters {
+  searchTerm?: string;
+  taskStateName?: string;
+  ticketPriorityName?: string;
+  assigneeName?: string;
+  taskTypeName?: string;
+  dueDate?: string;
+}
+
+export interface ExportSort {
+  sortField?: string;
+  sortDirection?: "asc" | "desc";
+}
+
 export async function exportXlsx({
   projectId,
   viewType,
   columns,
+  filters,
+  sort,
 }: {
   projectId: string;
   viewType: string;
   columns: ExportColumn[];
+  filters?: ExportFilters;
+  sort?: ExportSort;
 }) {
   const { data } = await apiClient.post(
     `/api/v1/exports/xlsx`,
-    { projectId, viewType, columns },
+    { projectId, viewType, columns, ...filters, ...sort },
     { responseType: "blob" }
   );
 

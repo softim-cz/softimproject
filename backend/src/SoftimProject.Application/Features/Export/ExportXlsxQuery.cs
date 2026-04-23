@@ -1,7 +1,9 @@
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using OfficeOpenXml;
+using SoftimProject.Application.Common;
 using SoftimProject.Application.Interfaces;
+using SoftimProject.Domain.Entities;
 
 namespace SoftimProject.Application.Features.Export;
 
@@ -10,7 +12,15 @@ public sealed record ExportColumn(string Field, string Header);
 public sealed record ExportXlsxQuery(
     Guid ProjectId,
     string ViewType,
-    List<ExportColumn> Columns) : IRequest<byte[]>;
+    List<ExportColumn> Columns,
+    string? SearchTerm = null,
+    string? TaskStateName = null,
+    string? TicketPriorityName = null,
+    string? AssigneeName = null,
+    string? TaskTypeName = null,
+    DateOnly? DueDate = null,
+    string? SortField = null,
+    string? SortDirection = null) : IRequest<byte[]>, IRequireProjectAccess;
 
 public sealed class ExportXlsxQueryHandler(IApplicationDbContext dbContext)
     : IRequestHandler<ExportXlsxQuery, byte[]>
@@ -30,11 +40,32 @@ public sealed class ExportXlsxQueryHandler(IApplicationDbContext dbContext)
 
         if (request.ViewType == "TaskList")
         {
+            var query = dbContext.Tickets
+                .AsNoTracking()
+                .Where(t => t.ProjectId == request.ProjectId);
+
+            if (!string.IsNullOrWhiteSpace(request.SearchTerm))
+                query = query.Where(t => t.Title.Contains(request.SearchTerm));
+
+            if (!string.IsNullOrWhiteSpace(request.TaskStateName))
+                query = query.Where(t => t.TaskState.Name == request.TaskStateName);
+
+            if (!string.IsNullOrWhiteSpace(request.TicketPriorityName))
+                query = query.Where(t => t.TicketPriority.Name == request.TicketPriorityName);
+
+            if (!string.IsNullOrWhiteSpace(request.AssigneeName))
+                query = query.Where(t => t.Assignee != null && t.Assignee.DisplayName == request.AssigneeName);
+
+            if (!string.IsNullOrWhiteSpace(request.TaskTypeName))
+                query = query.Where(t => t.TaskType != null && t.TaskType.Name == request.TaskTypeName);
+
+            if (request.DueDate.HasValue)
+                query = query.Where(t => t.DueDate == request.DueDate.Value);
+
+            var ordered = ApplyTicketSort(query, request.SortField, request.SortDirection);
+
             var row = 2;
-            await foreach (var ticket in dbContext.Tickets
-                               .AsNoTracking()
-                               .Where(t => t.ProjectId == request.ProjectId)
-                               .OrderBy(t => t.Position)
+            await foreach (var ticket in ordered
                                .Select(t => new TicketExportRow(
                                    t.Project.Code + "-" + t.Number,
                                    t.Title,
@@ -60,11 +91,17 @@ public sealed class ExportXlsxQueryHandler(IApplicationDbContext dbContext)
         }
         else if (request.ViewType == "Worklogs")
         {
+            var query = dbContext.Worklogs
+                .AsNoTracking()
+                .Where(w => w.ProjectId == request.ProjectId);
+
+            if (!string.IsNullOrWhiteSpace(request.AssigneeName))
+                query = query.Where(w => w.User.DisplayName == request.AssigneeName);
+
+            var ordered = query.OrderByDescending(w => w.Date);
+
             var row = 2;
-            await foreach (var worklog in dbContext.Worklogs
-                               .AsNoTracking()
-                               .Where(w => w.ProjectId == request.ProjectId)
-                               .OrderByDescending(w => w.Date)
+            await foreach (var worklog in ordered
                                .Select(w => new WorklogExportRow(
                                    w.Date,
                                    w.User.DisplayName,
@@ -87,6 +124,37 @@ public sealed class ExportXlsxQueryHandler(IApplicationDbContext dbContext)
 
         worksheet.Cells.AutoFitColumns();
         return await package.GetAsByteArrayAsync(cancellationToken);
+    }
+
+    private static IQueryable<Ticket> ApplyTicketSort(
+        IQueryable<Ticket> query,
+        string? sortField,
+        string? sortDirection)
+    {
+        var descending = string.Equals(sortDirection, "desc", StringComparison.OrdinalIgnoreCase);
+
+        return sortField switch
+        {
+            "key" or "number" => descending ? query.OrderByDescending(t => t.Number) : query.OrderBy(t => t.Number),
+            "title" => descending ? query.OrderByDescending(t => t.Title) : query.OrderBy(t => t.Title),
+            "taskStateName" => descending
+                ? query.OrderByDescending(t => t.TaskState.Name)
+                : query.OrderBy(t => t.TaskState.Name),
+            "ticketPriorityName" => descending
+                ? query.OrderByDescending(t => t.TicketPriority.Name)
+                : query.OrderBy(t => t.TicketPriority.Name),
+            "assignee" => descending
+                ? query.OrderByDescending(t => t.Assignee != null ? t.Assignee.DisplayName : string.Empty)
+                : query.OrderBy(t => t.Assignee != null ? t.Assignee.DisplayName : string.Empty),
+            "dueDate" => descending ? query.OrderByDescending(t => t.DueDate) : query.OrderBy(t => t.DueDate),
+            "estimatedHours" => descending
+                ? query.OrderByDescending(t => t.EstimatedHours)
+                : query.OrderBy(t => t.EstimatedHours),
+            "createdAt" => descending
+                ? query.OrderByDescending(t => t.CreatedAt)
+                : query.OrderBy(t => t.CreatedAt),
+            _ => query.OrderBy(t => t.Position),
+        };
     }
 
     private static object? GetTicketFieldValue(TicketExportRow ticket, string field) => field switch

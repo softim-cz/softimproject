@@ -421,12 +421,30 @@ export default function TaskListPage({ params }: { params: Promise<{ code: strin
                     field: c.id,
                     header: typeof c.columnDef.header === "string" ? c.columnDef.header : c.id,
                   }));
+                  const firstSort = sorting[0];
                   await exportXlsx({
                     projectId,
                     viewType: "TaskList",
                     columns: visibleCols,
+                    filters: {
+                      searchTerm: serverParams.search,
+                      taskStateName: serverParams.taskStateName,
+                      ticketPriorityName: serverParams.ticketPriorityName,
+                      assigneeName: serverParams.assignee,
+                      taskTypeName: serverParams.taskTypeName,
+                      dueDate: serverParams.dueDate,
+                    },
+                    sort: firstSort
+                      ? { sortField: firstSort.id, sortDirection: firstSort.desc ? "desc" : "asc" }
+                      : undefined,
                   });
-                  toast.success("Export downloaded");
+                  if (localFilters.length > 0) {
+                    toast.warning(
+                      `Export hotov. ${localFilters.length} filtr(y) se na server neposílá — výstup může obsahovat řádky navíc.`
+                    );
+                  } else {
+                    toast.success("Export downloaded");
+                  }
                 } catch {
                   toast.error("Export failed");
                 }
