@@ -2,7 +2,6 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
@@ -21,21 +20,24 @@ public sealed class IntegrationTestFactory : WebApplicationFactory<Program>, IAs
 {
     private readonly string _dbName = $"AuthBoundaryTests_{Guid.NewGuid()}";
 
+    // Env vars must be set before WebApplication.CreateBuilder(args) runs in Program.cs,
+    // because the minimal-API top-level code reads builder.Configuration.GetValue("DevAuth:Enabled")
+    // *before* WebApplicationFactory's ConfigureAppConfiguration callback fires. Without this,
+    // appsettings.Development.json (gitignored) is the only source of DevAuth:Enabled=true, so CI
+    // falls through to the Entra JwtBearer path and 500s on IDW10106 (empty ClientId).
+    static IntegrationTestFactory()
+    {
+        Environment.SetEnvironmentVariable("ASPNETCORE_ENVIRONMENT", "Development");
+        Environment.SetEnvironmentVariable("DevAuth__Enabled", "true");
+        Environment.SetEnvironmentVariable("DevAuth__SeedOnStartup", "false");
+        Environment.SetEnvironmentVariable("DevAuth__DefaultUserId", "dev:admin");
+        Environment.SetEnvironmentVariable("DatabaseMigration__AutoApply", "false");
+        Environment.SetEnvironmentVariable("ConnectionStrings__DefaultConnection", "Data Source=test.db");
+    }
+
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.UseEnvironment("Development");
-
-        builder.ConfigureAppConfiguration((_, config) =>
-        {
-            config.AddInMemoryCollection(new Dictionary<string, string?>
-            {
-                ["DevAuth:Enabled"] = "true",
-                ["DevAuth:SeedOnStartup"] = "false",
-                ["DatabaseMigration:AutoApply"] = "false",
-                ["ConnectionStrings:DefaultConnection"] = "Data Source=test.db",
-                ["Frontend:BaseUrl"] = "http://localhost:3000",
-            });
-        });
 
         builder.ConfigureTestServices(services =>
         {
