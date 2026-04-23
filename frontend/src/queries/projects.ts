@@ -278,3 +278,26 @@ export function useDisconnectGitHub() {
       invalidateQueryKeys(queryClient, queryKeys.github.all(), queryKeys.projects.all()),
   });
 }
+
+export function useGenerateClientAccessToken() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (projectId: string) => {
+      const { data } = await apiClient.post<{ token: string }>(
+        `/api/v1/projects/${projectId}/portal/token`
+      );
+      return data.token;
+    },
+    onSuccess: () => invalidateQueryKeys(queryClient, queryKeys.projects.all()),
+  });
+}
+
+export function useRevokeClientAccess() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (projectId: string) => {
+      await apiClient.post(`/api/v1/projects/${projectId}/portal/revoke`);
+    },
+    onSuccess: () => invalidateQueryKeys(queryClient, queryKeys.projects.all()),
+  });
+}

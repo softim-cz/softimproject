@@ -199,6 +199,39 @@ dotnet ef database update \
 - **Klientský portál** – token-based auth, maskovaný pohled na projekty zákazníka (`/portal/[token]`).
 - **MCP server** – samostatná služba s nástroji pro čtení projektů/tiketů a zápis worklogů. Auth přes Entra/JWT.
 
+## Klientský portál — co klient uvidí a co ne
+
+Portál je anonymní read-only view projektu přes unikátní URL `/{frontend}/portal/{token}`. Backend endpoint `GET /api/v1/portal/{token}` projeví data jen pokud je `Project.ClientAccessEnabled = true` **a** token sedí.
+
+**Co vidí (`PortalTicketDto`, `PortalColumnDto`, `PortalProjectDto`):**
+
+- Název, kód, popis projektu
+- Stav projektu (Active / OnHold / Completed / …)
+- Budget / spent hours, health score, is-over-budget / is-over-deadline flagy
+- Kanban board: kolony, jejich pořadí, WIP limity, mapované task states
+- Tickety: klíč (`CODE-N`), název, priorita (name + color), stav (name + color), assignee display name, due date
+- Součet billable worklog hodin (agregát, ne per-user breakdown)
+
+**Co nevidí (maskováno projekcí v controlleru):**
+
+- Komentáře (interní ani non-internal — `PortalResponseDto.Comments` je `Array.Empty<object>()`)
+- Description, estimated hours, cumulative worked hours ticketů
+- Worklogy (ani záznamy, ani per-user součet — jen agregát billable hodin)
+- Billable flag / invoiced string u worklogů
+- Interní IDs kromě těch, co jsou potřeba pro FE routing
+- Skryté kolony (`KanbanColumn.IsVisible=false`) — filter je v query
+
+**Rotace tokenu:**
+
+Admin v Settings → Client portal section:
+
+- **Generate token** — vygeneruje nový 32B random base64-url, přepíše starý (pokud existoval) a zapne access
+- **Regenerate** — stejná akce, ale s potvrzením „existující link přestane fungovat"
+- **Revoke access** — token=null, enabled=false; portál vrátí 404
+- Toggle **Client portal access enabled** — vypne portál bez smazání tokenu (lze znovu zapnout beze změny URL)
+
+Token je unikátní v rámci všech projektů (`IX_Projects_ClientAccessToken` filter `IS NOT NULL`).
+
 ## Související dokumenty
 
 - `REPOSITORY_ANALYSIS.md` – analýza stavu projektu, silné a slabé stránky.
