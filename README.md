@@ -232,6 +232,24 @@ Admin v Settings → Client portal section:
 
 Token je unikátní v rámci všech projektů (`IX_Projects_ClientAccessToken` filter `IS NOT NULL`).
 
+## Autorizační vrstva — co chrání jaký guard
+
+Backend má tři typy pipeline-level guardů napojených na MediatR `AuthorizationBehavior`. Handler je vlastně business logika, kontrola přístupu běží _před_ ním:
+
+| Guard                    | Kde se aplikuje                                                         | Co kontroluje                                                             | Odpověď při selhání           |
+| ------------------------ | ----------------------------------------------------------------------- | ------------------------------------------------------------------------- | ----------------------------- |
+| `IRequireProjectAccess`  | Každý command/query napojený na konkrétní projekt (`ProjectId` property) | Uživatel je member projektu **nebo** má `GlobalRole.Admin`                | `UnauthorizedAccessException` → HTTP 403 |
+| `IRequireRole`           | Akce vyžadující konkrétní `GlobalRole`                                  | Uživatel je v dané globální roli (nebo má claim)                          | `UnauthorizedAccessException` → HTTP 403 |
+| `IRequirePermission`     | Akce napojené na `PermissionArea` + `PermissionOperation` (worklogy, reporty) | Alespoň jedna z `UserApplicationRoles` má flag na matici; Admin bypass | `UnauthorizedAccessException` → HTTP 403 |
+
+Kromě toho:
+
+- `[Authorize]` na `ApiControllerBase` zajišťuje, že anonymní požadavky skončí na 401 ještě před MediatR pipeline. Výjimky: klientský portál (`/api/v1/portal/{token}`), OAuth callbacky.
+- DevAuth scheme (`X-Dev-User-Id` header) běží jen v `IsDevelopment()` a je kompletně oddělený od Entra JWT cesty.
+- Ownership na úrovni jednotlivých záznamů (komentáře, worklogy, přílohy) řeší `ProjectResourceGuards` v handlerech — guard ví, že uživatel patří do projektu, ale samotný zápis/mazání kontroluje, jestli je autorem nebo má roli Manager/Admin.
+
+Pokrytí integračními testy: `SoftimProject.WebApi.Tests.Integration.AuthorizationBoundaryTests` ověřuje `IRequireProjectAccess` end-to-end (userA → ProjectB → 403, userA → ProjectA → 200, Admin → ProjectB → 200). Kompletní matici všech endpointů pokryje #22.
+
 ## Související dokumenty
 
 - `REPOSITORY_ANALYSIS.md` – analýza stavu projektu, silné a slabé stránky.

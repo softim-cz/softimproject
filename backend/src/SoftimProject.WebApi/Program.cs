@@ -124,18 +124,22 @@ try
     var app = builder.Build();
 
     // Apply pending EF Core migrations on startup. Fail fast if the DB is unreachable.
-    using (var scope = app.Services.CreateScope())
+    // Integration tests provision schema via EnsureCreated on SQLite, so they set this flag to false.
+    if (app.Configuration.GetValue("DatabaseMigration:AutoApply", true))
     {
-        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-        Log.Information("Applying pending database migrations...");
-        await db.Database.MigrateAsync();
-        Log.Information("Database migrations up to date");
-
-        if (devAuthEnabled && app.Configuration.GetValue<bool>("DevAuth:SeedOnStartup"))
+        using (var scope = app.Services.CreateScope())
         {
-            var seeder = scope.ServiceProvider.GetRequiredService<DatabaseSeeder>();
-            await seeder.SeedAsync();
-            Log.Information("Database seed complete");
+            var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            Log.Information("Applying pending database migrations...");
+            await db.Database.MigrateAsync();
+            Log.Information("Database migrations up to date");
+
+            if (devAuthEnabled && app.Configuration.GetValue<bool>("DevAuth:SeedOnStartup"))
+            {
+                var seeder = scope.ServiceProvider.GetRequiredService<DatabaseSeeder>();
+                await seeder.SeedAsync();
+                Log.Information("Database seed complete");
+            }
         }
     }
 
@@ -171,3 +175,6 @@ finally
 {
     Log.CloseAndFlush();
 }
+
+// Exposed for WebApplicationFactory<Program> in integration tests.
+public partial class Program { }
