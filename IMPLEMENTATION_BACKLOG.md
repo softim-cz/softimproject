@@ -1,5 +1,7 @@
 # Implementační backlog pro dotažení SoftimProject
 
+> **Historický snapshot (2026-04-23).** Aktivní fronta prací je od této chvíle v [GitHub Issues](https://github.com/softim-cz/softimproject/issues) a v [GitHub Projectu](https://github.com/softim-cz/softimproject/projects) repozitáře. Issues jsou oštítkovány `phase-1..4`, `effort: S/M/L` a přiřazeny k milestones "Fáze 1–4". Nová rozhodnutí a priority patří tam, ne do tohoto souboru — tak se vyhneme duplicitě.
+
 ## Stav po této iteraci
 
 Hotové v této fázi:
