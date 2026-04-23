@@ -13,6 +13,14 @@ const eslintConfig = defineConfig([
     "build/**",
     "next-env.d.ts",
   ]),
+  {
+    files: ["e2e/**/*.ts"],
+    rules: {
+      // Playwright fixtures use `use` as the teardown callback parameter —
+      // not React's `use` hook. The rules-of-hooks lint is a false positive here.
+      "react-hooks/rules-of-hooks": "off",
+    },
+  },
 ]);
 
 export default eslintConfig;

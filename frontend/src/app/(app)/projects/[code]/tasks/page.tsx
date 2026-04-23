@@ -365,6 +365,9 @@ export default function TaskListPage({ params }: { params: Promise<{ code: strin
     [persistConfig, sorting, columnVisibility]
   );
 
+  // TanStack Table returns non-memoizable functions — React Compiler skips this
+  // component. Known library limitation; accepted rather than refactored.
+  // eslint-disable-next-line react-hooks/incompatible-library
   const table = useReactTable({
     data: filteredTickets,
     columns: allColumns,

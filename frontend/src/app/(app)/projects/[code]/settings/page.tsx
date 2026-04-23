@@ -851,6 +851,9 @@ function MembersSection({ projectId, members }: { projectId: string; members: Pr
                   <td className="py-3">
                     <div className="flex items-center gap-2">
                       {member.avatarUrl ? (
+                        // next/image would need remotePatterns for Graph photo URLs
+                        // with per-request SAS tokens; not worth it for a 28px avatar.
+                        // eslint-disable-next-line @next/next/no-img-element
                         <img src={member.avatarUrl} alt="" className="h-7 w-7 rounded-full" />
                       ) : (
                         <div className="h-7 w-7 rounded-full bg-muted flex items-center justify-center text-xs font-medium text-muted-foreground">
