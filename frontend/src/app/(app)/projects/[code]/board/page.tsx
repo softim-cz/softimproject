@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useState, useCallback, useMemo, useRef, memo } from "react";
+import { use, useState, useCallback, useMemo, useRef, useEffect, memo } from "react";
 import { useBoard, useMoveTicket } from "@/queries/kanban";
 import { useCreateTicket, type CreateTicketPayload } from "@/queries/tickets";
 import { useProjectByCode } from "@/queries/projects";
@@ -19,7 +19,12 @@ import {
   type DragStartEvent,
   type DragEndEvent,
 } from "@dnd-kit/core";
-import { SortableContext, verticalListSortingStrategy, useSortable } from "@dnd-kit/sortable";
+import {
+  SortableContext,
+  verticalListSortingStrategy,
+  useSortable,
+  arrayMove,
+} from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { useDroppable } from "@dnd-kit/core";
 import { cn } from "@/lib/utils";
@@ -35,42 +40,95 @@ import {
   ChevronDown,
   Clock,
   Plus,
+  GripVertical,
 } from "lucide-react";
 import type { Ticket, KanbanBoard, KanbanColumn as KanbanColumnType } from "@/types";
 
 type GroupBy = "none" | "assignee" | "priority" | "taskType";
 
-interface CardFields {
-  priority: boolean;
-  assignee: boolean;
-  dueDate: boolean;
-  comments: boolean;
-  attachments: boolean;
-  taskType: boolean;
-  taskState: boolean;
-  estimatedHours: boolean;
+type CardFieldKey =
+  | "priority"
+  | "assignee"
+  | "dueDate"
+  | "comments"
+  | "attachments"
+  | "taskType"
+  | "taskState"
+  | "estimatedHours";
+
+interface CardField {
+  key: CardFieldKey;
+  visible: boolean;
 }
 
 interface KanbanConfig {
   groupBy: GroupBy;
-  cardFields: CardFields;
+  cardFields: CardField[];
 }
 
-const defaultCardFields: CardFields = {
-  priority: true,
-  assignee: true,
-  dueDate: true,
-  comments: true,
-  attachments: true,
-  taskType: false,
-  taskState: false,
-  estimatedHours: false,
+const CARD_FIELD_LABELS: Record<CardFieldKey, string> = {
+  priority: "Priority",
+  assignee: "Assignee",
+  dueDate: "Due Date",
+  comments: "Comments",
+  attachments: "Attachments",
+  taskType: "Task Type",
+  taskState: "Task State",
+  estimatedHours: "Est. Hours",
+};
+
+const ALL_FIELD_KEYS: CardFieldKey[] = [
+  "priority",
+  "assignee",
+  "dueDate",
+  "comments",
+  "attachments",
+  "taskType",
+  "taskState",
+  "estimatedHours",
+];
+
+const PRESETS: Record<"compact" | "default" | "detailed", CardField[]> = {
+  compact: ALL_FIELD_KEYS.map((key) => ({
+    key,
+    visible: key === "priority" || key === "assignee",
+  })),
+  default: ALL_FIELD_KEYS.map((key) => ({
+    key,
+    visible: ["priority", "assignee", "dueDate", "comments", "attachments"].includes(key),
+  })),
+  detailed: ALL_FIELD_KEYS.map((key) => ({ key, visible: true })),
 };
 
 const defaultConfig: KanbanConfig = {
   groupBy: "none",
-  cardFields: defaultCardFields,
+  cardFields: PRESETS.default,
 };
+
+// Migrates legacy cardFields object `{priority: true, ...}` to ordered array.
+function parseCardFields(raw: unknown): CardField[] {
+  if (Array.isArray(raw)) {
+    const known = raw.filter(
+      (f): f is CardField =>
+        typeof f === "object" &&
+        f !== null &&
+        "key" in f &&
+        "visible" in f &&
+        ALL_FIELD_KEYS.includes((f as CardField).key)
+    );
+    const seen = new Set(known.map((f) => f.key));
+    const missing = ALL_FIELD_KEYS.filter((k) => !seen.has(k)).map((key) => ({
+      key,
+      visible: false,
+    }));
+    return [...known, ...missing];
+  }
+  if (typeof raw === "object" && raw !== null) {
+    const obj = raw as Partial<Record<CardFieldKey, boolean>>;
+    return ALL_FIELD_KEYS.map((key) => ({ key, visible: Boolean(obj[key]) }));
+  }
+  return PRESETS.default;
+}
 
 const TicketCard = memo(function TicketCard({
   ticket,
@@ -80,9 +138,82 @@ const TicketCard = memo(function TicketCard({
 }: {
   ticket: Ticket;
   code: string;
-  cardFields: CardFields;
+  cardFields: CardField[];
   isDragging?: boolean;
 }) {
+  const visibleFields = cardFields.filter((f) => f.visible);
+
+  const renderField = (field: CardField) => {
+    switch (field.key) {
+      case "priority":
+        return (
+          <PriorityBadge
+            key="priority"
+            name={ticket.ticketPriorityName}
+            color={ticket.ticketPriorityColor}
+          />
+        );
+      case "assignee":
+        return ticket.assignee ? (
+          <span key="assignee" className="flex items-center gap-1 text-xs text-muted-foreground">
+            <User className="h-3 w-3" />
+            {ticket.assignee.displayName}
+          </span>
+        ) : null;
+      case "dueDate":
+        return ticket.dueDate ? (
+          <span key="dueDate" className="flex items-center gap-1 text-xs text-muted-foreground">
+            <Calendar className="h-3 w-3" />
+            {new Date(ticket.dueDate).toLocaleDateString()}
+          </span>
+        ) : null;
+      case "comments":
+        return ticket.commentsCount > 0 ? (
+          <span key="comments" className="flex items-center gap-0.5 text-xs text-muted-foreground">
+            <MessageSquare className="h-3 w-3" />
+            {ticket.commentsCount}
+          </span>
+        ) : null;
+      case "attachments":
+        return ticket.attachmentsCount > 0 ? (
+          <span
+            key="attachments"
+            className="flex items-center gap-0.5 text-xs text-muted-foreground"
+          >
+            <Paperclip className="h-3 w-3" />
+            {ticket.attachmentsCount}
+          </span>
+        ) : null;
+      case "taskType":
+        return ticket.taskTypeName ? (
+          <span key="taskType" className="text-xs text-muted-foreground">
+            {ticket.taskTypeIcon && <span className="mr-1">{ticket.taskTypeIcon}</span>}
+            {ticket.taskTypeName}
+          </span>
+        ) : null;
+      case "taskState":
+        return (
+          <DynamicStateBadge
+            key="taskState"
+            name={ticket.taskStateName}
+            color={ticket.taskStateColor}
+          />
+        );
+      case "estimatedHours":
+        return ticket.estimatedHours != null ? (
+          <span
+            key="estimatedHours"
+            className="flex items-center gap-0.5 text-xs text-muted-foreground"
+          >
+            <Clock className="h-3 w-3" />
+            {ticket.estimatedHours}h
+          </span>
+        ) : null;
+      default:
+        return null;
+    }
+  };
+
   return (
     <Link
       href={`/projects/${code}/tickets/${ticket.key}`}
@@ -92,58 +223,10 @@ const TicketCard = memo(function TicketCard({
       )}
     >
       <p className="text-xs font-mono text-muted-foreground mb-1">{ticket.key}</p>
-      <p className="text-sm font-medium text-card-foreground mb-2 line-clamp-2">
-        {cardFields.taskType && ticket.taskTypeIcon && (
-          <span className="mr-1">{ticket.taskTypeIcon}</span>
-        )}
-        {ticket.title}
-      </p>
-      <div className="flex items-center justify-between">
-        {cardFields.priority ? (
-          <PriorityBadge name={ticket.ticketPriorityName} color={ticket.ticketPriorityColor} />
-        ) : (
-          <span />
-        )}
-        <div className="flex items-center gap-2 text-muted-foreground">
-          {cardFields.comments && ticket.commentsCount > 0 && (
-            <span className="flex items-center gap-0.5 text-xs">
-              <MessageSquare className="h-3 w-3" />
-              {ticket.commentsCount}
-            </span>
-          )}
-          {cardFields.attachments && ticket.attachmentsCount > 0 && (
-            <span className="flex items-center gap-0.5 text-xs">
-              <Paperclip className="h-3 w-3" />
-              {ticket.attachmentsCount}
-            </span>
-          )}
-          {cardFields.estimatedHours && ticket.estimatedHours != null && (
-            <span className="flex items-center gap-0.5 text-xs">
-              <Clock className="h-3 w-3" />
-              {ticket.estimatedHours}h
-            </span>
-          )}
-        </div>
-      </div>
-      <div className="flex items-center justify-between mt-2 flex-wrap gap-1">
-        {cardFields.assignee && ticket.assignee ? (
-          <span className="flex items-center gap-1 text-xs text-muted-foreground">
-            <User className="h-3 w-3" />
-            {ticket.assignee.displayName}
-          </span>
-        ) : (
-          <span />
-        )}
-        {cardFields.dueDate && ticket.dueDate && (
-          <span className="flex items-center gap-1 text-xs text-muted-foreground">
-            <Calendar className="h-3 w-3" />
-            {new Date(ticket.dueDate).toLocaleDateString()}
-          </span>
-        )}
-      </div>
-      {cardFields.taskState && (
-        <div className="mt-2">
-          <DynamicStateBadge name={ticket.taskStateName} color={ticket.taskStateColor} />
+      <p className="text-sm font-medium text-card-foreground mb-2 line-clamp-2">{ticket.title}</p>
+      {visibleFields.length > 0 && (
+        <div className="flex items-center flex-wrap gap-x-2 gap-y-1">
+          {visibleFields.map((f) => renderField(f))}
         </div>
       )}
     </Link>
@@ -157,7 +240,7 @@ function SortableTicketCard({
 }: {
   ticket: Ticket;
   code: string;
-  cardFields: CardFields;
+  cardFields: CardField[];
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: ticket.id,
@@ -185,7 +268,7 @@ const KanbanColumn = memo(function KanbanColumn({
   column: KanbanColumnType;
   projectId: string;
   code: string;
-  cardFields: CardFields;
+  cardFields: CardField[];
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: column.id });
   const [isAdding, setIsAdding] = useState(false);
@@ -335,16 +418,50 @@ const groupByOptions: { value: GroupBy; label: string }[] = [
   { value: "taskType", label: "Task Type" },
 ];
 
-const cardFieldLabels: { key: keyof CardFields; label: string }[] = [
-  { key: "priority", label: "Priority" },
-  { key: "assignee", label: "Assignee" },
-  { key: "dueDate", label: "Due Date" },
-  { key: "comments", label: "Comments" },
-  { key: "attachments", label: "Attachments" },
-  { key: "taskType", label: "Task Type" },
-  { key: "taskState", label: "Task State" },
-  { key: "estimatedHours", label: "Est. Hours" },
-];
+function SortableFieldRow({
+  field,
+  onToggle,
+}: {
+  field: CardField;
+  onToggle: (key: CardFieldKey) => void;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: field.key,
+  });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className="flex items-center gap-2 py-1 rounded hover:bg-muted/50"
+    >
+      <button
+        {...attributes}
+        {...listeners}
+        className="cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground"
+        aria-label="Drag to reorder"
+        type="button"
+      >
+        <GripVertical className="h-3.5 w-3.5" />
+      </button>
+      <label className="flex items-center gap-2 text-sm cursor-pointer flex-1">
+        <input
+          type="checkbox"
+          checked={field.visible}
+          onChange={() => onToggle(field.key)}
+          className="rounded"
+        />
+        {CARD_FIELD_LABELS[field.key]}
+      </label>
+    </div>
+  );
+}
 
 export default function BoardPage({ params }: { params: Promise<{ code: string }> }) {
   const { code } = use(params);
@@ -365,7 +482,7 @@ export default function BoardPage({ params }: { params: Promise<{ code: string }
       const parsed = JSON.parse(viewConfig.configurationJson);
       return {
         groupBy: parsed.groupBy ?? "none",
-        cardFields: { ...defaultCardFields, ...parsed.cardFields },
+        cardFields: parseCardFields(parsed.cardFields),
       };
     } catch {
       return defaultConfig;
@@ -373,7 +490,19 @@ export default function BoardPage({ params }: { params: Promise<{ code: string }
   }, [viewConfig?.configurationJson]);
 
   const [groupBy, setGroupBy] = useState<GroupBy>(savedConfig.groupBy);
-  const [cardFields, setCardFields] = useState<CardFields>(savedConfig.cardFields);
+  const [cardFields, setCardFields] = useState<CardField[]>(savedConfig.cardFields);
+
+  // useState initial value is captured before viewConfig query resolves.
+  // Sync local state once when the config first arrives from the server.
+  const hydrated = useRef(false);
+  useEffect(() => {
+    if (hydrated.current) return;
+    if (!viewConfig) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setGroupBy(savedConfig.groupBy);
+    setCardFields(savedConfig.cardFields);
+    hydrated.current = true;
+  }, [viewConfig, savedConfig]);
 
   const saveTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const persistConfig = useCallback(
@@ -400,12 +529,32 @@ export default function BoardPage({ params }: { params: Promise<{ code: string }
   );
 
   const handleCardFieldToggle = useCallback(
-    (key: keyof CardFields) => {
+    (key: CardFieldKey) => {
       setCardFields((prev) => {
-        const next = { ...prev, [key]: !prev[key] };
+        const next = prev.map((f) => (f.key === key ? { ...f, visible: !f.visible } : f));
         persistConfig({ groupBy, cardFields: next });
         return next;
       });
+    },
+    [persistConfig, groupBy]
+  );
+
+  const handleFieldReorder = useCallback(
+    (oldIndex: number, newIndex: number) => {
+      setCardFields((prev) => {
+        const next = arrayMove(prev, oldIndex, newIndex);
+        persistConfig({ groupBy, cardFields: next });
+        return next;
+      });
+    },
+    [persistConfig, groupBy]
+  );
+
+  const handlePresetSelect = useCallback(
+    (presetName: keyof typeof PRESETS) => {
+      const next = PRESETS[presetName];
+      setCardFields(next);
+      persistConfig({ groupBy, cardFields: next });
     },
     [persistConfig, groupBy]
   );
@@ -445,6 +594,17 @@ export default function BoardPage({ params }: { params: Promise<{ code: string }
       });
     },
     [board, projectId, moveTicket]
+  );
+
+  const handleFieldDragEnd = useCallback(
+    (event: DragEndEvent) => {
+      const { active, over } = event;
+      if (!over || active.id === over.id) return;
+      const oldIndex = cardFields.findIndex((f) => f.key === active.id);
+      const newIndex = cardFields.findIndex((f) => f.key === over.id);
+      if (oldIndex !== -1 && newIndex !== -1) handleFieldReorder(oldIndex, newIndex);
+    },
+    [cardFields, handleFieldReorder]
   );
 
   const swimlanes = useMemo(() => (board ? buildSwimlanes(board, groupBy) : []), [board, groupBy]);
@@ -534,19 +694,40 @@ export default function BoardPage({ params }: { params: Promise<{ code: string }
               Card fields
             </button>
             {showCardSettings && (
-              <div className="absolute right-0 top-full mt-1 z-20 bg-card border border-border rounded-lg shadow-lg p-3 w-48">
-                <p className="text-xs font-medium text-muted-foreground mb-2">Show on cards</p>
-                {cardFieldLabels.map(({ key, label }) => (
-                  <label key={key} className="flex items-center gap-2 py-1 text-sm cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={cardFields[key]}
-                      onChange={() => handleCardFieldToggle(key)}
-                      className="rounded"
-                    />
-                    {label}
-                  </label>
-                ))}
+              <div className="absolute right-0 top-full mt-1 z-20 bg-card border border-border rounded-lg shadow-lg p-3 w-60">
+                <p className="text-xs font-medium text-muted-foreground mb-2">Preset</p>
+                <div className="flex gap-1 mb-3">
+                  {(Object.keys(PRESETS) as Array<keyof typeof PRESETS>).map((name) => (
+                    <button
+                      key={name}
+                      onClick={() => handlePresetSelect(name)}
+                      className="flex-1 px-2 py-1 text-xs rounded border border-border hover:bg-muted capitalize transition-colors"
+                    >
+                      {name}
+                    </button>
+                  ))}
+                </div>
+                <p className="text-xs font-medium text-muted-foreground mb-1">
+                  Fields (drag to reorder)
+                </p>
+                <DndContext
+                  sensors={sensors}
+                  collisionDetection={closestCorners}
+                  onDragEnd={handleFieldDragEnd}
+                >
+                  <SortableContext
+                    items={cardFields.map((f) => f.key)}
+                    strategy={verticalListSortingStrategy}
+                  >
+                    {cardFields.map((field) => (
+                      <SortableFieldRow
+                        key={field.key}
+                        field={field}
+                        onToggle={handleCardFieldToggle}
+                      />
+                    ))}
+                  </SortableContext>
+                </DndContext>
               </div>
             )}
           </div>
