@@ -2,6 +2,7 @@ using MediatR;
 using Microsoft.EntityFrameworkCore;
 using SoftimProject.Application.Interfaces;
 using SoftimProject.Domain.Entities;
+using SoftimProject.Domain.Enums;
 
 namespace SoftimProject.Application.Features.Projects.CustomFields;
 
@@ -16,7 +17,7 @@ public sealed record ProjectCustomFieldValueDto(
     string? Value);
 
 // GET - returns all definitions with values (null if not filled)
-public sealed record GetProjectCustomFieldValuesQuery(Guid ProjectId) : IRequest<List<ProjectCustomFieldValueDto>>;
+public sealed record GetProjectCustomFieldValuesQuery(Guid ProjectId) : IRequest<List<ProjectCustomFieldValueDto>>, IRequireProjectAccess;
 
 public sealed class GetProjectCustomFieldValuesQueryHandler(IApplicationDbContext dbContext)
     : IRequestHandler<GetProjectCustomFieldValuesQuery, List<ProjectCustomFieldValueDto>>
@@ -51,7 +52,10 @@ public sealed record FieldValueInput(Guid CustomFieldDefinitionId, string? Value
 
 public sealed record SaveProjectCustomFieldValuesCommand(
     Guid ProjectId,
-    List<FieldValueInput> Values) : IRequest;
+    List<FieldValueInput> Values) : IRequest, IRequireProjectRole
+{
+    public ProjectRole RequiredProjectRole => ProjectRole.ProjectManager;
+}
 
 public sealed class SaveProjectCustomFieldValuesCommandHandler(IApplicationDbContext dbContext)
     : IRequestHandler<SaveProjectCustomFieldValuesCommand>

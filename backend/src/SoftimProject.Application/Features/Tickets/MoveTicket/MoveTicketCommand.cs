@@ -2,6 +2,7 @@ using MediatR;
 using Microsoft.EntityFrameworkCore;
 using SoftimProject.Application.Common;
 using SoftimProject.Application.Interfaces;
+using SoftimProject.Domain.Enums;
 
 namespace SoftimProject.Application.Features.Tickets.MoveTicket;
 
@@ -9,7 +10,10 @@ public sealed record MoveTicketCommand(
     Guid ProjectId,
     Guid TicketId,
     Guid ColumnId,
-    double Position) : IRequest, IRequireProjectAccess;
+    double Position) : IRequest, IRequireProjectRole
+{
+    public ProjectRole RequiredProjectRole => ProjectRole.Developer;
+}
 
 public sealed class MoveTicketCommandHandler(
     IApplicationDbContext dbContext) : IRequestHandler<MoveTicketCommand>

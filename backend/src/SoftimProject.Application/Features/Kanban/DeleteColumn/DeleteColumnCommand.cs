@@ -2,13 +2,17 @@ using MediatR;
 using Microsoft.EntityFrameworkCore;
 using SoftimProject.Application.Common;
 using SoftimProject.Application.Interfaces;
+using SoftimProject.Domain.Enums;
 
 namespace SoftimProject.Application.Features.Kanban.DeleteColumn;
 
 public sealed record DeleteColumnCommand(
     Guid ProjectId,
     Guid BoardId,
-    Guid ColumnId) : IRequest, IRequireProjectAccess;
+    Guid ColumnId) : IRequest, IRequireProjectRole
+{
+    public ProjectRole RequiredProjectRole => ProjectRole.ProjectManager;
+}
 
 public sealed class DeleteColumnCommandHandler(
     IApplicationDbContext dbContext) : IRequestHandler<DeleteColumnCommand>

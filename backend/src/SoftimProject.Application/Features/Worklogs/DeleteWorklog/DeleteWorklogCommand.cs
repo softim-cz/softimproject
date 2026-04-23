@@ -1,12 +1,17 @@
 using MediatR;
+using Microsoft.EntityFrameworkCore;
 using SoftimProject.Application.Common;
 using SoftimProject.Application.Interfaces;
+using SoftimProject.Domain.Enums;
 
 namespace SoftimProject.Application.Features.Worklogs.DeleteWorklog;
 
 public sealed record DeleteWorklogCommand(
     Guid ProjectId,
-    Guid WorklogId) : IRequest, IRequireProjectAccess;
+    Guid WorklogId) : IRequest, IRequireProjectRole
+{
+    public ProjectRole RequiredProjectRole => ProjectRole.Developer;
+}
 
 public sealed class DeleteWorklogCommandHandler(
     IApplicationDbContext dbContext,
@@ -19,11 +24,14 @@ public sealed class DeleteWorklogCommandHandler(
         var userId = currentUserService.UserId
             ?? throw new UnauthorizedAccessException("Current user is not initialized.");
 
-        if (worklog.UserId != userId
-            && !currentUserService.IsInRole("Admin")
-            && !currentUserService.IsInRole("Manager"))
+        if (worklog.UserId != userId && !currentUserService.IsInRole("Admin"))
         {
-            throw new UnauthorizedAccessException("Only the worklog owner, Admin or Manager can delete this worklog.");
+            var isProjectManager = await dbContext.ProjectMembers
+                .AnyAsync(pm => pm.ProjectId == request.ProjectId
+                    && pm.UserId == userId
+                    && pm.Role == ProjectRole.ProjectManager, cancellationToken);
+            if (!isProjectManager)
+                throw new UnauthorizedAccessException("Only the worklog owner, the project manager, or Admin can delete this worklog.");
         }
 
         dbContext.Worklogs.Remove(worklog);

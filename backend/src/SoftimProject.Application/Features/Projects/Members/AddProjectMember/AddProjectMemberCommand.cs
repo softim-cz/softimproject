@@ -11,7 +11,10 @@ public sealed record AddProjectMemberCommand(
     Guid ProjectId,
     Guid UserId,
     ProjectRole Role,
-    decimal? HourlyRateOverride) : IRequest<Guid>, IRequireProjectAccess;
+    decimal? HourlyRateOverride) : IRequest<Guid>, IRequireProjectRole
+{
+    public ProjectRole RequiredProjectRole => ProjectRole.ProjectManager;
+}
 
 public sealed class AddProjectMemberCommandValidator : AbstractValidator<AddProjectMemberCommand>
 {

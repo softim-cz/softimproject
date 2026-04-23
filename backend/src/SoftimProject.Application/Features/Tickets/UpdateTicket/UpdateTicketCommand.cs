@@ -3,6 +3,7 @@ using MediatR;
 using Microsoft.EntityFrameworkCore;
 using SoftimProject.Application.Common;
 using SoftimProject.Application.Interfaces;
+using SoftimProject.Domain.Enums;
 
 namespace SoftimProject.Application.Features.Tickets.UpdateTicket;
 
@@ -19,7 +20,10 @@ public sealed record UpdateTicketCommand(
     Guid? TaskTypeId = null,
     Guid? ParentTicketId = null,
     decimal? ExternalBudget = null,
-    string? ExternalUser = null) : IRequest, IRequireProjectAccess;
+    string? ExternalUser = null) : IRequest, IRequireProjectRole
+{
+    public ProjectRole RequiredProjectRole => ProjectRole.Developer;
+}
 
 public sealed class UpdateTicketCommandValidator : AbstractValidator<UpdateTicketCommand>
 {

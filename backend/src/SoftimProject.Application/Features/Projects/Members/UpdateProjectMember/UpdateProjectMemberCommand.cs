@@ -10,7 +10,10 @@ public sealed record UpdateProjectMemberCommand(
     Guid ProjectId,
     Guid MemberId,
     ProjectRole Role,
-    decimal? HourlyRateOverride) : IRequest, IRequireProjectAccess;
+    decimal? HourlyRateOverride) : IRequest, IRequireProjectRole
+{
+    public ProjectRole RequiredProjectRole => ProjectRole.ProjectManager;
+}
 
 public sealed class UpdateProjectMemberCommandHandler(
     IApplicationDbContext dbContext) : IRequestHandler<UpdateProjectMemberCommand>

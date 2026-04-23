@@ -2,6 +2,7 @@ using MediatR;
 using Microsoft.EntityFrameworkCore;
 using SoftimProject.Application.Common;
 using SoftimProject.Application.Interfaces;
+using SoftimProject.Domain.Enums;
 
 namespace SoftimProject.Application.Features.Comments.DeleteComment;
 
@@ -25,11 +26,14 @@ public sealed class DeleteCommentCommandHandler(
         var userId = currentUserService.UserId
             ?? throw new UnauthorizedAccessException("Current user is not initialized.");
 
-        if (comment.AuthorId != userId
-            && !currentUserService.IsInRole("Admin")
-            && !currentUserService.IsInRole("Manager"))
+        if (comment.AuthorId != userId && !currentUserService.IsInRole("Admin"))
         {
-            throw new UnauthorizedAccessException("Only the author, Admin or Manager can delete this comment.");
+            var isProjectManager = await dbContext.ProjectMembers
+                .AnyAsync(pm => pm.ProjectId == request.ProjectId
+                    && pm.UserId == userId
+                    && pm.Role == ProjectRole.ProjectManager, cancellationToken);
+            if (!isProjectManager)
+                throw new UnauthorizedAccessException("Only the author, the project manager, or Admin can delete this comment.");
         }
 
         dbContext.Comments.Remove(comment);

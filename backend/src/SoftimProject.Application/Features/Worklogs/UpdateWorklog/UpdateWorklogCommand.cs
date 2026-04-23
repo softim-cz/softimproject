@@ -1,6 +1,8 @@
 using MediatR;
+using Microsoft.EntityFrameworkCore;
 using SoftimProject.Application.Common;
 using SoftimProject.Application.Interfaces;
+using SoftimProject.Domain.Enums;
 
 namespace SoftimProject.Application.Features.Worklogs.UpdateWorklog;
 
@@ -11,7 +13,10 @@ public sealed record UpdateWorklogCommand(
     decimal Hours,
     string? Description,
     bool IsBillable,
-    string? Invoiced) : IRequest, IRequireProjectAccess;
+    string? Invoiced) : IRequest, IRequireProjectRole
+{
+    public ProjectRole RequiredProjectRole => ProjectRole.Developer;
+}
 
 public sealed class UpdateWorklogCommandHandler(
     IApplicationDbContext dbContext,
@@ -24,11 +29,14 @@ public sealed class UpdateWorklogCommandHandler(
         var userId = currentUserService.UserId
             ?? throw new UnauthorizedAccessException("Current user is not initialized.");
 
-        if (worklog.UserId != userId
-            && !currentUserService.IsInRole("Admin")
-            && !currentUserService.IsInRole("Manager"))
+        if (worklog.UserId != userId && !currentUserService.IsInRole("Admin"))
         {
-            throw new UnauthorizedAccessException("Only the worklog owner, Admin or Manager can edit this worklog.");
+            var isProjectManager = await dbContext.ProjectMembers
+                .AnyAsync(pm => pm.ProjectId == request.ProjectId
+                    && pm.UserId == userId
+                    && pm.Role == ProjectRole.ProjectManager, cancellationToken);
+            if (!isProjectManager)
+                throw new UnauthorizedAccessException("Only the worklog owner, the project manager, or Admin can edit this worklog.");
         }
 
         worklog.Date = request.Date;

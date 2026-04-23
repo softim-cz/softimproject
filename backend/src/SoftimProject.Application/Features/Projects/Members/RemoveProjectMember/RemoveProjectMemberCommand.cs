@@ -2,12 +2,16 @@ using MediatR;
 using Microsoft.EntityFrameworkCore;
 using SoftimProject.Application.Common;
 using SoftimProject.Application.Interfaces;
+using SoftimProject.Domain.Enums;
 
 namespace SoftimProject.Application.Features.Projects.Members.RemoveProjectMember;
 
 public sealed record RemoveProjectMemberCommand(
     Guid ProjectId,
-    Guid MemberId) : IRequest, IRequireProjectAccess;
+    Guid MemberId) : IRequest, IRequireProjectRole
+{
+    public ProjectRole RequiredProjectRole => ProjectRole.ProjectManager;
+}
 
 public sealed class RemoveProjectMemberCommandHandler(
     IApplicationDbContext dbContext) : IRequestHandler<RemoveProjectMemberCommand>

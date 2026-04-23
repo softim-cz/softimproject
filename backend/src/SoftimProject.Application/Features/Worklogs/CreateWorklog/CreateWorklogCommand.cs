@@ -13,7 +13,10 @@ public sealed record CreateWorklogCommand(
     DateOnly Date,
     decimal Hours,
     string? Description,
-    bool IsBillable) : IRequest<Guid>, IRequireProjectAccess;
+    bool IsBillable) : IRequest<Guid>, IRequireProjectRole
+{
+    public ProjectRole RequiredProjectRole => ProjectRole.Developer;
+}
 
 public sealed class CreateWorklogCommandValidator : AbstractValidator<CreateWorklogCommand>
 {

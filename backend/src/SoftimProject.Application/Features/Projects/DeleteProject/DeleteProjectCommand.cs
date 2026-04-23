@@ -5,9 +5,10 @@ using SoftimProject.Application.Interfaces;
 
 namespace SoftimProject.Application.Features.Projects.DeleteProject;
 
-public sealed record DeleteProjectCommand(Guid Id) : IRequest, IRequireProjectAccess
+public sealed record DeleteProjectCommand(Guid Id) : IRequest, IRequireProjectAccess, IRequireRole
 {
     public Guid ProjectId => Id;
+    public string RequiredRole => "Admin";
 }
 
 public sealed class DeleteProjectCommandHandler(

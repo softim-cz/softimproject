@@ -2,13 +2,17 @@ using MediatR;
 using Microsoft.EntityFrameworkCore;
 using SoftimProject.Application.Common;
 using SoftimProject.Application.Interfaces;
+using SoftimProject.Domain.Enums;
 
 namespace SoftimProject.Application.Features.Kanban.UpdateBoard;
 
 public sealed record UpdateBoardCommand(
     Guid ProjectId,
     Guid BoardId,
-    string Name) : IRequest, IRequireProjectAccess;
+    string Name) : IRequest, IRequireProjectRole
+{
+    public ProjectRole RequiredProjectRole => ProjectRole.ProjectManager;
+}
 
 public sealed class UpdateBoardCommandHandler(
     IApplicationDbContext dbContext) : IRequestHandler<UpdateBoardCommand>

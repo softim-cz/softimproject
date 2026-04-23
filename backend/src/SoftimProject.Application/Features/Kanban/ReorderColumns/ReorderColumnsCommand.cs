@@ -1,13 +1,17 @@
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using SoftimProject.Application.Interfaces;
+using SoftimProject.Domain.Enums;
 
 namespace SoftimProject.Application.Features.Kanban.ReorderColumns;
 
 public sealed record ReorderColumnsCommand(
     Guid ProjectId,
     Guid BoardId,
-    List<Guid> ColumnIds) : IRequest, IRequireProjectAccess;
+    List<Guid> ColumnIds) : IRequest, IRequireProjectRole
+{
+    public ProjectRole RequiredProjectRole => ProjectRole.ProjectManager;
+}
 
 public sealed class ReorderColumnsCommandHandler(
     IApplicationDbContext dbContext) : IRequestHandler<ReorderColumnsCommand>

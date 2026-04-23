@@ -1,6 +1,8 @@
 using MediatR;
+using Microsoft.EntityFrameworkCore;
 using SoftimProject.Application.Common;
 using SoftimProject.Application.Interfaces;
+using SoftimProject.Domain.Enums;
 
 namespace SoftimProject.Application.Features.Attachments.DeleteAttachment;
 
@@ -25,11 +27,14 @@ public sealed class DeleteAttachmentCommandHandler(
         var userId = currentUserService.UserId
             ?? throw new UnauthorizedAccessException("Current user is not initialized.");
 
-        if (attachment.UploadedById != userId
-            && !currentUserService.IsInRole("Admin")
-            && !currentUserService.IsInRole("Manager"))
+        if (attachment.UploadedById != userId && !currentUserService.IsInRole("Admin"))
         {
-            throw new UnauthorizedAccessException("Only the uploader, Admin or Manager can delete this attachment.");
+            var isProjectManager = await dbContext.ProjectMembers
+                .AnyAsync(pm => pm.ProjectId == request.ProjectId
+                    && pm.UserId == userId
+                    && pm.Role == ProjectRole.ProjectManager, cancellationToken);
+            if (!isProjectManager)
+                throw new UnauthorizedAccessException("Only the uploader, the project manager, or Admin can delete this attachment.");
         }
 
         var blobName = new Uri(attachment.BlobUrl).AbsolutePath.TrimStart('/');
