@@ -1,5 +1,6 @@
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using SoftimProject.Application.Common;
 using SoftimProject.Application.Interfaces;
 using SoftimProject.Domain.Enums;
 
@@ -31,13 +32,15 @@ public sealed record GetWorklogsQuery(
     Guid? ProjectId = null,
     DateOnly? From = null,
     DateOnly? To = null,
-    Guid? UserId = null) : IRequest<List<WorklogDto>>;
+    Guid? UserId = null,
+    int Page = 1,
+    int PageSize = 50) : IRequest<PagedResult<WorklogDto>>;
 
 public sealed class GetWorklogsQueryHandler(
     IApplicationDbContext dbContext,
-    ICurrentUserService currentUserService) : IRequestHandler<GetWorklogsQuery, List<WorklogDto>>
+    ICurrentUserService currentUserService) : IRequestHandler<GetWorklogsQuery, PagedResult<WorklogDto>>
 {
-    public async Task<List<WorklogDto>> Handle(GetWorklogsQuery request, CancellationToken cancellationToken)
+    public async Task<PagedResult<WorklogDto>> Handle(GetWorklogsQuery request, CancellationToken cancellationToken)
     {
         var query = dbContext.Worklogs.AsNoTracking().AsQueryable();
 
@@ -61,9 +64,18 @@ public sealed class GetWorklogsQueryHandler(
             query = query.Where(w => w.UserId == currentUserService.UserId.Value);
         }
 
-        return await query
+        var ordered = query
             .OrderByDescending(w => w.Date)
-            .ThenByDescending(w => w.CreatedAt)
+            .ThenByDescending(w => w.CreatedAt);
+
+        var totalCount = await ordered.CountAsync(cancellationToken);
+
+        var page = Math.Max(1, request.Page);
+        var pageSize = Math.Clamp(request.PageSize, 1, 200);
+
+        var items = await ordered
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
             .Select(w => new WorklogDto(
                 w.Id,
                 w.ProjectId,
@@ -82,5 +94,7 @@ public sealed class GetWorklogsQueryHandler(
                 w.Invoiced,
                 w.CreatedAt))
             .ToListAsync(cancellationToken);
+
+        return new PagedResult<WorklogDto>(items, totalCount, page, pageSize);
     }
 }

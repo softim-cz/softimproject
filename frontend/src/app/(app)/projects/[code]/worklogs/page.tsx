@@ -1,13 +1,13 @@
 "use client";
 
 import { use, useState } from "react";
-import { useWorklogs, useCreateWorklog, useDeleteWorklog } from "@/queries/worklogs";
+import { useWorklogsPaged, useCreateWorklog, useDeleteWorklog } from "@/queries/worklogs";
 import { useProjectByCode } from "@/queries/projects";
 import { useCurrentUser } from "@/queries/auth";
 import { TableSkeleton } from "@/components/shared/loading-skeleton";
 import { EmptyState } from "@/components/shared/empty-state";
 import { EditWorklogDialog } from "@/components/shared/edit-worklog-dialog";
-import { Clock, Plus, X, Pencil, Trash2 } from "lucide-react";
+import { Clock, Plus, X, Pencil, Trash2, ChevronLeft, ChevronRight } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { createWorklogSchema, type CreateWorklogInput } from "@/schemas/worklog";
@@ -135,7 +135,9 @@ export default function ProjectWorklogsPage({ params }: { params: Promise<{ code
   const { code } = use(params);
   const { data: project } = useProjectByCode(code);
   const projectId = project?.id ?? "";
-  const { data: worklogs, isLoading, error } = useWorklogs({ projectId });
+  const [page, setPage] = useState(1);
+  const { data: worklogsPage, isLoading, error } = useWorklogsPaged({ projectId, page });
+  const worklogs = worklogsPage?.items;
   const { data: currentUser } = useCurrentUser();
   const deleteWorklog = useDeleteWorklog();
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -272,6 +274,37 @@ export default function ProjectWorklogsPage({ params }: { params: Promise<{ code
               ))}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {worklogsPage && worklogsPage.totalCount > worklogsPage.pageSize && (
+        <div className="flex items-center justify-between text-sm text-muted-foreground">
+          <span>
+            {(page - 1) * worklogsPage.pageSize + 1}–
+            {Math.min(page * worklogsPage.pageSize, worklogsPage.totalCount)} of{" "}
+            {worklogsPage.totalCount}
+          </span>
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              disabled={!worklogsPage.hasPreviousPage}
+              className="p-1.5 rounded-lg border border-border hover:bg-muted disabled:opacity-40 disabled:cursor-not-allowed"
+              aria-label="Previous page"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </button>
+            <span className="px-2">
+              {page} / {worklogsPage.totalPages}
+            </span>
+            <button
+              onClick={() => setPage((p) => p + 1)}
+              disabled={!worklogsPage.hasNextPage}
+              className="p-1.5 rounded-lg border border-border hover:bg-muted disabled:opacity-40 disabled:cursor-not-allowed"
+              aria-label="Next page"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </button>
+          </div>
         </div>
       )}
 

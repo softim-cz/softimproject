@@ -2,15 +2,16 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import apiClient from "@/lib/api/client";
 import type { Comment } from "@/types";
 import { queryKeys } from "./query-keys";
+import type { PagedResult } from "./tickets";
 
 export function useComments(projectId: string, ticketId: string) {
   return useQuery({
     queryKey: queryKeys.comments.ticket(projectId, ticketId),
     queryFn: async () => {
-      const { data } = await apiClient.get<Comment[]>(
+      const { data } = await apiClient.get<PagedResult<Comment>>(
         `/api/v1/projects/${projectId}/tickets/${ticketId}/comments`
       );
-      return data;
+      return data.items;
     },
     enabled: !!projectId && !!ticketId,
   });

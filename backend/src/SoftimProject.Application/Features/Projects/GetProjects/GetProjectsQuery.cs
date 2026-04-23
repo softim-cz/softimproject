@@ -1,5 +1,6 @@
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using SoftimProject.Application.Common;
 using SoftimProject.Application.Interfaces;
 using SoftimProject.Domain.Enums;
 
@@ -33,13 +34,13 @@ public sealed record ProjectDto(
     int MemberCount,
     int TicketCount);
 
-public sealed record GetProjectsQuery : IRequest<List<ProjectDto>>;
+public sealed record GetProjectsQuery(int Page = 1, int PageSize = 50) : IRequest<PagedResult<ProjectDto>>;
 
 public sealed class GetProjectsQueryHandler(
     IApplicationDbContext dbContext,
-    ICurrentUserService currentUserService) : IRequestHandler<GetProjectsQuery, List<ProjectDto>>
+    ICurrentUserService currentUserService) : IRequestHandler<GetProjectsQuery, PagedResult<ProjectDto>>
 {
-    public async Task<List<ProjectDto>> Handle(GetProjectsQuery request, CancellationToken cancellationToken)
+    public async Task<PagedResult<ProjectDto>> Handle(GetProjectsQuery request, CancellationToken cancellationToken)
     {
         var query = dbContext.Projects.AsQueryable();
 
@@ -47,13 +48,22 @@ public sealed class GetProjectsQueryHandler(
         if (!currentUserService.IsInRole("Admin"))
         {
             if (!currentUserService.UserId.HasValue)
-                return [];
+                return new PagedResult<ProjectDto>([], 0, request.Page, request.PageSize);
 
             var userId = currentUserService.UserId.Value;
             query = query.Where(p => p.Members.Any(m => m.UserId == userId));
         }
 
-        return await query
+        var ordered = query.OrderBy(p => p.Name);
+
+        var totalCount = await ordered.CountAsync(cancellationToken);
+
+        var page = Math.Max(1, request.Page);
+        var pageSize = Math.Clamp(request.PageSize, 1, 200);
+
+        var items = await ordered
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
             .Select(p => new ProjectDto(
                 p.Id,
                 p.Name,
@@ -82,5 +92,7 @@ public sealed class GetProjectsQueryHandler(
                 p.Members.Count,
                 p.Tickets.Count))
             .ToListAsync(cancellationToken);
+
+        return new PagedResult<ProjectDto>(items, totalCount, page, pageSize);
     }
 }

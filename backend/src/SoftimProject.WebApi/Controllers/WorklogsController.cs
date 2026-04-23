@@ -9,13 +9,15 @@ namespace SoftimProject.WebApi.Controllers;
 public class WorklogsController : ApiControllerBase
 {
     [HttpGet]
-    public async Task<ActionResult<List<WorklogDto>>> GetAll(
+    public async Task<IActionResult> GetAll(
         [FromQuery] Guid? projectId = null,
         [FromQuery] DateOnly? from = null,
         [FromQuery] DateOnly? to = null,
-        [FromQuery] Guid? userId = null)
+        [FromQuery] Guid? userId = null,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 50)
     {
-        return Ok(await Mediator.Send(new GetWorklogsQuery(projectId, from, to, userId)));
+        return Ok(await Mediator.Send(new GetWorklogsQuery(projectId, from, to, userId, page, pageSize)));
     }
 
     [HttpPost]

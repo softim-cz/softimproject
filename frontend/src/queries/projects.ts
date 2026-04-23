@@ -10,11 +10,27 @@ import type {
 } from "@/types";
 import { invalidateQueryKeys, queryKeys } from "./query-keys";
 
+import type { PagedResult } from "./tickets";
+
+// `useProjects` unwraps the paged envelope — most consumers only need the array.
+// If you need totalCount/hasNext, use `useProjectsPaged` below.
 export function useProjects() {
   return useQuery({
     queryKey: queryKeys.projects.all(),
     queryFn: async () => {
-      const { data } = await apiClient.get<Project[]>("/api/v1/projects");
+      const { data } = await apiClient.get<PagedResult<Project>>("/api/v1/projects");
+      return data.items;
+    },
+  });
+}
+
+export function useProjectsPaged(page = 1, pageSize = 50) {
+  return useQuery({
+    queryKey: [...queryKeys.projects.all(), "paged", page, pageSize],
+    queryFn: async () => {
+      const { data } = await apiClient.get<PagedResult<Project>>("/api/v1/projects", {
+        params: { page, pageSize },
+      });
       return data;
     },
   });

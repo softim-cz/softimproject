@@ -10,9 +10,13 @@ namespace SoftimProject.WebApi.Controllers;
 public class CommentsController : ApiControllerBase
 {
     [HttpGet]
-    public async Task<ActionResult<List<CommentDto>>> GetAll(Guid projectId, Guid ticketId)
+    public async Task<IActionResult> GetAll(
+        Guid projectId,
+        Guid ticketId,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 100)
     {
-        return Ok(await Mediator.Send(new GetCommentsQuery(projectId, ticketId)));
+        return Ok(await Mediator.Send(new GetCommentsQuery(projectId, ticketId, page, pageSize)));
     }
 
     [HttpPost]

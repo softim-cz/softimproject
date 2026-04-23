@@ -19,9 +19,11 @@ namespace SoftimProject.WebApi.Controllers;
 public class ProjectsController : ApiControllerBase
 {
     [HttpGet]
-    public async Task<ActionResult<List<ProjectDto>>> GetAll()
+    public async Task<IActionResult> GetAll(
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 50)
     {
-        return Ok(await Mediator.Send(new GetProjectsQuery()));
+        return Ok(await Mediator.Send(new GetProjectsQuery(page, pageSize)));
     }
 
     [HttpGet("{id:guid}")]
