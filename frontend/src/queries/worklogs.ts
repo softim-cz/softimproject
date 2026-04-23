@@ -2,20 +2,39 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import apiClient from "@/lib/api/client";
 import type { Worklog } from "@/types";
 import { normalizeQueryParams, queryKeys, type QueryParams } from "./query-keys";
+import type { PagedResult } from "./tickets";
 
 interface WorklogQueryParams extends QueryParams {
   projectId?: string;
   from?: string;
   to?: string;
+  page?: number;
+  pageSize?: number;
 }
 
+// Unwraps paged envelope for legacy consumers. Use `useWorklogsPaged` when you
+// need totalCount/hasNext to drive a pagination UI.
 export function useWorklogs(params?: WorklogQueryParams) {
   const normalizedParams = normalizeQueryParams(params);
 
   return useQuery({
     queryKey: queryKeys.worklogs.list(normalizedParams),
     queryFn: async () => {
-      const { data } = await apiClient.get<Worklog[]>("/api/v1/worklogs", {
+      const { data } = await apiClient.get<PagedResult<Worklog>>("/api/v1/worklogs", {
+        params: normalizedParams,
+      });
+      return data.items;
+    },
+  });
+}
+
+export function useWorklogsPaged(params?: WorklogQueryParams) {
+  const normalizedParams = normalizeQueryParams(params);
+
+  return useQuery({
+    queryKey: [...queryKeys.worklogs.list(normalizedParams), "paged"],
+    queryFn: async () => {
+      const { data } = await apiClient.get<PagedResult<Worklog>>("/api/v1/worklogs", {
         params: normalizedParams,
       });
       return data;
