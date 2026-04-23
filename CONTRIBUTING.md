@@ -43,6 +43,8 @@ Nikdy nekomitujte reálné hodnoty (hesla, tokeny, connection stringy). Produkč
 GitHub Free tier pro private repos neumí Branch Protection, takže tohle není technicky vynucené — je to **dohoda**.
 
 - Pre-push hook (bod 1) zachytí většinu problémů dřív, než push dorazí na remote.
+- CI workflow (`.github/workflows/ci.yml`) spouští backend `build + test` a frontend `lint + build` na každý PR i push do main — rychlé (≤ 5 min), bez DB/služeb.
+- E2E workflow (`e2e.yml`) a deploy (`deploy.yml`) běží paralelně s CI.
 - Když CI přesto zčervená (např. po `git push --no-verify`), opraví to ten, kdo push zavinil, **prioritně před ostatní prací**. Nekumulovat další commity na rozbitý main.
 - GitHub posílá default e-mail všem contributors při failed workflow → víme o problému do 1-2 minut.
 - CI status badge v `README.md` ukazuje aktuální stav `main` komukoli, kdo repo otevře.
