@@ -155,20 +155,14 @@ const TicketCard = memo(function TicketCard({
         );
       case "assignee":
         return ticket.assignee ? (
-          <span
-            key="assignee"
-            className="flex items-center gap-1 text-xs text-muted-foreground"
-          >
+          <span key="assignee" className="flex items-center gap-1 text-xs text-muted-foreground">
             <User className="h-3 w-3" />
             {ticket.assignee.displayName}
           </span>
         ) : null;
       case "dueDate":
         return ticket.dueDate ? (
-          <span
-            key="dueDate"
-            className="flex items-center gap-1 text-xs text-muted-foreground"
-          >
+          <span key="dueDate" className="flex items-center gap-1 text-xs text-muted-foreground">
             <Calendar className="h-3 w-3" />
             {new Date(ticket.dueDate).toLocaleDateString()}
           </span>
