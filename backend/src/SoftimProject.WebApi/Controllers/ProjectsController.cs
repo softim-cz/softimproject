@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using SoftimProject.Application.Features.Projects.ClientPortal;
 using SoftimProject.Application.Features.Projects.CreateProject;
 using SoftimProject.Application.Features.Projects.CustomFields;
 using SoftimProject.Application.Features.Projects.DeleteProject;
@@ -134,6 +135,20 @@ public class ProjectsController : ApiControllerBase
     {
         var result = await Mediator.Send(new TriggerGitHubSyncCommand(projectId));
         return result.Error == null ? Ok(result) : BadRequest(result);
+    }
+
+    [HttpPost("{projectId:guid}/portal/token")]
+    public async Task<ActionResult<string>> GenerateClientAccessToken(Guid projectId)
+    {
+        var token = await Mediator.Send(new GenerateClientAccessTokenCommand(projectId));
+        return Ok(new { token });
+    }
+
+    [HttpPost("{projectId:guid}/portal/revoke")]
+    public async Task<IActionResult> RevokeClientAccess(Guid projectId)
+    {
+        await Mediator.Send(new RevokeClientAccessCommand(projectId));
+        return NoContent();
     }
 }
 

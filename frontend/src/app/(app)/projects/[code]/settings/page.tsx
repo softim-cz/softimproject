@@ -20,6 +20,8 @@ import {
   useAddProjectMember,
   useUpdateProjectMember,
   useRemoveProjectMember,
+  useGenerateClientAccessToken,
+  useRevokeClientAccess,
 } from "@/queries/projects";
 import {
   useBoard,
@@ -73,6 +75,8 @@ export default function ProjectSettingsPage({ params }: { params: Promise<{ code
   const projectId = project?.id ?? "";
   const updateProject = useUpdateProject();
   const deleteProject = useDeleteProject();
+  const generateToken = useGenerateClientAccessToken();
+  const revokeToken = useRevokeClientAccess();
   const [editName, setEditName] = useState("");
   const [editCode, setEditCode] = useState("");
   const [confirmDelete, setConfirmDelete] = useState("");
@@ -149,6 +153,29 @@ export default function ProjectSettingsPage({ params }: { params: Promise<{ code
       );
     } catch {
       toast.error("Failed to update client access");
+    }
+  };
+
+  const handleGenerateToken = async () => {
+    const confirmMessage = project.clientAccessToken
+      ? "Regenerate portal token? The current link will stop working immediately."
+      : "Generate a portal token? Anyone with the link can see this project's board.";
+    if (!window.confirm(confirmMessage)) return;
+    try {
+      await generateToken.mutateAsync(projectId);
+      toast.success("Portal token generated");
+    } catch {
+      toast.error("Failed to generate token");
+    }
+  };
+
+  const handleRevokeToken = async () => {
+    if (!window.confirm("Revoke portal access? The existing link will stop working.")) return;
+    try {
+      await revokeToken.mutateAsync(projectId);
+      toast.success("Portal access revoked");
+    } catch {
+      toast.error("Failed to revoke access");
     }
   };
 
@@ -235,13 +262,40 @@ export default function ProjectSettingsPage({ params }: { params: Promise<{ code
               type="checkbox"
               checked={project.clientAccessEnabled}
               onChange={handleClientAccessToggle}
-              disabled={updateProject.isPending}
+              disabled={updateProject.isPending || !project.clientAccessToken}
               className="rounded"
             />
             Client portal access enabled
           </label>
           {project.clientAccessEnabled && project.clientAccessToken && (
             <ClientPortalLink token={project.clientAccessToken} />
+          )}
+          <div className="flex items-center gap-2 pt-1">
+            <button
+              onClick={handleGenerateToken}
+              disabled={generateToken.isPending}
+              className="px-3 py-1.5 rounded-lg border border-border text-xs font-medium text-foreground hover:bg-muted transition-colors disabled:opacity-50"
+            >
+              {generateToken.isPending
+                ? "Generating..."
+                : project.clientAccessToken
+                  ? "Regenerate token"
+                  : "Generate token"}
+            </button>
+            {project.clientAccessToken && (
+              <button
+                onClick={handleRevokeToken}
+                disabled={revokeToken.isPending}
+                className="px-3 py-1.5 rounded-lg border border-destructive/50 text-xs font-medium text-destructive hover:bg-destructive/5 transition-colors disabled:opacity-50"
+              >
+                {revokeToken.isPending ? "Revoking..." : "Revoke access"}
+              </button>
+            )}
+          </div>
+          {!project.clientAccessToken && (
+            <p className="text-xs text-muted-foreground">
+              No token yet — generate one to enable the portal.
+            </p>
           )}
         </div>
       </section>
