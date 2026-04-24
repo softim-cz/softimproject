@@ -1,24 +1,26 @@
 using MediatR;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Identity.Web;
 using SoftimProject.Application;
+using SoftimProject.Application.Features.Projects.GetProjects;
+using SoftimProject.Application.Features.Tickets.GetTicketById;
+using SoftimProject.Application.Features.Tickets.GetTickets;
 using SoftimProject.Application.Features.Worklogs.CreateWorklog;
+using SoftimProject.Application.Features.Worklogs.GetWorklogs;
 using SoftimProject.Application.Interfaces;
-using SoftimProject.Infrastructure.Persistence;
-using SoftimProject.Infrastructure.Services;
+using SoftimProject.Infrastructure;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddOpenApi();
+// #18: share the full Application + Infrastructure stack with WebApi. Tools used
+// to register DbContext and ICurrentUserService inline; now Infrastructure does it,
+// which keeps behaviour (background services, Polly pipelines, audit recorders) in
+// sync with what the WebApi process exposes.
 builder.Services.AddApplicationServices();
-
-builder.Services.AddDbContext<ApplicationDbContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
-builder.Services.AddScoped<IApplicationDbContext>(provider => provider.GetRequiredService<ApplicationDbContext>());
+builder.Services.AddInfrastructureServices(builder.Configuration);
 
 builder.Services.AddHttpContextAccessor();
-builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddMicrosoftIdentityWebApi(builder.Configuration.GetSection("AzureAd"));
@@ -46,87 +48,60 @@ app.Use(async (context, next) =>
 
 var tools = app.MapGroup("/tools").RequireAuthorization();
 
-tools.MapGet("/projects", async (IApplicationDbContext db, CancellationToken ct) =>
+// Every tool below delegates to the same MediatR handler WebApi uses. That
+// unlocks two things for free:
+//   1. Authorization — IRequireProjectAccess, IRequireProjectRole etc. fire via
+//      `AuthorizationBehavior`, so a forbidden call becomes a 403 without inline checks.
+//   2. Shape stability — tools return the same DTOs the REST clients already consume,
+//      so LLM-driven tooling doesn't have to speak a second schema.
+
+tools.MapGet("/projects", async (IMediator mediator, int page, int pageSize, CancellationToken ct) =>
 {
-    var projects = await db.Projects
-        .AsNoTracking()
-        .Select(p => new
-        {
-            p.Id,
-            p.Name,
-            p.Code,
-            Status = p.Status.ToString(),
-            p.SpentHours,
-            p.BudgetHours,
-            p.HealthScore
-        })
-        .ToListAsync(ct);
+    var pagedResult = await mediator.Send(
+        new GetProjectsQuery(
+            page <= 0 ? 1 : page,
+            pageSize <= 0 ? 50 : pageSize),
+        ct);
+    return Results.Ok(pagedResult);
+}).WithName("ListProjects")
+  .WithDescription("List projects the caller can see (paged).");
 
-    return Results.Ok(projects);
-}).WithName("ListProjects").WithDescription("List all projects with their status and health");
-
-tools.MapGet("/projects/{projectId:guid}/tickets", async (Guid projectId, IApplicationDbContext db, ICurrentUserService currentUserService, CancellationToken ct) =>
+tools.MapGet("/projects/{projectId:guid}/tickets", async (
+    Guid projectId,
+    string? search,
+    int page,
+    int pageSize,
+    IMediator mediator,
+    CancellationToken ct) =>
 {
-    if (!await currentUserService.HasProjectAccessAsync(projectId, ct))
-    {
-        return Results.Forbid();
-    }
+    var pagedResult = await mediator.Send(
+        new GetTicketsQuery(
+            projectId,
+            SearchTerm: search,
+            Page: page <= 0 ? 1 : page,
+            PageSize: pageSize <= 0 ? 25 : pageSize),
+        ct);
+    return Results.Ok(pagedResult);
+}).WithName("GetProjectTickets")
+  .WithDescription("Page through tickets for a project. IRequireProjectAccess is enforced; callers without membership get 403.");
 
-    var tickets = await db.Tickets
-        .AsNoTracking()
-        .Where(t => t.ProjectId == projectId)
-        .Select(t => new
-        {
-            t.Id,
-            t.Title,
-            Status = t.TaskState.Name,
-            Priority = t.TicketPriority.Name,
-            Assignee = t.Assignee != null ? t.Assignee.DisplayName : null,
-            t.DueDate
-        })
-        .ToListAsync(ct);
-
-    return Results.Ok(tickets);
-}).WithName("GetProjectTickets").WithDescription("Get all tickets for a specific project");
-
-tools.MapGet("/tickets/{ticketId:guid}", async (Guid ticketId, IApplicationDbContext db, ICurrentUserService currentUserService, CancellationToken ct) =>
+// Breaking change vs. the old /tools/tickets/{ticketId} route: the query's
+// authorization guard needs a projectId, and forcing it into the URL closes the
+// previous hole where a caller without project membership could fetch any ticket
+// by guessing the ticket id. The old route has been removed intentionally.
+tools.MapGet("/projects/{projectId:guid}/tickets/{ticketId:guid}", async (
+    Guid projectId,
+    Guid ticketId,
+    IMediator mediator,
+    CancellationToken ct) =>
 {
-    var ticket = await db.Tickets
-        .AsNoTracking()
-        .Where(t => t.Id == ticketId)
-        .Select(t => new
-        {
-            t.Id,
-            t.Title,
-            t.Description,
-            Status = t.TaskState.Name,
-            Priority = t.TicketPriority.Name,
-            t.AiSummary,
-            Assignee = t.Assignee != null ? t.Assignee.DisplayName : null,
-            t.ProjectId
-        })
-        .FirstOrDefaultAsync(ct);
-
-    if (ticket is null)
-    {
-        return Results.NotFound();
-    }
-
-    if (!await currentUserService.HasProjectAccessAsync(ticket.ProjectId, ct))
-    {
-        return Results.Forbid();
-    }
-
+    var ticket = await mediator.Send(new GetTicketByIdQuery(projectId, ticketId), ct);
     return Results.Ok(ticket);
-}).WithName("GetTicketDetails").WithDescription("Get detailed information about a specific ticket");
+}).WithName("GetTicketDetails")
+  .WithDescription("Get the full detail of a single ticket (scoped to its project).");
 
-tools.MapPost("/worklogs", async (CreateWorklogRequest request, IMediator mediator, ICurrentUserService currentUserService, CancellationToken ct) =>
+tools.MapPost("/worklogs", async (CreateWorklogRequest request, IMediator mediator, CancellationToken ct) =>
 {
-    if (!await currentUserService.HasProjectAccessAsync(request.ProjectId, ct))
-    {
-        return Results.Forbid();
-    }
-
     var id = await mediator.Send(
         new CreateWorklogCommand(
             request.ProjectId,
@@ -136,34 +111,42 @@ tools.MapPost("/worklogs", async (CreateWorklogRequest request, IMediator mediat
             request.Description,
             request.IsBillable),
         ct);
-
     return Results.Created($"/tools/worklogs/{id}", new { Id = id });
-}).WithName("LogWorklog").WithDescription("Create a worklog entry for a project");
+}).WithName("LogWorklog")
+  .WithDescription("Create a worklog entry. IRequireProjectRole(Developer) is enforced; Guest role returns 403.");
 
-tools.MapGet("/projects/{projectId:guid}/worklogs", async (Guid projectId, string? from, string? to, IApplicationDbContext db, ICurrentUserService currentUserService, CancellationToken ct) =>
+tools.MapGet("/projects/{projectId:guid}/worklogs", async (
+    Guid projectId,
+    string? from,
+    string? to,
+    int page,
+    int pageSize,
+    IMediator mediator,
+    CancellationToken ct) =>
 {
-    if (!await currentUserService.HasProjectAccessAsync(projectId, ct))
-    {
-        return Results.Forbid();
-    }
-
-    var query = db.Worklogs.AsNoTracking().Where(w => w.ProjectId == projectId);
-
-    if (DateOnly.TryParse(from, out var fromDate))
-        query = query.Where(w => w.Date >= fromDate);
-    if (DateOnly.TryParse(to, out var toDate))
-        query = query.Where(w => w.Date <= toDate);
-
-    var worklogs = await query
-        .GroupBy(w => w.User.DisplayName)
-        .Select(g => new { User = g.Key, TotalHours = g.Sum(w => w.Hours), Entries = g.Count() })
-        .ToListAsync(ct);
-
-    return Results.Ok(worklogs);
-}).WithName("GetWorklogsSummary").WithDescription("Get worklog summary for a project, optionally filtered by date range");
+    DateOnly? fromDate = DateOnly.TryParse(from, out var f) ? f : null;
+    DateOnly? toDate = DateOnly.TryParse(to, out var t) ? t : null;
+    var pagedResult = await mediator.Send(
+        new GetWorklogsQuery(
+            ProjectId: projectId,
+            From: fromDate,
+            To: toDate,
+            Page: page <= 0 ? 1 : page,
+            PageSize: pageSize <= 0 ? 50 : pageSize),
+        ct);
+    return Results.Ok(pagedResult);
+}).WithName("GetWorklogs")
+  .WithDescription("Page through project worklogs within an optional date window.");
 
 app.Run();
 
-record CreateWorklogRequest(Guid ProjectId, Guid? TicketId, string Date, decimal Hours, string? Description, bool IsBillable);
+// Exposed for WebApplicationFactory<Program> in integration tests.
+public partial class Program { }
 
-
+public sealed record CreateWorklogRequest(
+    Guid ProjectId,
+    Guid? TicketId,
+    string Date,
+    decimal Hours,
+    string? Description,
+    bool IsBillable);
