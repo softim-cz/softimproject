@@ -70,13 +70,13 @@ public class OwnershipAndAiTests
         var configuration = new ConfigurationBuilder().Build();
         var service = new AiService(configuration);
 
-        var (summary, tokensUsed) = await service.SummarizeTicketAsync(
+        var (summary, usage, _) = await service.SummarizeTicketAsync(
             "Ticket",
             "Description",
             ["Comment"]);
 
         summary.Should().BeEmpty();
-        tokensUsed.Should().Be(0);
+        usage.TotalTokens.Should().Be(0);
     }
 
     private static ApplicationDbContext CreateDbContext()

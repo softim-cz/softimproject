@@ -28,6 +28,7 @@ public sealed class WeeklyReportService(
 
         var dbContext = services.GetRequiredService<IApplicationDbContext>();
         var aiService = services.GetRequiredService<IAiService>();
+        var recorder = services.GetRequiredService<IAiInvocationRecorder>();
 
         var activeProjects = await dbContext.Projects
             .Where(p => p.Status == ProjectStatus.Active)
@@ -60,9 +61,23 @@ public sealed class WeeklyReportService(
                     Health score: {project.HealthScore}/100
                     """;
 
-                var (report, tokensUsed) = await aiService.GenerateReportAsync(
-                    project.Name, "Weekly Status", $"{periodStart:d} to {periodEnd:d}", data, cancellationToken);
+                var recorded = await recorder.RecordAsync(
+                    new AiInvocationContext(
+                        AiInvocationTrigger.WeeklyReport,
+                        InputText: $"project:{project.Id}|period:{periodStart:O}/{periodEnd:O}",
+                        TriggeredByUserId: null,
+                        ProjectId: project.Id,
+                        TicketId: null),
+                    async ct =>
+                    {
+                        var (report, usage, _) = await aiService.GenerateReportAsync(
+                            project.Name, "Weekly Status", $"{periodStart:d} to {periodEnd:d}", data, ct);
+                        return new AiInvocationCall<(string, int)>((report, usage.TotalTokens),
+                            usage.PromptTokens, usage.CompletionTokens, report);
+                    },
+                    cancellationToken);
 
+                var (reportText, tokensUsed) = recorded.Payload;
                 dbContext.AiReports.Add(new AiReport
                 {
                     Id = Guid.NewGuid(),
@@ -70,7 +85,7 @@ public sealed class WeeklyReportService(
                     ReportType = AiReportType.WeeklyStatus,
                     PeriodStart = periodStart,
                     PeriodEnd = periodEnd,
-                    Content = report,
+                    Content = reportText,
                     TokensUsed = tokensUsed,
                     GeneratedAt = DateTime.UtcNow
                 });

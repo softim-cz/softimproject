@@ -28,7 +28,8 @@ import {
 } from "@/queries/admin";
 import { useApplicationRoles } from "@/queries/lookups";
 import { useCurrentUser } from "@/queries/auth";
-import { AlertTriangle, RotateCw, Trash2 } from "lucide-react";
+import { useAdminAiUsage } from "@/queries/ai";
+import { AlertTriangle, RotateCw, Trash2, Sparkles } from "lucide-react";
 
 function UserManagement() {
   const { data: users, isLoading, error } = useAdminUsers();
@@ -448,6 +449,99 @@ function DeadLetterQueue() {
   );
 }
 
+function AiUsage() {
+  const [days, setDays] = useState(30);
+  const { data, isLoading, error } = useAdminAiUsage(days);
+
+  if (isLoading) return <TableSkeleton rows={3} />;
+  if (error)
+    return (
+      <div className="rounded-lg border border-destructive/50 bg-destructive/5 p-4 text-sm text-destructive">
+        Failed to load AI usage.
+      </div>
+    );
+  if (!data) return null;
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center gap-3">
+        <label className="text-xs text-muted-foreground">Window:</label>
+        <select
+          value={days}
+          onChange={(e) => setDays(parseInt(e.target.value, 10))}
+          className="text-xs rounded-md border border-border bg-card px-2 py-1"
+        >
+          <option value={7}>7 days</option>
+          <option value={30}>30 days</option>
+          <option value={90}>90 days</option>
+        </select>
+      </div>
+      <div className="grid grid-cols-3 gap-3">
+        <div className="rounded-lg border border-border bg-card p-4">
+          <p className="text-xs text-muted-foreground">Invocations</p>
+          <p className="text-xl font-semibold text-foreground">{data.totalInvocations}</p>
+        </div>
+        <div className="rounded-lg border border-border bg-card p-4">
+          <p className="text-xs text-muted-foreground">Total tokens</p>
+          <p className="text-xl font-semibold text-foreground">
+            {data.totalTokens.toLocaleString()}
+          </p>
+        </div>
+        <div className="rounded-lg border border-border bg-card p-4">
+          <p className="text-xs text-muted-foreground">Estimated cost</p>
+          <p className="text-xl font-semibold text-foreground">${data.totalCostUsd.toFixed(4)}</p>
+        </div>
+      </div>
+      {data.byProject.length > 0 && (
+        <div className="rounded-lg border border-border overflow-hidden">
+          <table className="w-full text-sm">
+            <thead className="bg-muted/50">
+              <tr>
+                <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground uppercase">
+                  Project
+                </th>
+                <th className="px-3 py-2 text-right text-xs font-medium text-muted-foreground uppercase">
+                  Calls
+                </th>
+                <th className="px-3 py-2 text-right text-xs font-medium text-muted-foreground uppercase">
+                  Tokens
+                </th>
+                <th className="px-3 py-2 text-right text-xs font-medium text-muted-foreground uppercase">
+                  Cost
+                </th>
+                <th className="px-3 py-2 text-right text-xs font-medium text-muted-foreground uppercase">
+                  Failures
+                </th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border">
+              {data.byProject.map((row) => (
+                <tr key={row.projectId ?? "unknown"} className="hover:bg-muted/30">
+                  <td className="px-3 py-2 text-foreground">
+                    {row.projectName ?? (
+                      <span className="text-muted-foreground italic">(no project)</span>
+                    )}
+                  </td>
+                  <td className="px-3 py-2 text-right">{row.invocationCount}</td>
+                  <td className="px-3 py-2 text-right">{row.totalTokens.toLocaleString()}</td>
+                  <td className="px-3 py-2 text-right">${row.totalCostUsd.toFixed(4)}</td>
+                  <td className="px-3 py-2 text-right">
+                    {row.failureCount > 0 ? (
+                      <span className="text-destructive">{row.failureCount}</span>
+                    ) : (
+                      <span className="text-muted-foreground">0</span>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function IntegrationStatus() {
   const integrations = [
     { name: "Jira", status: "Not configured", connected: false },
@@ -515,6 +609,15 @@ export default function AdminPage() {
           <h2 className="text-lg font-semibold text-foreground">Dead-letter queue</h2>
         </div>
         <DeadLetterQueue />
+      </section>
+
+      {/* AI usage */}
+      <section>
+        <div className="flex items-center gap-2 mb-4">
+          <Sparkles className="h-5 w-5 text-muted-foreground" />
+          <h2 className="text-lg font-semibold text-foreground">AI usage</h2>
+        </div>
+        <AiUsage />
       </section>
 
       {/* Integration status */}

@@ -1,6 +1,7 @@
 using System.Text.Json;
 using FluentValidation;
 using SoftimProject.Application.Common;
+using SoftimProject.Application.Interfaces;
 
 namespace SoftimProject.WebApi.Middleware;
 
@@ -32,6 +33,8 @@ public sealed class ExceptionHandlingMiddleware(RequestDelegate next, ILogger<Ex
                     : new[] { validationEx.Message })),
 
             NotFoundException notFoundEx => (StatusCodes.Status404NotFound, new ErrorResponse(notFoundEx.Message)),
+
+            AiRateLimitExceededException rateLimitEx => (StatusCodes.Status429TooManyRequests, new ErrorResponse(rateLimitEx.Message)),
 
             UnauthorizedAccessException unauthorizedEx => (StatusCodes.Status403Forbidden, new ErrorResponse(unauthorizedEx.Message)),
 

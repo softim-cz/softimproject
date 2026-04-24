@@ -53,4 +53,10 @@ public class AdminController : ApiControllerBase
         await Mediator.Send(new DismissDeadLetterCommand(id));
         return NoContent();
     }
+
+    // --- AI usage ---
+
+    [HttpGet("ai-usage")]
+    public async Task<ActionResult<AiUsageDto>> GetAiUsage([FromQuery] int days = 30)
+        => Ok(await Mediator.Send(new GetAiUsageQuery(days)));
 }

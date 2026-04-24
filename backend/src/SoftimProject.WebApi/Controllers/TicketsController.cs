@@ -9,6 +9,7 @@ using SoftimProject.Application.Features.Tickets.MoveTicket;
 using SoftimProject.Application.Features.Tickets.UpdateTicket;
 using SoftimProject.Application.Features.Tickets;
 using SoftimProject.Application.Features.Projects.GitHub;
+using SoftimProject.Application.Features.Tickets.AiHistory;
 
 namespace SoftimProject.WebApi.Controllers;
 
@@ -101,6 +102,21 @@ public class TicketsController : ApiControllerBase
     [HttpPost("{ticketId:guid}/github/create-branch")]
     public async Task<ActionResult<CreateTicketBranchResult>> CreateBranch(Guid projectId, Guid ticketId)
         => Ok(await Mediator.Send(new CreateTicketBranchCommand(projectId, ticketId)));
+
+    // --- AI audit + manual re-run per ticket ---
+
+    [HttpGet("{ticketId:guid}/ai/invocations")]
+    public async Task<ActionResult<List<AiInvocationDto>>> GetAiHistory(Guid projectId, Guid ticketId)
+        => Ok(await Mediator.Send(new GetTicketAiHistoryQuery(projectId, ticketId)));
+
+    [HttpPost("{ticketId:guid}/ai/resummarize")]
+    public async Task<ActionResult<object>> Resummarize(Guid projectId, Guid ticketId, [FromBody] ResummarizeTicketBody body)
+    {
+        var id = await Mediator.Send(new ResummarizeTicketCommand(projectId, ticketId, body.Reason));
+        return Ok(new { invocationId = id });
+    }
+
+    public sealed record ResummarizeTicketBody(string Reason);
 }
 
 
