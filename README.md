@@ -445,6 +445,35 @@ Resumovat nejde jobs ve stavu `Pending` / `Running` / `Completed` — endpoint v
 | `POST /api/v1/migration/validate`               | Admin  | Pre-flight kontrola credentials + project collision                |
 | `POST /api/v1/migration/{jobId}/resume`         | Admin  | Znovu spustí Failed/Cancelled/CompletedWithErrors job s novým API key |
 
+## MCP server — sdílené CQRS kontrakty s WebApi
+
+`SoftimProject.McpServer` je samostatný ASP.NET Core proces pro LLM-driven tooling (AI agenty, kteří chtějí pracovat s projektem přes HTTP). Od #18 **každý tool endpoint volá stejný MediatR handler** jako WebApi — žádná duplicitní query logika, žádné samostatné DTO tvary.
+
+### Co to znamená prakticky
+
+- **Jedna zdrojová pravda pro autorizaci** — `IRequireProjectAccess`, `IRequireProjectRole`, `IRequireRole` fires přes `AuthorizationBehavior` i na MCP cestě. MCP tool nemusí (a nesmí) duplikovat `HasProjectAccessAsync` check — pipeline to udělá.
+- **Jedna zdrojová pravda pro DTO** — MCP vrací `PagedResult<ProjectDto>`, `PagedResult<TicketListItemDto>`, `TicketDetailDto`, `PagedResult<WorklogDto>`. Anonymous objekty byly odstraněny.
+- **Sdílená observability** — volání přes MCP tools tvoří stejné audit artefakty (JobRun, AiInvocation, SyncLog) jako volání ze WebApi.
+- **Bezpečnost** — `/tools/tickets/{ticketId}` bez `projectId` bylo odstraněno: obcházelo `IRequireProjectAccess`. Náhradní endpoint je scoped k projektu.
+
+### Tool katalog
+
+| Tool                                                           | MediatR handler                   | Guard                            |
+| -------------------------------------------------------------- | --------------------------------- | -------------------------------- |
+| `GET  /tools/projects`                                         | `GetProjectsQuery`                | Auth only                        |
+| `GET  /tools/projects/{projectId}/tickets`                     | `GetTicketsQuery`                 | `IRequireProjectAccess`          |
+| `GET  /tools/projects/{projectId}/tickets/{ticketId}`          | `GetTicketByIdQuery`              | `IRequireProjectAccess`          |
+| `POST /tools/worklogs`                                         | `CreateWorklogCommand`            | `IRequireProjectRole(Developer)` |
+| `GET  /tools/projects/{projectId}/worklogs`                    | `GetWorklogsQuery`                | Auth only (filter per project)   |
+
+### DI parita s WebApi
+
+MCP process nyní registruje **`AddApplicationServices()` + `AddInfrastructureServices(Configuration)`** — stejně jako WebApi. Background services, Polly pipelines, DLQ recorder, AI invocation recorder běží i v MCP procesu. Pokud to bude do budoucna příliš, cesta je rozdělit Infrastructure DI na `AddHostedServicesOnly` / `AddApiOnly`.
+
+### Breaking change v tool API
+
+Před #18 existoval `GET /tools/tickets/{ticketId}` — tento endpoint je **odstraněn**. Klienti přecházejí na `GET /tools/projects/{projectId}/tickets/{ticketId}`. Změna je žádoucí: původní route vyžadoval, aby MCP tool sám implementoval access check (což dělal, ale až po načtení ticketu — informační únik přes timing/404-vs-403 rozlišení), nová route volá handler s plným `IRequireProjectAccess` guardem.
+
 ## Související dokumenty
 
 - `REPOSITORY_ANALYSIS.md` – analýza stavu projektu, silné a slabé stránky.
