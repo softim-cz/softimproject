@@ -264,6 +264,45 @@ Hierarchie: **Admin ≫ ProjectManager ≫ Developer ≫ Guest**. `IRequireProje
 
 Pokrytí integračními testy: `SoftimProject.WebApi.Tests.Integration.AuthorizationBoundaryTests` pokrývá oba pipeline guardy — cross-project isolation (`IRequireProjectAccess`) i role-matrix případy (Developer zablokován na PM-only akcích, Guest zablokován na Developer-only akcích, Admin & PM bypass).
 
+## Observability — background jobs
+
+Všechny `BackgroundService`-y dědí z `TrackedBackgroundService`, což automaticky zajišťuje tři věci při každém ticku:
+
+1. **JobRun řádek** v tabulce `JobRuns` — Running při startu, Success / PartialSuccess / Failed při dokončení, s délkou běhu a čítači `itemsProcessed` / `itemsFailed`.
+2. **Strukturované logy** s property `{JobName}` a `{JobRunId}` na každé zprávě (přes Serilog `LogContext`).
+3. **Registrace v `IJobRegistry`** tak, aby `/health/jobs` znal očekávaný interval.
+
+### Health endpoint
+
+```
+GET /api/v1/health/jobs          # anonymní — probeable infra monitoringem
+```
+
+Vrací `{ status, jobs[] }`:
+
+- `status` = **Healthy** pokud všechny registrované joby mají nedávný běh a poslední status ≠ Failed
+- `status` = **Degraded** + HTTP **503** pokud aspoň jeden job:
+  - nemá žádný JobRun záznam (po restartu ještě neběžel), nebo
+  - poslední běh je starší než **2× očekávaný interval** (grace na PeriodicTimer drift a idle sloty jako DeadlineNotificationService), nebo
+  - poslední běh skončil ve stavu `Failed`
+
+Pole `jobs[]` obsahuje per-job last-run timestamp, duration, processed/failed counters a error message.
+
+### Kam se dívat když něco padne
+
+| Symptom                              | Kde hledat                                                                      |
+| ------------------------------------ | ------------------------------------------------------------------------------- |
+| Job po restartu nenaběhl             | `/api/v1/health/jobs` → `isOverdue=true`, `lastRunAt=null`                      |
+| Poslední běh Failed                  | `/health/jobs` → `lastError`; plný stack v logu (filtruj `JobName = "..."`)    |
+| Rekonstrukce konkrétního běhu        | Log query na `JobRunId = "<guid>"` — dostane všechny logy z té iterace         |
+| Sync per-projekt failuje             | `SyncLogs` tabulka (per-projekt audit, samostatně od JobRun)                    |
+
+### Serilog a export do App Insights / Log Analytics
+
+Konfigurace je v `appsettings.json` pod `Serilog`. `Enrich: FromLogContext` je zapnutý, takže `{JobName}` / `{JobRunId}` propagují do všech sinks. Pro napojení na Azure Monitor přidat sink (např. `Serilog.Sinks.ApplicationInsights` nebo OTel) do `WriteTo` s ConnectionString z `ApplicationInsights:ConnectionString` — proměnné jsou strukturované, takže se stanou custom dimensions automaticky.
+
+Alerty na opakovaná selhání se nastavují na straně Azure Monitoru na dotaz typu `traces | where customDimensions.JobName == "X" and message startswith "Job ... finished Failed" | summarize count() by bin(timestamp, 1h)`.
+
 ## Související dokumenty
 
 - `REPOSITORY_ANALYSIS.md` – analýza stavu projektu, silné a slabé stránky.

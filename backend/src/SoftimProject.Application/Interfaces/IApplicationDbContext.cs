@@ -34,6 +34,7 @@ public interface IApplicationDbContext
     DbSet<MigrationJob> MigrationJobs { get; }
     DbSet<TicketCustomFieldValue> TicketCustomFieldValues { get; }
     DbSet<TicketPriority> TicketPriorities { get; }
+    DbSet<JobRun> JobRuns { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }
