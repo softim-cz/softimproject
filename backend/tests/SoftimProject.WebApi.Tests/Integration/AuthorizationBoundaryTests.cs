@@ -8,6 +8,7 @@ namespace SoftimProject.WebApi.Tests.Integration;
 // End-to-end check that the authorization pipeline behaviors (IRequireProjectAccess and
 // IRequireProjectRole) translate a forbidden call into HTTP 403. Tests are grouped by marker
 // interface; the role-matrix cases exercise the hierarchy Admin > ProjectManager > Developer > Guest.
+[Collection("Integration")]
 public sealed class AuthorizationBoundaryTests : IClassFixture<IntegrationTestFactory>
 {
     private readonly IntegrationTestFactory _factory;

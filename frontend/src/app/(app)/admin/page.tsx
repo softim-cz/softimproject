@@ -16,20 +16,24 @@ import {
 import type { AdminUser, ApplicationRoleEntity } from "@/types";
 import { GlobalRole } from "@/types";
 import { cn } from "@/lib/utils";
-import { useAdminUsers, useUpdateUserRoles } from "@/queries/admin";
+import {
+  useAdminUsers,
+  useUpdateUserRoles,
+  useUpdateUserGlobalRole,
+  useUpdateUserActive,
+} from "@/queries/admin";
 import { useApplicationRoles } from "@/queries/lookups";
-
-const roleColors: Record<GlobalRole, string> = {
-  [GlobalRole.Admin]: "bg-red-100 text-red-700",
-  [GlobalRole.Manager]: "bg-blue-100 text-blue-700",
-  [GlobalRole.User]: "bg-gray-100 text-gray-600",
-};
+import { useCurrentUser } from "@/queries/auth";
 
 function UserManagement() {
   const { data: users, isLoading, error } = useAdminUsers();
   const { data: appRoles } = useApplicationRoles();
+  const { data: currentUser } = useCurrentUser();
   const updateRoles = useUpdateUserRoles();
+  const updateGlobalRole = useUpdateUserGlobalRole();
+  const updateActive = useUpdateUserActive();
   const [expandedUser, setExpandedUser] = useState<string | null>(null);
+  const [rowError, setRowError] = useState<{ userId: string; message: string } | null>(null);
 
   if (isLoading) return <TableSkeleton rows={6} />;
 
@@ -51,6 +55,45 @@ function UserManagement() {
       : [...user.applicationRoleIds, roleId];
     updateRoles.mutate({ userId: user.id, applicationRoleIds: newIds });
   };
+
+  const extractMessage = (err: unknown, fallback: string) => {
+    if (err && typeof err === "object" && "response" in err) {
+      const data = (err as { response?: { data?: { message?: string; errors?: string[] } } })
+        .response?.data;
+      return data?.errors?.[0] ?? data?.message ?? fallback;
+    }
+    return fallback;
+  };
+
+  const changeGlobalRole = (user: AdminUser, role: GlobalRole) => {
+    setRowError(null);
+    updateGlobalRole.mutate(
+      { userId: user.id, globalRole: role },
+      {
+        onError: (err) =>
+          setRowError({
+            userId: user.id,
+            message: extractMessage(err, "Změna role se nezdařila."),
+          }),
+      }
+    );
+  };
+
+  const toggleActive = (user: AdminUser) => {
+    setRowError(null);
+    updateActive.mutate(
+      { userId: user.id, isActive: !user.isActive },
+      {
+        onError: (err) =>
+          setRowError({
+            userId: user.id,
+            message: extractMessage(err, "Změna stavu se nezdařila."),
+          }),
+      }
+    );
+  };
+
+  const isSelf = (user: AdminUser) => currentUser?.id === user.id;
 
   return (
     <div className="rounded-lg border border-border overflow-hidden">
@@ -105,27 +148,50 @@ function UserManagement() {
                   {[user.companyName, user.corporateRole].filter(Boolean).join(" / ") || "—"}
                 </td>
                 <td className="px-4 py-3">
-                  <span
+                  <select
+                    value={user.globalRole}
+                    onChange={(e) => changeGlobalRole(user, e.target.value as GlobalRole)}
+                    disabled={isSelf(user) || updateGlobalRole.isPending}
+                    title={isSelf(user) ? "Vlastní roli nelze měnit" : undefined}
                     className={cn(
-                      "px-2 py-0.5 rounded-full text-xs font-medium",
-                      roleColors[user.globalRole]
+                      "text-xs font-medium rounded-md border border-border bg-card px-2 py-1",
+                      "focus:outline-none focus:ring-2 focus:ring-accent-orange",
+                      "disabled:cursor-not-allowed disabled:opacity-60"
                     )}
                   >
-                    {user.globalRole}
-                  </span>
+                    <option value={GlobalRole.Admin}>Admin</option>
+                    <option value={GlobalRole.User}>User</option>
+                    {user.globalRole === GlobalRole.Manager && (
+                      <option value={GlobalRole.Manager}>Manager (legacy)</option>
+                    )}
+                  </select>
                 </td>
                 <td className="px-4 py-3">
-                  {user.isActive ? (
-                    <span className="flex items-center gap-1 text-xs text-green-600">
-                      <CheckCircle2 className="h-3.5 w-3.5" />
-                      Active
-                    </span>
-                  ) : (
-                    <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                      <XCircle className="h-3.5 w-3.5" />
-                      Inactive
-                    </span>
-                  )}
+                  <button
+                    type="button"
+                    onClick={() => toggleActive(user)}
+                    disabled={isSelf(user) || updateActive.isPending}
+                    title={isSelf(user) ? "Vlastní účet nelze deaktivovat" : undefined}
+                    className={cn(
+                      "flex items-center gap-1 text-xs rounded-md px-2 py-1 border",
+                      user.isActive
+                        ? "text-green-700 border-green-200 bg-green-50 hover:bg-green-100"
+                        : "text-muted-foreground border-border bg-muted/30 hover:bg-muted/50",
+                      "disabled:cursor-not-allowed disabled:opacity-60"
+                    )}
+                  >
+                    {user.isActive ? (
+                      <>
+                        <CheckCircle2 className="h-3.5 w-3.5" />
+                        Active
+                      </>
+                    ) : (
+                      <>
+                        <XCircle className="h-3.5 w-3.5" />
+                        Inactive
+                      </>
+                    )}
+                  </button>
                 </td>
                 <td className="px-4 py-3">
                   <button
@@ -140,6 +206,13 @@ function UserManagement() {
                   </button>
                 </td>
               </tr>
+              {rowError?.userId === user.id && (
+                <tr key={`${user.id}-err`}>
+                  <td colSpan={6} className="px-4 py-2 bg-destructive/5 text-xs text-destructive">
+                    {rowError.message}
+                  </td>
+                </tr>
+              )}
               {expandedUser === user.id && appRoles && (
                 <tr key={`${user.id}-roles`}>
                   <td colSpan={6} className="px-4 py-3 bg-muted/20">

@@ -5,7 +5,9 @@
   </PropertyGroup>
   <ItemGroup>
     <!-- Transitive pins for security advisories -->
-    <PackageVersion Include="System.Security.Cryptography.Xml" Version="10.0.6" />
+    <PackageVersion Include="System.Security.Cryptography.Xml" Version="10.0.7" />
+    <!-- GHSA-9mv3-2cwr-p262: DataProtection 10.0.0 flagged; pulled transitively by Mvc.Testing -->
+    <PackageVersion Include="Microsoft.AspNetCore.DataProtection" Version="10.0.7" />
 
     <!-- EF Core -->
     <PackageVersion Include="Microsoft.EntityFrameworkCore" Version="10.0.0" />

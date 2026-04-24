@@ -13,7 +13,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { createWorklogSchema, type CreateWorklogInput } from "@/schemas/worklog";
 import { toast } from "sonner";
 import { format } from "date-fns";
-import { GlobalRole, type Worklog } from "@/types";
+import { GlobalRole, ProjectRole, type Worklog } from "@/types";
 
 function AddWorklogDialog({
   open,
@@ -143,19 +143,25 @@ export default function ProjectWorklogsPage({ params }: { params: Promise<{ code
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingWorklog, setEditingWorklog] = useState<Worklog | null>(null);
 
+  const isProjectManager = (projectId: string) =>
+    !!currentUser &&
+    currentUser.projectRoles.some(
+      (pr) => pr.projectId === projectId && pr.role === ProjectRole.ProjectManager
+    );
+
   const canEdit = (worklog: Worklog) =>
     !!currentUser &&
     currentUser.permissions.timeTrackingUpdate &&
     (worklog.userId === currentUser.id ||
       currentUser.globalRole === GlobalRole.Admin ||
-      currentUser.globalRole === GlobalRole.Manager);
+      isProjectManager(worklog.projectId));
 
   const canDelete = (worklog: Worklog) =>
     !!currentUser &&
     currentUser.permissions.timeTrackingDelete &&
     (worklog.userId === currentUser.id ||
       currentUser.globalRole === GlobalRole.Admin ||
-      currentUser.globalRole === GlobalRole.Manager);
+      isProjectManager(worklog.projectId));
 
   const handleDelete = async (worklog: Worklog) => {
     if (!window.confirm("Delete this worklog?")) return;

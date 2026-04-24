@@ -10,7 +10,7 @@ import {
   useUpdateComment,
 } from "@/queries/comments";
 import { useCurrentUser } from "@/queries/auth";
-import { GlobalRole } from "@/types";
+import { GlobalRole, ProjectRole } from "@/types";
 import {
   MAX_ATTACHMENT_SIZE_BYTES,
   useAttachments,
@@ -305,7 +305,9 @@ function CommentsSection({ projectId, ticketId }: { projectId: string; ticketId:
               !!currentUser &&
               (currentUser.id === comment.author.id ||
                 currentUser.globalRole === GlobalRole.Admin ||
-                currentUser.globalRole === GlobalRole.Manager);
+                currentUser.projectRoles.some(
+                  (pr) => pr.projectId === projectId && pr.role === ProjectRole.ProjectManager
+                ));
             return (
               <CommentCard
                 key={comment.id}
@@ -345,7 +347,9 @@ function AttachmentsSection({ projectId, ticketId }: { projectId: string; ticket
     !!currentUser &&
     (currentUser.id === uploadedById ||
       currentUser.globalRole === GlobalRole.Admin ||
-      currentUser.globalRole === GlobalRole.Manager);
+      currentUser.projectRoles.some(
+        (pr) => pr.projectId === projectId && pr.role === ProjectRole.ProjectManager
+      ));
 
   const handleDelete = async (attachmentId: string) => {
     if (!window.confirm("Delete this attachment?")) return;

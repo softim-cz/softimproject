@@ -17,4 +17,20 @@ public class AdminController : ApiControllerBase
         await Mediator.Send(command);
         return NoContent();
     }
+
+    [HttpPut("users/{userId:guid}/global-role")]
+    public async Task<IActionResult> UpdateUserGlobalRole(Guid userId, UpdateUserGlobalRoleCommand command)
+    {
+        if (userId != command.UserId) return BadRequest("Route userId does not match command userId.");
+        await Mediator.Send(command);
+        return NoContent();
+    }
+
+    [HttpPut("users/{userId:guid}/active")]
+    public async Task<IActionResult> UpdateUserActive(Guid userId, UpdateUserActiveCommand command)
+    {
+        if (userId != command.UserId) return BadRequest("Route userId does not match command userId.");
+        await Mediator.Send(command);
+        return NoContent();
+    }
 }
