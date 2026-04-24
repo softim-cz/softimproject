@@ -36,6 +36,7 @@ public interface IApplicationDbContext
     DbSet<TicketPriority> TicketPriorities { get; }
     DbSet<JobRun> JobRuns { get; }
     DbSet<DeadLetterEntry> DeadLetterEntries { get; }
+    DbSet<LinkedPullRequest> LinkedPullRequests { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }
