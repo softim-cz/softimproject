@@ -36,6 +36,7 @@ public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> 
     public DbSet<MigrationJob> MigrationJobs => Set<MigrationJob>();
     public DbSet<TicketCustomFieldValue> TicketCustomFieldValues => Set<TicketCustomFieldValue>();
     public DbSet<TicketPriority> TicketPriorities => Set<TicketPriority>();
+    public DbSet<JobRun> JobRuns => Set<JobRun>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

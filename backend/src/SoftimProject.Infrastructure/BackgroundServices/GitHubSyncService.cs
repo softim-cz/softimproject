@@ -8,16 +8,23 @@ using SoftimProject.Infrastructure.Services;
 
 namespace SoftimProject.Infrastructure.BackgroundServices;
 
-public sealed class GitHubSyncService(IServiceScopeFactory scopeFactory, ILogger<GitHubSyncService> logger)
-    : SyncBackgroundServiceBase(scopeFactory, logger, TimeSpan.FromMinutes(5), SyncType.GitHub)
+public sealed class GitHubSyncService(
+    IServiceScopeFactory scopeFactory,
+    IJobRegistry jobRegistry,
+    ILogger<GitHubSyncService> logger)
+    : TrackedBackgroundService(scopeFactory, jobRegistry, logger, TimeSpan.FromMinutes(5))
 {
-    protected override async Task ExecuteSyncAsync(IServiceProvider services, IApplicationDbContext dbContext, CancellationToken cancellationToken)
+    protected override async Task ExecuteIterationAsync(
+        IServiceProvider services,
+        IJobRunScope run,
+        CancellationToken cancellationToken)
     {
+        var dbContext = services.GetRequiredService<IApplicationDbContext>();
+
         var projects = await dbContext.Projects
             .Where(p => p.ExternalSystem == "GitHub" && p.ExternalProjectId != null && p.Status == ProjectStatus.Active)
             .ToListAsync(cancellationToken);
 
-        // Resolve default TaskState and TicketPriority IDs once
         var defaultStateId = await dbContext.TaskStates
             .Where(ts => ts.IsActive && ts.IsDefault)
             .Select(ts => ts.Id)
@@ -39,6 +46,8 @@ public sealed class GitHubSyncService(IServiceScopeFactory scopeFactory, ILogger
         if (defaultPriorityId == Guid.Empty)
             defaultPriorityId = await dbContext.TicketPriorities.Where(tp => tp.IsActive).OrderBy(tp => tp.SortOrder).Select(tp => tp.Id).FirstAsync(cancellationToken);
 
+        var processedProjects = 0;
+        var failedProjects = 0;
         foreach (var project in projects)
         {
             try
@@ -80,13 +89,17 @@ public sealed class GitHubSyncService(IServiceScopeFactory scopeFactory, ILogger
                     logger, cancellationToken);
 
                 logger.LogInformation("GitHub sync completed for project {ProjectCode}: {Synced} synced, {Failed} failed", project.Code, synced, failed);
-                await LogSyncAsync(dbContext, project.Id, SyncStatus.Success, synced, failed, null, cancellationToken);
+                await SyncLogHelper.WriteAsync(dbContext, project.Id, SyncType.GitHub, SyncStatus.Success, synced, failed, null, cancellationToken);
+                processedProjects++;
             }
             catch (Exception ex)
             {
                 logger.LogError(ex, "GitHub sync failed for project {ProjectCode}", project.Code);
-                await LogSyncAsync(dbContext, project.Id, SyncStatus.Failed, 0, 0, ex.Message, cancellationToken);
+                await SyncLogHelper.WriteAsync(dbContext, project.Id, SyncType.GitHub, SyncStatus.Failed, 0, 0, ex.Message, cancellationToken);
+                failedProjects++;
             }
         }
+
+        run.MarkSuccess(processedProjects, failedProjects);
     }
 }

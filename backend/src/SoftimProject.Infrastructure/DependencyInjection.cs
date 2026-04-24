@@ -32,6 +32,12 @@ public static class DependencyInjection
         services.AddScoped<IAiService, AiService>();
         services.AddScoped<INotificationService, NotificationService>();
 
+        // Background job observability (#12). Singleton registry so TrackedBackgroundService
+        // ctors register themselves once at startup; recorder is singleton too — it only
+        // holds factories and creates its own scopes to write JobRun rows.
+        services.AddSingleton<IJobRegistry, JobRegistry>();
+        services.AddSingleton<IJobRunRecorder, JobRunRecorder>();
+
         // Background Services
         services.AddHostedService<JiraSyncService>();
         services.AddHostedService<RedmineSyncService>();
