@@ -7,9 +7,11 @@ using Microsoft.EntityFrameworkCore;
 using Octokit;
 using SoftimProject.Application.Interfaces;
 using SoftimProject.Domain.Enums;
+using SoftimProject.Infrastructure.Services;
 using DomainProject = SoftimProject.Domain.Entities.Project;
 using DomainTicket = SoftimProject.Domain.Entities.Ticket;
 using DomainComment = SoftimProject.Domain.Entities.Comment;
+using DomainLinkedPr = SoftimProject.Domain.Entities.LinkedPullRequest;
 
 namespace SoftimProject.WebApi.Controllers;
 
@@ -93,6 +95,9 @@ public class WebhooksController(
                 break;
             case "issue_comment":
                 await HandleIssueCommentEvent(root, project, fallbackAuthorId, ct);
+                break;
+            case "pull_request":
+                await HandlePullRequestEvent(root, project, fallbackAuthorId, ct);
                 break;
             default:
                 return Ok(new { message = $"Event '{eventType}' ignored" });
@@ -196,6 +201,122 @@ public class WebhooksController(
                 CreatedAt = DateTime.UtcNow
             });
         }
+    }
+
+    private async Task HandlePullRequestEvent(
+        JsonElement root,
+        DomainProject project,
+        Guid fallbackAuthorId,
+        CancellationToken ct)
+    {
+        var action = root.GetProperty("action").GetString();
+        var pr = root.GetProperty("pull_request");
+        var prNumber = pr.GetProperty("number").GetInt32().ToString();
+        var prTitle = pr.GetProperty("title").GetString() ?? "";
+        var htmlUrl = pr.GetProperty("html_url").GetString() ?? "";
+        var branch = pr.GetProperty("head").GetProperty("ref").GetString() ?? "";
+        var body = pr.TryGetProperty("body", out var bodyEl) ? bodyEl.GetString() : null;
+        var merged = pr.TryGetProperty("merged", out var mergedEl) && mergedEl.GetBoolean();
+        var userLogin = pr.TryGetProperty("user", out var userEl) && userEl.TryGetProperty("login", out var loginEl)
+            ? loginEl.GetString()
+            : null;
+        var createdAt = pr.TryGetProperty("created_at", out var createdEl) && createdEl.TryGetDateTime(out var createdDt)
+            ? createdDt
+            : DateTime.UtcNow;
+        var closedAt = pr.TryGetProperty("closed_at", out var closedEl) && closedEl.ValueKind != JsonValueKind.Null
+            && closedEl.TryGetDateTime(out var closedDt) ? (DateTime?)closedDt : null;
+        var mergedAt = pr.TryGetProperty("merged_at", out var mergedAtEl) && mergedAtEl.ValueKind != JsonValueKind.Null
+            && mergedAtEl.TryGetDateTime(out var mergedDt) ? (DateTime?)mergedDt : null;
+
+        // Resolve target ticket from branch name or PR body / title — first match wins.
+        var key = GitHubTicketResolver.TryResolve(branch, prTitle, body);
+        if (key is null || !string.Equals(key.ProjectCode, project.Code, StringComparison.OrdinalIgnoreCase))
+            return;
+
+        var ticket = await dbContext.Tickets
+            .Include(t => t.TaskState)
+            .FirstOrDefaultAsync(t => t.ProjectId == project.Id && t.Number == key.TicketNumber, ct);
+        if (ticket is null) return;
+
+        var state = merged ? PullRequestState.Merged
+            : action == "closed" ? PullRequestState.Closed
+            : PullRequestState.Open;
+
+        // Upsert by (Provider, ExternalId, TicketId) — webhook replays update the row.
+        var existing = await dbContext.LinkedPullRequests.FirstOrDefaultAsync(
+            lp => lp.Provider == "GitHub" && lp.ExternalId == prNumber && lp.TicketId == ticket.Id, ct);
+        if (existing is null)
+        {
+            dbContext.LinkedPullRequests.Add(new DomainLinkedPr
+            {
+                Id = Guid.NewGuid(),
+                TicketId = ticket.Id,
+                Provider = "GitHub",
+                ExternalId = prNumber,
+                Url = htmlUrl,
+                Title = prTitle,
+                Branch = branch,
+                AuthorLogin = userLogin,
+                State = state,
+                OpenedAt = createdAt,
+                ClosedAt = closedAt,
+                MergedAt = mergedAt,
+            });
+        }
+        else
+        {
+            existing.Url = htmlUrl;
+            existing.Title = prTitle;
+            existing.Branch = branch;
+            existing.AuthorLogin = userLogin;
+            existing.State = state;
+            existing.ClosedAt = closedAt;
+            existing.MergedAt = mergedAt;
+        }
+
+        // Status transition (convention-based; see PullRequestStatusMapper).
+        //   - PR opened → "In Review" if such state exists for the project template
+        //   - PR merged → closed state (IsClosedState=true)
+        // Re-opens and plain closes leave the ticket state untouched.
+        if (action == "opened")
+        {
+            var reviewStateId = await PullRequestStatusMapper
+                .FindReviewStateIdAsync(dbContext, ticket.Project?.ProjectTemplateId, ct);
+            if (reviewStateId.HasValue && ticket.TaskStateId != reviewStateId.Value)
+            {
+                ticket.TaskStateId = reviewStateId.Value;
+                ticket.UpdatedAt = DateTime.UtcNow;
+            }
+
+            AddSystemCommentAsync(ticket, $"PR #{prNumber} opened: {prTitle} — {htmlUrl}", fallbackAuthorId);
+        }
+        else if (action == "closed" && merged)
+        {
+            var closedStateId = await PullRequestStatusMapper
+                .FindClosedStateIdAsync(dbContext, ticket.Project?.ProjectTemplateId, ct);
+            if (closedStateId.HasValue && ticket.TaskStateId != closedStateId.Value)
+            {
+                ticket.TaskStateId = closedStateId.Value;
+                ticket.UpdatedAt = DateTime.UtcNow;
+            }
+
+            AddSystemCommentAsync(ticket, $"PR #{prNumber} merged: {prTitle} — {htmlUrl}", fallbackAuthorId);
+        }
+    }
+
+    private void AddSystemCommentAsync(DomainTicket ticket, string content, Guid authorId)
+    {
+        if (authorId == Guid.Empty) return;
+        dbContext.Comments.Add(new DomainComment
+        {
+            Id = Guid.NewGuid(),
+            TicketId = ticket.Id,
+            ProjectId = ticket.ProjectId,
+            AuthorId = authorId,
+            Content = content,
+            Source = CommentSource.GitHub,
+            CreatedAt = DateTime.UtcNow,
+        });
     }
 
     private static bool VerifySignature(string payload, string? signature, string secret)

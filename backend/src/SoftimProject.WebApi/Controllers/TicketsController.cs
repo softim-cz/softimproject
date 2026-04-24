@@ -8,6 +8,7 @@ using SoftimProject.Application.Features.Tickets.GetTickets;
 using SoftimProject.Application.Features.Tickets.MoveTicket;
 using SoftimProject.Application.Features.Tickets.UpdateTicket;
 using SoftimProject.Application.Features.Tickets;
+using SoftimProject.Application.Features.Projects.GitHub;
 
 namespace SoftimProject.WebApi.Controllers;
 
@@ -90,6 +91,16 @@ public class TicketsController : ApiControllerBase
         await Mediator.Send(new DeleteTicketCommand(projectId, ticketId));
         return NoContent();
     }
+
+    // --- GitHub integration per ticket ---
+
+    [HttpGet("{ticketId:guid}/github/pull-requests")]
+    public async Task<ActionResult<List<LinkedPullRequestDto>>> GetLinkedPullRequests(Guid projectId, Guid ticketId)
+        => Ok(await Mediator.Send(new GetLinkedPullRequestsQuery(projectId, ticketId)));
+
+    [HttpPost("{ticketId:guid}/github/create-branch")]
+    public async Task<ActionResult<CreateTicketBranchResult>> CreateBranch(Guid projectId, Guid ticketId)
+        => Ok(await Mediator.Send(new CreateTicketBranchCommand(projectId, ticketId)));
 }
 
 

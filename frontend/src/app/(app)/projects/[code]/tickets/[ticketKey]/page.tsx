@@ -37,7 +37,12 @@ import {
   UploadCloud,
   Pencil,
   X,
+  GitBranch,
+  GitPullRequest,
+  GitMerge,
+  ExternalLink,
 } from "lucide-react";
+import { useLinkedPullRequests, useCreateTicketBranch } from "@/queries/github";
 import Link from "next/link";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -45,6 +50,103 @@ import { createCommentSchema, type CreateCommentInput } from "@/schemas/comment"
 import { toast } from "sonner";
 import type { Comment, ChecklistItem } from "@/types";
 import { format } from "date-fns";
+
+function LinkedPullRequestsSection({
+  projectId,
+  ticketId,
+  githubLinked,
+}: {
+  projectId: string;
+  ticketId: string;
+  githubLinked: boolean;
+}) {
+  const { data: prs, isLoading } = useLinkedPullRequests(projectId, ticketId);
+  const createBranch = useCreateTicketBranch(projectId, ticketId);
+
+  const handleCreateBranch = async () => {
+    try {
+      const result = await createBranch.mutateAsync();
+      await navigator.clipboard?.writeText(result.branchName).catch(() => {});
+      toast.success(`Branch created: ${result.branchName}`);
+    } catch (err: unknown) {
+      const data = (err as { response?: { data?: { message?: string; errors?: string[] } } })
+        .response?.data;
+      toast.error(data?.errors?.[0] ?? data?.message ?? "Failed to create branch");
+    }
+  };
+
+  if (!githubLinked) return null;
+
+  const iconFor = (state: "Open" | "Closed" | "Merged") =>
+    state === "Merged" ? (
+      <GitMerge className="h-4 w-4 text-purple-600 shrink-0" />
+    ) : state === "Closed" ? (
+      <GitPullRequest className="h-4 w-4 text-muted-foreground shrink-0" />
+    ) : (
+      <GitPullRequest className="h-4 w-4 text-green-600 shrink-0" />
+    );
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between">
+        <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
+          <GitBranch className="h-4 w-4 text-muted-foreground" />
+          Linked pull requests
+        </h3>
+        <button
+          type="button"
+          onClick={handleCreateBranch}
+          disabled={createBranch.isPending}
+          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded border border-border text-xs font-medium hover:bg-muted disabled:opacity-50"
+        >
+          <GitBranch className="h-3.5 w-3.5" />
+          {createBranch.isPending ? "Creating..." : "Create branch"}
+        </button>
+      </div>
+
+      {isLoading && <Skeleton className="h-16 w-full" />}
+
+      {!isLoading && (!prs || prs.length === 0) && (
+        <p className="text-xs text-muted-foreground italic">
+          No linked pull requests yet. Create a branch and open a PR whose title or branch contains
+          the ticket key (e.g. <code>feat/XXX-123-slug</code>).
+        </p>
+      )}
+
+      {prs && prs.length > 0 && (
+        <ul className="space-y-2">
+          {prs.map((pr) => (
+            <li
+              key={pr.id}
+              className="flex items-center gap-2 p-2 rounded border border-border hover:bg-muted/30"
+            >
+              {iconFor(pr.state)}
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2">
+                  <a
+                    href={pr.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-sm font-medium text-foreground hover:underline truncate"
+                  >
+                    #{pr.externalId} · {pr.title}
+                  </a>
+                  <ExternalLink className="h-3 w-3 text-muted-foreground shrink-0" />
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  <span className="font-mono">{pr.branch}</span>
+                  {pr.authorLogin && <> · by @{pr.authorLogin}</>}
+                  <> · {pr.state.toLowerCase()}</>
+                  {pr.mergedAt && <> · merged {format(new Date(pr.mergedAt), "MMM d")}</>}
+                </div>
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
 
 function ChecklistSection({ items }: { items: ChecklistItem[] }) {
   if (!items || items.length === 0) return null;
@@ -578,6 +680,13 @@ export default function TicketDetailPage({
 
           {/* Checklist */}
           <ChecklistSection items={ticket.checklistItems} />
+
+          {/* Linked pull requests (hidden for projects without a GitHub link) */}
+          <LinkedPullRequestsSection
+            projectId={projectId}
+            ticketId={ticket.id}
+            githubLinked={project?.externalSystem === "GitHub"}
+          />
 
           {/* Comments */}
           <CommentsSection projectId={projectId} ticketId={ticket.id} />

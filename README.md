@@ -341,6 +341,41 @@ Stránka `/admin` má sekci **Dead-letter queue** s filtrem "include resolved" a
 - Chyba přežije retries → DLQ row, warning log, `SyncLog`/`JobRun` failed status.
 - Admin v `/admin` klikne Replay → idempotentní operace se znovu pustí; pokud projde, entry se označí Replayed.
 
+## GitHub E2E flow
+
+Projekty napojené na GitHub (přes OAuth v Project settings) mají v ticket detailu sekci **Linked pull requests** s tlačítkem **Create branch**.
+
+### Konvence názvů větví
+
+Create branch vytvoří ref `feat/<PROJECT_CODE>-<TICKET_NUMBER>-<slug>`, kde slug je lowercase-hyphenated výtah z titulku (max 40 znaků, non-alnum se kolabuje na pomlčky). Např. ticket **WEB-42 "Add structured logging"** → `feat/WEB-42-add-structured-logging`. Idempotentní: druhý klik při existující větvi vrátí odkaz bez duplicitní chyby.
+
+### Ticket discovery z webhooku
+
+Když dorazí `pull_request` webhook, hledáme `(<CODE>-<NUMBER>)` pattern v branch name, PR titulu a PR body — první match vyhrává. Takže commitní konvence jako „Fixes WEB-42" v PR popisu pracují stejně dobře jako formálně vygenerovaná větev.
+
+### Status mapping (konvence, do budoucna konfigurovatelné)
+
+| GitHub event                          | Přechod ticket stavu                                             |
+| ------------------------------------- | ---------------------------------------------------------------- |
+| `pull_request.opened`                 | První aktivní TaskState s názvem obsahujícím "review" (case-insensitive) |
+| `pull_request.closed` + `merged=true` | První aktivní `TaskState.IsClosedState=true` (Done / Closed)     |
+| `pull_request.closed` + merged=false  | Stav se nemění (linked PR se označí jako Closed)                |
+| `pull_request.reopened`               | Stav se nemění                                                   |
+
+Pokud se žádný odpovídající TaskState nenajde, přechod se tiše přeskočí a link na PR pořád vznikne v DB + v UI. Po-projektová konfigurace mapování je v plánu — zatím stačí pojmenovat stav "In Review" a nechat alespoň jeden `IsClosedState`.
+
+### Setup GitHub webhook
+
+V repozitáři nastavit webhook na `https://<api-host>/api/webhooks/github` s content-type `application/json`, secret = `Project.WebhookSecret`, a vybrat events **Issues**, **Issue comments**, **Pull requests**. Bez PR events nebudou Linked PRs fungovat.
+
+### Endpointy
+
+| Endpoint                                                                 | Kdo              | Co dělá                                               |
+| ------------------------------------------------------------------------ | ---------------- | ----------------------------------------------------- |
+| `POST /api/v1/projects/{id}/tickets/{id}/github/create-branch`           | Developer+       | Vytvoří větev podle konvence, idempotentně           |
+| `GET  /api/v1/projects/{id}/tickets/{id}/github/pull-requests`           | Project member   | Seznam linked PRs (newest first)                      |
+| `POST /api/webhooks/github` (`X-GitHub-Event: pull_request`)             | GitHub (HMAC)    | Upsertuje LinkedPullRequest + status transition       |
+
 ## Související dokumenty
 
 - `REPOSITORY_ANALYSIS.md` – analýza stavu projektu, silné a slabé stránky.
