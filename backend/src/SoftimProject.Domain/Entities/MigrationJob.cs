@@ -9,6 +9,11 @@ public class MigrationJob : BaseEntity
     public string SourceSystem { get; set; } = string.Empty;
     public string SourceBaseUrl { get; set; } = string.Empty;
     public MigrationStatus Status { get; set; }
+    // Last successfully completed phase. Lets a Resume skip work that already
+    // ran. Advances inside `EasyProjectMigrationService.ExecuteAsync` with an
+    // explicit SaveChanges at each boundary, so a crash stays on the last
+    // boundary rather than an in-flight batch.
+    public MigrationPhase CurrentPhase { get; set; }
     public DateTime StartedAt { get; set; }
     public DateTime? CompletedAt { get; set; }
 

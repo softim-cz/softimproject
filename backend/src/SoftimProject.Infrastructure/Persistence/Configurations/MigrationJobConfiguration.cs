@@ -14,6 +14,7 @@ public sealed class MigrationJobConfiguration : IEntityTypeConfiguration<Migrati
         builder.Property(m => m.SourceSystem).HasMaxLength(50).IsRequired();
         builder.Property(m => m.SourceBaseUrl).HasMaxLength(500).IsRequired();
         builder.Property(m => m.Status).HasConversion<string>().HasMaxLength(50);
+        builder.Property(m => m.CurrentPhase).HasConversion<string>().HasMaxLength(32);
         builder.Property(m => m.ErrorLog).HasColumnType("nvarchar(max)");
         builder.Property(m => m.Configuration).HasColumnType("nvarchar(max)");
 

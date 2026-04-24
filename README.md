@@ -411,6 +411,40 @@ Každé volání do Azure OpenAI jde přes `IAiInvocationRecorder`, který:
 
 Při překročení limitu vrací endpoint **HTTP 429** s `ErrorResponse.Message` vysvětlujícím důvod. FE toast ukáže přesnou hlášku. Background joby rate-limit necítí (nemají `TriggeredByUserId`).
 
+## EasyProject migrace — validace + resume
+
+### Validate před spuštěním
+
+`POST /api/v1/migration/validate` (Admin-only) přijme `baseUrl`, `apiKey`, `projectIds` a vrátí `MigrationValidationResult`:
+
+- **`credentialsValid`** — výsledek `TestConnectionAsync` proti EP API
+- **`epProjectCount`** — kolik projektů API vidí s daným klíčem
+- **`selectedProjects`** — preview (název + `alreadyMigrated=true/false`); vazba na existující SP project přes `ExternalProjectId`
+- **`issues`** — seznam `Blocking` / `Warning` hlášek (neexistující project id, chybné creds, kolize na SP straně)
+
+Wizard může Validate volat před Step Review, aby uživatel zahlédl kolize ještě před skutečným Start.
+
+### Resume failed / cancelled job
+
+Každý běh migrace ukládá po dokončení **každé fáze** (Fetching → Lookups → Users → Projects → Tickets → Comments → Worklogs → CustomFields → Checklists → Attachments → Recalculating → Done) hodnotu `MigrationJob.CurrentPhase` do DB. Když proces spadne uprostřed, status přejde na `Failed` a `CurrentPhase` zůstává na poslední **dokončené** fázi — admin pak přes UI pokračuje od přesně tohoto místa.
+
+V `/admin/migration` historii klikne admin **Resume** u Failed / Cancelled / CompletedWithErrors jobu, zadá API key (secret se záměrně neukládá na job-level — je to rotovatelný token), a endpoint `POST /api/v1/migration/{jobId}/resume` znovu spustí `EasyProjectMigrationService.ExecuteAsync` s uloženou `Configuration`.
+
+Fáze, které už proběhly, jsou **idempotentní** díky ExternalId upsertu (projekty přes `ExternalProjectId`, tickety přes `ExternalId`, komentáře / worklogy / přílohy přes `(ExternalId, Source)`) — znovu-běh je bezpečný; typicky jen update existujících záznamů místo insertu.
+
+Resumovat nejde jobs ve stavu `Pending` / `Running` / `Completed` — endpoint vrátí 400. Bez `Configuration` v DB (starší historie) taky 400. Prázdný API key v body → 400 přes FluentValidation.
+
+### Co se ukládá do `Configuration`
+
+`StoredMigrationConfig` (`Application/Features/Migration/EasyProject/StoredMigrationConfig.cs`) — celý `StartMigrationCommand` minus `ApiKey`. Na staré joby (před #17) se Resume nepoužije — chybí jim strukturovaný tvar.
+
+### Endpointy
+
+| Endpoint                                        | Kdo    | Co dělá                                                            |
+| ----------------------------------------------- | ------ | ------------------------------------------------------------------ |
+| `POST /api/v1/migration/validate`               | Admin  | Pre-flight kontrola credentials + project collision                |
+| `POST /api/v1/migration/{jobId}/resume`         | Admin  | Znovu spustí Failed/Cancelled/CompletedWithErrors job s novým API key |
+
 ## Související dokumenty
 
 - `REPOSITORY_ANALYSIS.md` – analýza stavu projektu, silné a slabé stránky.

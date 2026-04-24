@@ -88,6 +88,7 @@ public sealed class EasyProjectMigrationService(
                 .Where(d => d.PossibleValues is { Count: > 0 })
                 .ToDictionary(d => d.Id, d => d.PossibleValues!);
             tracker.AddLog(jobId, $"Fetched {epCustomFieldDefs.Count} custom field definitions ({possibleValuesMap.Count} with possible values)");
+            await AdvancePhaseAsync(jobId, MigrationPhase.Fetching, ct);
 
             // Phase 2: Lookups
             tracker.UpdatePhase(jobId, "Processing lookups");
@@ -105,6 +106,7 @@ public sealed class EasyProjectMigrationService(
             var mergedPriorityMapping = new Dictionary<int, Guid>(cmd.PriorityMapping);
             foreach (var (epId, spId) in priorityMap)
                 mergedPriorityMapping[epId] = spId;
+            await AdvancePhaseAsync(jobId, MigrationPhase.Lookups, ct);
 
             // Phase 3: Users
             tracker.UpdatePhase(jobId, "Processing users");
@@ -116,6 +118,7 @@ public sealed class EasyProjectMigrationService(
                 .Where(j => j.Id == jobId)
                 .Select(j => j.InitiatedByUserId)
                 .FirstAsync(ct);
+            await AdvancePhaseAsync(jobId, MigrationPhase.Users, ct);
 
             // Phase 4: Projects
             tracker.UpdatePhase(jobId, "Migrating projects");
@@ -152,6 +155,7 @@ public sealed class EasyProjectMigrationService(
                 }
             }
             await dbContext.SaveChangesAsync(ct);
+            await AdvancePhaseAsync(jobId, MigrationPhase.Projects, ct);
 
             // Phase 5: Tickets
             tracker.UpdatePhase(jobId, "Migrating tickets");
@@ -212,6 +216,7 @@ public sealed class EasyProjectMigrationService(
                 }
             }
             await dbContext.SaveChangesAsync(ct);
+            await AdvancePhaseAsync(jobId, MigrationPhase.Tickets, ct);
 
             if (cmd.ImportComments)
             {
@@ -254,6 +259,7 @@ public sealed class EasyProjectMigrationService(
                 }
                 await dbContext.SaveChangesAsync(ct);
             }
+            await AdvancePhaseAsync(jobId, MigrationPhase.Comments, ct);
 
             if (cmd.ImportWorklogs)
             {
@@ -285,6 +291,7 @@ public sealed class EasyProjectMigrationService(
                 }
                 await dbContext.SaveChangesAsync(ct);
             }
+            await AdvancePhaseAsync(jobId, MigrationPhase.Worklogs, ct);
 
             tracker.UpdatePhase(jobId, "Migrating custom fields");
             await NotifyProgress(jobId);
@@ -308,6 +315,7 @@ public sealed class EasyProjectMigrationService(
                 catch (Exception ex) { tracker.AddError(jobId, $"Failed to migrate custom fields for project '{ep.Name}': {ex.Message}"); }
             }
             await dbContext.SaveChangesAsync(ct);
+            await AdvancePhaseAsync(jobId, MigrationPhase.CustomFields, ct);
 
             if (cmd.ImportChecklists)
             {
@@ -334,6 +342,7 @@ public sealed class EasyProjectMigrationService(
                 }
                 await dbContext.SaveChangesAsync(ct);
             }
+            await AdvancePhaseAsync(jobId, MigrationPhase.Checklists, ct);
 
             if (!cmd.SkipAttachments)
             {
@@ -369,6 +378,8 @@ public sealed class EasyProjectMigrationService(
                     }
                 }
             }
+
+            await AdvancePhaseAsync(jobId, MigrationPhase.Attachments, ct);
 
             tracker.UpdatePhase(jobId, "Recalculating");
             await NotifyProgress(jobId);
@@ -411,6 +422,7 @@ public sealed class EasyProjectMigrationService(
             {
                 job.Status = hasErrors ? MigrationStatus.CompletedWithErrors : MigrationStatus.Completed;
                 job.CompletedAt = DateTime.UtcNow;
+                job.CurrentPhase = MigrationPhase.Done;
                 job.ProjectsMigrated = projectsMigrated;
                 job.TicketsMigrated = ticketsMigrated;
                 job.ItemsFailed = progress?.ErrorCount ?? 0;
@@ -442,6 +454,20 @@ public sealed class EasyProjectMigrationService(
             if (job != null) { job.Status = MigrationStatus.Failed; job.CompletedAt = DateTime.UtcNow; job.ErrorLog = JsonSerializer.Serialize(new[] { ex.Message }); }
             await dbContext.SaveChangesAsync(CancellationToken.None);
             await NotifyProgress(jobId);
+        }
+    }
+
+    // Persists the current phase so /admin/migration can show "last good boundary" even
+    // if the process crashes, and so ResumeMigrationCommand reports progress correctly.
+    // Advance is at phase boundaries, not mid-batch — recovery is phase-granular.
+    private async Task AdvancePhaseAsync(Guid jobId, MigrationPhase phase, CancellationToken ct)
+    {
+        var job = await dbContext.MigrationJobs.FindAsync([jobId], ct);
+        if (job is null) return;
+        if (phase > job.CurrentPhase)
+        {
+            job.CurrentPhase = phase;
+            await dbContext.SaveChangesAsync(ct);
         }
     }
 

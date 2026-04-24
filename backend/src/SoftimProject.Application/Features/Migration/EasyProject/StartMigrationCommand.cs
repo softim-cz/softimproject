@@ -46,16 +46,26 @@ public sealed class StartMigrationCommandHandler(
             SourceBaseUrl = request.BaseUrl,
             Status = MigrationStatus.Pending,
             StartedAt = DateTime.UtcNow,
-            Configuration = System.Text.Json.JsonSerializer.Serialize(new
-            {
+            // Full StartMigrationCommand minus ApiKey — the stored config is what
+            // ResumeMigrationCommand hydrates back into a command. Api key stays out
+            // on purpose (it's a rotatable secret; callers re-supply it on resume).
+            Configuration = System.Text.Json.JsonSerializer.Serialize(new StoredMigrationConfig(
+                request.BaseUrl,
                 request.ProjectIds,
+                request.TrackerMapping,
+                request.StatusMapping,
+                request.PriorityMapping,
+                request.UserMapping,
                 request.SkipClosedIssues,
                 request.SkipAttachments,
                 request.ImportComments,
                 request.ImportWorklogs,
                 request.ImportChecklists,
-                request.CreateMissingUsers
-            }),
+                request.CreateMissingUsers,
+                request.AutoCreateTrackers,
+                request.AutoCreateStatuses,
+                request.AutoCreateStatusIsClosed,
+                request.AutoCreatePriorities)),
             CreatedAt = DateTime.UtcNow
         };
 
