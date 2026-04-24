@@ -127,3 +127,45 @@ export function useMigrationHistory() {
     },
   });
 }
+
+// #17 — pre-flight validation + resume of a failed/cancelled job
+export interface MigrationValidationIssue {
+  severity: "Blocking" | "Warning";
+  message: string;
+}
+export interface MigrationProjectPreviewValidate {
+  epProjectId: number;
+  name: string;
+  alreadyMigrated: boolean;
+  spProjectId: string | null;
+}
+export interface MigrationValidationResult {
+  credentialsValid: boolean;
+  connectedAs: string | null;
+  epProjectCount: number;
+  selectedProjects: MigrationProjectPreviewValidate[];
+  issues: MigrationValidationIssue[];
+}
+
+export function useValidateMigration() {
+  return useMutation({
+    mutationFn: async (params: { baseUrl: string; apiKey: string; projectIds: number[] }) => {
+      const { data } = await apiClient.post<MigrationValidationResult>(
+        "/api/v1/migration/validate",
+        params
+      );
+      return data;
+    },
+  });
+}
+
+export function useResumeMigration() {
+  return useMutation({
+    mutationFn: async (params: { jobId: string; apiKey: string }) => {
+      const { data } = await apiClient.post<string>(`/api/v1/migration/${params.jobId}/resume`, {
+        apiKey: params.apiKey,
+      });
+      return data;
+    },
+  });
+}

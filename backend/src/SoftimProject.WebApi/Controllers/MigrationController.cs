@@ -45,6 +45,21 @@ public class MigrationController : ApiControllerBase
         return Ok(jobId);
     }
 
+    [HttpPost("validate")]
+    public async Task<ActionResult<MigrationValidationResult>> Validate([FromBody] ValidateMigrationQuery query)
+    {
+        return Ok(await Mediator.Send(query));
+    }
+
+    [HttpPost("{jobId:guid}/resume")]
+    public async Task<ActionResult<Guid>> Resume(Guid jobId, [FromBody] ResumeMigrationBody body)
+    {
+        var id = await Mediator.Send(new ResumeMigrationCommand(jobId, body.ApiKey));
+        return Ok(id);
+    }
+
+    public sealed record ResumeMigrationBody(string ApiKey);
+
     [HttpPost("{jobId:guid}/cancel")]
     public async Task<IActionResult> Cancel(Guid jobId)
     {

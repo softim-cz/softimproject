@@ -25,7 +25,9 @@ import {
   useCancelMigration,
   useMigrationProgress,
   useMigrationHistory,
+  useResumeMigration,
 } from "@/queries/migration";
+import { toast } from "sonner";
 import { useTaskTypes, useTaskStates, useTicketPriorities } from "@/queries/lookups";
 import type { MigrationJob } from "@/types";
 import { HubConnectionBuilder } from "@microsoft/signalr";
@@ -1036,7 +1038,31 @@ function StepProgress() {
 }
 
 function MigrationHistorySection() {
-  const { data: history } = useMigrationHistory();
+  const { data: history, refetch } = useMigrationHistory();
+  const resumeMigration = useResumeMigration();
+  const [resumingJobId, setResumingJobId] = useState<string | null>(null);
+  const [resumeApiKey, setResumeApiKey] = useState("");
+
+  const canResume = (status: string) =>
+    status === "Failed" || status === "Cancelled" || status === "CompletedWithErrors";
+
+  const submitResume = async () => {
+    if (!resumingJobId || !resumeApiKey.trim()) {
+      toast.error("API key is required.");
+      return;
+    }
+    try {
+      await resumeMigration.mutateAsync({ jobId: resumingJobId, apiKey: resumeApiKey.trim() });
+      toast.success("Migration resume dispatched.");
+      setResumingJobId(null);
+      setResumeApiKey("");
+      refetch();
+    } catch (err: unknown) {
+      const data = (err as { response?: { data?: { message?: string; errors?: string[] } } })
+        .response?.data;
+      toast.error(data?.errors?.[0] ?? data?.message ?? "Resume failed.");
+    }
+  };
 
   if (!history || history.length === 0) return null;
 
@@ -1080,6 +1106,7 @@ function MigrationHistorySection() {
               <th className="px-4 py-2 text-right text-xs font-medium text-muted-foreground uppercase">
                 Errors
               </th>
+              <th className="px-4 py-2 w-24" />
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
@@ -1103,11 +1130,64 @@ function MigrationHistorySection() {
                 <td className="px-4 py-2 text-sm text-right text-destructive">
                   {job.itemsFailed || "—"}
                 </td>
+                <td className="px-4 py-2 text-right">
+                  {canResume(job.status) && (
+                    <button
+                      type="button"
+                      onClick={() => setResumingJobId(job.id)}
+                      disabled={resumeMigration.isPending}
+                      className="inline-flex items-center gap-1 px-2 py-1 rounded border border-border text-xs hover:bg-muted disabled:opacity-50"
+                    >
+                      Resume
+                    </button>
+                  )}
+                </td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
+
+      {resumingJobId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/50" onClick={() => setResumingJobId(null)} />
+          <div className="relative bg-card rounded-xl shadow-xl border border-border w-full max-w-md mx-4 p-6">
+            <h3 className="text-base font-semibold text-card-foreground mb-2">Resume migration</h3>
+            <p className="text-xs text-muted-foreground mb-3">
+              Re-enter the EasyProject API key. Already-imported records will be upserted; the job
+              continues from the last completed phase.
+            </p>
+            <input
+              type="password"
+              value={resumeApiKey}
+              onChange={(e) => setResumeApiKey(e.target.value)}
+              placeholder="API key"
+              className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm"
+            />
+            <div className="flex justify-end gap-2 mt-4">
+              <button
+                type="button"
+                onClick={() => {
+                  setResumingJobId(null);
+                  setResumeApiKey("");
+                }}
+                disabled={resumeMigration.isPending}
+                className="px-3 py-1.5 rounded border border-border text-sm hover:bg-muted disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={submitResume}
+                disabled={resumeMigration.isPending}
+                className="px-3 py-1.5 rounded bg-primary text-primary-foreground text-sm font-medium hover:opacity-90 disabled:opacity-50"
+              >
+                {resumeMigration.isPending ? "Resuming..." : "Resume"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
