@@ -1,7 +1,10 @@
+using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Polly.Registry;
 using SoftimProject.Application.Interfaces;
+using SoftimProject.Domain.Enums;
 
 namespace SoftimProject.Infrastructure.BackgroundServices;
 
@@ -18,6 +21,9 @@ public sealed class AiSummarizationService(
     {
         var dbContext = services.GetRequiredService<IApplicationDbContext>();
         var aiService = services.GetRequiredService<IAiService>();
+        var pipeline = services.GetRequiredService<ResiliencePipelineProvider<string>>()
+            .GetPipeline(ResiliencePipelines.AiApi);
+        var deadLetters = services.GetRequiredService<IDeadLetterQueue>();
 
         var ticketsToSummarize = await dbContext.Tickets
             .Include(t => t.Comments)
@@ -34,13 +40,20 @@ public sealed class AiSummarizationService(
         {
             try
             {
-                var comments = ticket.Comments.OrderBy(c => c.CreatedAt).Select(c => c.Content);
-                var (summary, _) = await aiService.SummarizeTicketAsync(
-                    ticket.Title,
-                    ticket.Description ?? string.Empty,
-                    comments,
+                var comments = ticket.Comments.OrderBy(c => c.CreatedAt).Select(c => c.Content).ToList();
+
+                // Retry transient AI call failures (rate-limit bursts, transient 5xx) via
+                // the shared pipeline. The lambda captures per-ticket state so each
+                // execution attempt rebuilds the input fresh.
+                var result = await pipeline.ExecuteAsync(
+                    async ct => await aiService.SummarizeTicketAsync(
+                        ticket.Title,
+                        ticket.Description ?? string.Empty,
+                        comments,
+                        ct),
                     cancellationToken);
 
+                var summary = result.Summary;
                 if (string.IsNullOrWhiteSpace(summary))
                     continue;
 
@@ -49,8 +62,22 @@ public sealed class AiSummarizationService(
             }
             catch (Exception ex)
             {
-                logger.LogWarning(ex, "Failed to summarize ticket {TicketId}", ticket.Id);
+                logger.LogWarning(ex, "Failed to summarize ticket {TicketId} after retries", ticket.Id);
                 failed++;
+
+                // Final failure — hand over to DLQ for admin-driven replay.
+                var payload = JsonSerializer.Serialize(new
+                {
+                    ticketId = ticket.Id,
+                    ticketTitle = ticket.Title,
+                    commentCount = ticket.Comments.Count,
+                });
+                await deadLetters.EnqueueAsync(
+                    DeadLetterOperation.AiSummarizeTicket,
+                    ticket.Id.ToString(),
+                    payload,
+                    ex,
+                    cancellationToken);
             }
         }
 

@@ -5,6 +5,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Http.Resilience;
 using Polly;
+using Polly.Retry;
 using SoftimProject.Application.Interfaces;
 using SoftimProject.Infrastructure.BackgroundServices;
 using SoftimProject.Infrastructure.Persistence;
@@ -37,6 +38,35 @@ public static class DependencyInjection
         // holds factories and creates its own scopes to write JobRun rows.
         services.AddSingleton<IJobRegistry, JobRegistry>();
         services.AddSingleton<IJobRunRecorder, JobRunRecorder>();
+
+        // Retry + dead-letter (#13). Two named Polly pipelines for non-HttpClient call sites
+        // (Octokit via AiSummarization / GitHubSync, and Microsoft.Extensions.AI IChatClient).
+        // HTTP-client integrations keep their own AddResilienceHandler pipeline (see Easy
+        // Project below) — these are for direct SDK calls where we don't own the HttpClient.
+        services.AddResiliencePipeline(ResiliencePipelines.AiApi, builder =>
+        {
+            builder.AddRetry(new RetryStrategyOptions
+            {
+                MaxRetryAttempts = 3,
+                BackoffType = DelayBackoffType.Exponential,
+                Delay = TimeSpan.FromSeconds(2),
+                UseJitter = true,
+            });
+        });
+        services.AddResiliencePipeline(ResiliencePipelines.GitHubApi, builder =>
+        {
+            builder.AddRetry(new RetryStrategyOptions
+            {
+                MaxRetryAttempts = 4,
+                BackoffType = DelayBackoffType.Exponential,
+                Delay = TimeSpan.FromSeconds(2),
+                UseJitter = true,
+            });
+        });
+        // Stateless — they all use IServiceScopeFactory to open their own DbContext scopes.
+        services.AddSingleton<IDeadLetterQueue, DeadLetterQueue>();
+        services.AddSingleton<IDeadLetterReplayer, DeadLetterReplayer>();
+        services.AddSingleton<IDeadLetterReplayHandler, AiSummarizeTicketReplayHandler>();
 
         // Background Services
         services.AddHostedService<JiraSyncService>();

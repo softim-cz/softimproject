@@ -33,4 +33,24 @@ public class AdminController : ApiControllerBase
         await Mediator.Send(command);
         return NoContent();
     }
+
+    // --- Dead-letter queue ---
+
+    [HttpGet("dead-letter")]
+    public async Task<ActionResult<List<DeadLetterEntryDto>>> GetDeadLetter([FromQuery] bool includeResolved = false)
+        => Ok(await Mediator.Send(new GetDeadLetterEntriesQuery(includeResolved)));
+
+    [HttpPost("dead-letter/{id:guid}/replay")]
+    public async Task<IActionResult> ReplayDeadLetter(Guid id)
+    {
+        await Mediator.Send(new ReplayDeadLetterCommand(id));
+        return NoContent();
+    }
+
+    [HttpPost("dead-letter/{id:guid}/dismiss")]
+    public async Task<IActionResult> DismissDeadLetter(Guid id)
+    {
+        await Mediator.Send(new DismissDeadLetterCommand(id));
+        return NoContent();
+    }
 }

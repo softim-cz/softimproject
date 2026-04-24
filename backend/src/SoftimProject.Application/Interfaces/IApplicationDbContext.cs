@@ -35,6 +35,7 @@ public interface IApplicationDbContext
     DbSet<TicketCustomFieldValue> TicketCustomFieldValues { get; }
     DbSet<TicketPriority> TicketPriorities { get; }
     DbSet<JobRun> JobRuns { get; }
+    DbSet<DeadLetterEntry> DeadLetterEntries { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }

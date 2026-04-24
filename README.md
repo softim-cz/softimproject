@@ -303,6 +303,44 @@ Konfigurace je v `appsettings.json` pod `Serilog`. `Enrich: FromLogContext` je z
 
 Alerty na opakovaná selhání se nastavují na straně Azure Monitoru na dotaz typu `traces | where customDimensions.JobName == "X" and message startswith "Job ... finished Failed" | summarize count() by bin(timestamp, 1h)`.
 
+## Retry + dead-letter pro integrační joby
+
+Kromě strukturovaných logů a JobRun tracování má backend i retry/DLQ strategii pro volání externích služeb:
+
+### Retry pipelines
+
+Polly `ResiliencePipeline`-y jsou registrované pod pojmenovanými klíči v `ResiliencePipelines` (v `SoftimProject.Application.Interfaces`) a volají se přes `ResiliencePipelineProvider<string>`:
+
+| Pipeline      | Profil                                                    | Kde se aplikuje                                                         |
+| ------------- | --------------------------------------------------------- | ----------------------------------------------------------------------- |
+| `ai-api`      | 3 retries, exponential backoff 2s + jitter               | `AiSummarizationService` (volání `IAiService.SummarizeTicketAsync`)    |
+| `github-api`  | 4 retries, exponential backoff 2s + jitter               | `GitHubSyncService` (Octokit volání přes `GitHubSyncHelper`)           |
+| *(HTTP handler)* | 5 retries, backoff + sliding-window rate limiter     | Easy Project API client (`AddResilienceHandler` v DI, starší existence) |
+
+### Dead-letter queue
+
+Když operace vyčerpá všechny retry pokusy, handler zachytí výjimku a zapíše záznam do tabulky `DeadLetterEntries` přes `IDeadLetterQueue`. Semantika je **upsert-by-key** (OperationType + OperationKey), takže opakovaná selhání stejné jednotky se akumulují na jednom řádku (AttemptCount++), nikoli jako N řádků.
+
+DLQ sleduje: `OperationType` (enum — AiSummarizeTicket, GitHubSyncProject, EasyProjectFetch, GitHubWebhook), `OperationKey` (např. ticket id), `Payload` (JSON blob s kontextem), `AttemptCount`, `LastError` (stacktrace, truncováno na 4000 znaků), `FirstFailedAt`/`LastFailedAt`, `Status` (Pending/Replayed/Dismissed).
+
+### Admin UI
+
+Stránka `/admin` má sekci **Dead-letter queue** s filtrem "include resolved" a per-řádek akcemi Replay / Dismiss:
+
+| Endpoint                                                 | Kdo               | Co dělá                                                              |
+| -------------------------------------------------------- | ----------------- | -------------------------------------------------------------------- |
+| `GET /api/v1/admin/dead-letter?includeResolved=true`     | Admin (`IRequireRole`) | Seznam entries (pending default, volitelně i replayed+dismissed) |
+| `POST /api/v1/admin/dead-letter/{id}/replay`             | Admin             | Pokusí se znovu spustit operaci přes `IDeadLetterReplayer`; při úspěchu se entry posune do `Replayed`. Pro operace bez zaregistrovaného handleru vrátí 400 "replay not supported". |
+| `POST /api/v1/admin/dead-letter/{id}/dismiss`            | Admin             | Ručně označí entry jako vyřízenou (např. opraveno mimo appku)         |
+
+**Replay handlery** se registrují jako implementace `IDeadLetterReplayHandler` pro konkrétní `DeadLetterOperation`. Aktuálně podporované: **AiSummarizeTicket** (idempotentní — znovu sumarizuje ticket z DB). Ostatní typy (GitHubSyncProject, webhooky) jsou listable/dismissable — replay pro ně dnes vrátí 400, dokud někdo nenapíše handler (bezpečnější opt-in, protože webhooky nebývají idempotentní).
+
+### Kdy se co použije
+
+- Transientní chyba (502/503, rate-limit spike) → Polly retry, job pokračuje. `SyncLog` + `JobRun` ukazují úspěch.
+- Chyba přežije retries → DLQ row, warning log, `SyncLog`/`JobRun` failed status.
+- Admin v `/admin` klikne Replay → idempotentní operace se znovu pustí; pokud projde, entry se označí Replayed.
+
 ## Související dokumenty
 
 - `REPOSITORY_ANALYSIS.md` – analýza stavu projektu, silné a slabé stránky.

@@ -37,6 +37,7 @@ public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> 
     public DbSet<TicketCustomFieldValue> TicketCustomFieldValues => Set<TicketCustomFieldValue>();
     public DbSet<TicketPriority> TicketPriorities => Set<TicketPriority>();
     public DbSet<JobRun> JobRuns => Set<JobRun>();
+    public DbSet<DeadLetterEntry> DeadLetterEntries => Set<DeadLetterEntry>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
