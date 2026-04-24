@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import React, { useState } from "react";
 import { TableSkeleton } from "@/components/shared/loading-skeleton";
 import { EmptyState } from "@/components/shared/empty-state";
 import {
@@ -21,9 +21,14 @@ import {
   useUpdateUserRoles,
   useUpdateUserGlobalRole,
   useUpdateUserActive,
+  useDeadLetterEntries,
+  useReplayDeadLetter,
+  useDismissDeadLetter,
+  type DeadLetterEntry,
 } from "@/queries/admin";
 import { useApplicationRoles } from "@/queries/lookups";
 import { useCurrentUser } from "@/queries/auth";
+import { AlertTriangle, RotateCw, Trash2 } from "lucide-react";
 
 function UserManagement() {
   const { data: users, isLoading, error } = useAdminUsers();
@@ -291,6 +296,158 @@ function SystemHealth() {
   );
 }
 
+function DeadLetterQueue() {
+  const [includeResolved, setIncludeResolved] = useState(false);
+  const { data: entries, isLoading, error } = useDeadLetterEntries(includeResolved);
+  const replay = useReplayDeadLetter();
+  const dismiss = useDismissDeadLetter();
+  const [rowError, setRowError] = useState<{ id: string; message: string } | null>(null);
+
+  if (isLoading) return <TableSkeleton rows={4} />;
+  if (error)
+    return (
+      <div className="rounded-lg border border-destructive/50 bg-destructive/5 p-4 text-sm text-destructive">
+        Failed to load dead-letter queue.
+      </div>
+    );
+  if (!entries || entries.length === 0)
+    return (
+      <EmptyState
+        icon={<AlertTriangle className="h-10 w-10" />}
+        title={includeResolved ? "No dead-letter entries" : "No pending failures"}
+      />
+    );
+
+  const extractMessage = (err: unknown, fallback: string) => {
+    if (err && typeof err === "object" && "response" in err) {
+      const data = (err as { response?: { data?: { message?: string; errors?: string[] } } })
+        .response?.data;
+      return data?.errors?.[0] ?? data?.message ?? fallback;
+    }
+    return fallback;
+  };
+
+  const handleReplay = (entry: DeadLetterEntry) => {
+    setRowError(null);
+    replay.mutate(entry.id, {
+      onError: (err) =>
+        setRowError({ id: entry.id, message: extractMessage(err, "Replay selhal.") }),
+    });
+  };
+
+  const handleDismiss = (entry: DeadLetterEntry) => {
+    if (!window.confirm("Dismiss this dead-letter entry?")) return;
+    setRowError(null);
+    dismiss.mutate(entry.id, {
+      onError: (err) =>
+        setRowError({ id: entry.id, message: extractMessage(err, "Dismiss selhal.") }),
+    });
+  };
+
+  return (
+    <div className="space-y-3">
+      <label className="inline-flex items-center gap-2 text-xs text-muted-foreground">
+        <input
+          type="checkbox"
+          checked={includeResolved}
+          onChange={(e) => setIncludeResolved(e.target.checked)}
+        />
+        Include resolved / dismissed
+      </label>
+      <div className="rounded-lg border border-border overflow-hidden">
+        <table className="w-full">
+          <thead>
+            <tr className="bg-muted/50">
+              <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                Operation
+              </th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                Key
+              </th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                Attempts
+              </th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                Last failed
+              </th>
+              <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                Status
+              </th>
+              <th className="px-4 py-3 w-40" />
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-border">
+            {entries.map((entry) => (
+              <React.Fragment key={entry.id}>
+                <tr className="hover:bg-muted/30">
+                  <td className="px-4 py-3 text-sm font-medium text-foreground">
+                    {entry.operationType}
+                  </td>
+                  <td
+                    className="px-4 py-3 text-xs text-muted-foreground font-mono truncate max-w-xs"
+                    title={entry.operationKey}
+                  >
+                    {entry.operationKey}
+                  </td>
+                  <td className="px-4 py-3 text-sm text-muted-foreground">{entry.attemptCount}</td>
+                  <td className="px-4 py-3 text-xs text-muted-foreground" title={entry.lastError}>
+                    {new Date(entry.lastFailedAt).toLocaleString()}
+                  </td>
+                  <td className="px-4 py-3 text-xs">
+                    <span
+                      className={cn(
+                        "px-2 py-0.5 rounded-full font-medium",
+                        entry.status === "Pending"
+                          ? "bg-red-100 text-red-700"
+                          : entry.status === "Replayed"
+                            ? "bg-green-100 text-green-700"
+                            : "bg-gray-100 text-gray-600"
+                      )}
+                    >
+                      {entry.status}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3 text-right">
+                    {entry.status === "Pending" && (
+                      <div className="flex items-center justify-end gap-1">
+                        <button
+                          type="button"
+                          onClick={() => handleReplay(entry)}
+                          disabled={replay.isPending}
+                          className="inline-flex items-center gap-1 px-2 py-1 rounded border border-border text-xs hover:bg-muted disabled:opacity-50"
+                          title="Replay"
+                        >
+                          <RotateCw className="h-3.5 w-3.5" /> Replay
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDismiss(entry)}
+                          disabled={dismiss.isPending}
+                          className="inline-flex items-center gap-1 px-2 py-1 rounded border border-border text-xs hover:bg-destructive/10 text-destructive disabled:opacity-50"
+                          title="Dismiss"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" /> Dismiss
+                        </button>
+                      </div>
+                    )}
+                  </td>
+                </tr>
+                {rowError?.id === entry.id && (
+                  <tr>
+                    <td colSpan={6} className="px-4 py-2 bg-destructive/5 text-xs text-destructive">
+                      {rowError.message}
+                    </td>
+                  </tr>
+                )}
+              </React.Fragment>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
 function IntegrationStatus() {
   const integrations = [
     { name: "Jira", status: "Not configured", connected: false },
@@ -349,6 +506,15 @@ export default function AdminPage() {
           <h2 className="text-lg font-semibold text-foreground">User Management</h2>
         </div>
         <UserManagement />
+      </section>
+
+      {/* Dead-letter queue */}
+      <section>
+        <div className="flex items-center gap-2 mb-4">
+          <AlertTriangle className="h-5 w-5 text-muted-foreground" />
+          <h2 className="text-lg font-semibold text-foreground">Dead-letter queue</h2>
+        </div>
+        <DeadLetterQueue />
       </section>
 
       {/* Integration status */}

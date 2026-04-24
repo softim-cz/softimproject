@@ -50,3 +50,59 @@ export function useUpdateUserActive() {
     },
   });
 }
+
+export type DeadLetterStatus = "Pending" | "Replayed" | "Dismissed";
+export type DeadLetterOperation =
+  | "AiSummarizeTicket"
+  | "GitHubSyncProject"
+  | "EasyProjectFetch"
+  | "GitHubWebhook";
+
+export interface DeadLetterEntry {
+  id: string;
+  operationType: DeadLetterOperation;
+  operationKey: string;
+  payload: string;
+  attemptCount: number;
+  lastError: string;
+  firstFailedAt: string;
+  lastFailedAt: string;
+  status: DeadLetterStatus;
+  resolvedAt: string | null;
+}
+
+export function useDeadLetterEntries(includeResolved = false) {
+  return useQuery({
+    queryKey: ["admin", "deadLetter", includeResolved],
+    queryFn: async () => {
+      const { data } = await apiClient.get<DeadLetterEntry[]>(
+        `/api/v1/admin/dead-letter?includeResolved=${includeResolved}`
+      );
+      return data;
+    },
+  });
+}
+
+export function useReplayDeadLetter() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      await apiClient.post(`/api/v1/admin/dead-letter/${id}/replay`);
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["admin", "deadLetter"] });
+    },
+  });
+}
+
+export function useDismissDeadLetter() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      await apiClient.post(`/api/v1/admin/dead-letter/${id}/dismiss`);
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["admin", "deadLetter"] });
+    },
+  });
+}

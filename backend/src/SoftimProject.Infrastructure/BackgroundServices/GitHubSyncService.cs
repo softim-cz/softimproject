@@ -1,7 +1,9 @@
+using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Octokit;
+using Polly.Registry;
 using SoftimProject.Application.Interfaces;
 using SoftimProject.Domain.Enums;
 using SoftimProject.Infrastructure.Services;
@@ -20,6 +22,9 @@ public sealed class GitHubSyncService(
         CancellationToken cancellationToken)
     {
         var dbContext = services.GetRequiredService<IApplicationDbContext>();
+        var pipeline = services.GetRequiredService<ResiliencePipelineProvider<string>>()
+            .GetPipeline(ResiliencePipelines.GitHubApi);
+        var deadLetters = services.GetRequiredService<IDeadLetterQueue>();
 
         var projects = await dbContext.Projects
             .Where(p => p.ExternalSystem == "GitHub" && p.ExternalProjectId != null && p.Status == ProjectStatus.Active)
@@ -83,10 +88,15 @@ public sealed class GitHubSyncService(
                     .Select(s => s.CompletedAt)
                     .FirstOrDefaultAsync(cancellationToken);
 
-                var (synced, failed) = await GitHubSyncHelper.SyncAsync(
-                    client, owner, repo, project, dbContext, lastSync,
-                    defaultStateId, closedStateId, defaultPriorityId,
-                    logger, cancellationToken);
+                // Wrap the whole per-project helper in the shared retry pipeline. Octokit
+                // itself has no backoff, so a transient 502/504 or rate-limit burst would
+                // otherwise dead-letter immediately.
+                var (synced, failed) = await pipeline.ExecuteAsync(
+                    async ct => await GitHubSyncHelper.SyncAsync(
+                        client, owner, repo, project, dbContext, lastSync,
+                        defaultStateId, closedStateId, defaultPriorityId,
+                        logger, ct),
+                    cancellationToken);
 
                 logger.LogInformation("GitHub sync completed for project {ProjectCode}: {Synced} synced, {Failed} failed", project.Code, synced, failed);
                 await SyncLogHelper.WriteAsync(dbContext, project.Id, SyncType.GitHub, SyncStatus.Success, synced, failed, null, cancellationToken);
@@ -94,8 +104,21 @@ public sealed class GitHubSyncService(
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, "GitHub sync failed for project {ProjectCode}", project.Code);
+                logger.LogError(ex, "GitHub sync failed for project {ProjectCode} after retries", project.Code);
                 await SyncLogHelper.WriteAsync(dbContext, project.Id, SyncType.GitHub, SyncStatus.Failed, 0, 0, ex.Message, cancellationToken);
+
+                var payload = JsonSerializer.Serialize(new
+                {
+                    projectId = project.Id,
+                    projectCode = project.Code,
+                    externalProjectId = project.ExternalProjectId,
+                });
+                await deadLetters.EnqueueAsync(
+                    DeadLetterOperation.GitHubSyncProject,
+                    project.Id.ToString(),
+                    payload,
+                    ex,
+                    cancellationToken);
                 failedProjects++;
             }
         }
