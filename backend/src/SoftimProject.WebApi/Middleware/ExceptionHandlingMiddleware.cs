@@ -24,7 +24,12 @@ public sealed class ExceptionHandlingMiddleware(RequestDelegate next, ILogger<Ex
         {
             ValidationException validationEx => (StatusCodes.Status400BadRequest, new ErrorResponse(
                 "Validation Failed",
-                validationEx.Errors.Select(e => e.ErrorMessage).ToArray())),
+                // Handlers often throw `new ValidationException(message)`, which leaves the
+                // FluentValidation Errors collection empty — fall back to the exception Message
+                // so the client always receives a human-readable reason.
+                validationEx.Errors.Any()
+                    ? validationEx.Errors.Select(e => e.ErrorMessage).ToArray()
+                    : new[] { validationEx.Message })),
 
             NotFoundException notFoundEx => (StatusCodes.Status404NotFound, new ErrorResponse(notFoundEx.Message)),
 
