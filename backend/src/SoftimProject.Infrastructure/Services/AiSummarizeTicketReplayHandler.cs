@@ -30,17 +30,29 @@ public sealed class AiSummarizeTicketReplayHandler(IServiceScopeFactory scopeFac
         if (ticket is null)
             return new ReplayOutcome(false, $"Ticket {ticketId} no longer exists.");
 
-        var comments = ticket.Comments.OrderBy(c => c.CreatedAt).Select(c => c.Content);
-        var (summary, _) = await aiService.SummarizeTicketAsync(
-            ticket.Title,
-            ticket.Description ?? string.Empty,
-            comments,
+        var comments = ticket.Comments.OrderBy(c => c.CreatedAt).Select(c => c.Content).ToList();
+        var recorder = scope.ServiceProvider.GetRequiredService<IAiInvocationRecorder>();
+        var recorded = await recorder.RecordAsync(
+            new AiInvocationContext(
+                AiInvocationTrigger.Replay,
+                InputText: $"ticket:{ticket.Id}|title:{ticket.Title}|desc:{ticket.Description}|comments:{comments.Count}",
+                TriggeredByUserId: null,
+                ProjectId: ticket.ProjectId,
+                TicketId: ticket.Id,
+                Reason: "DLQ replay"),
+            async ct =>
+            {
+                var (summary, usage, _) = await aiService.SummarizeTicketAsync(
+                    ticket.Title, ticket.Description ?? string.Empty, comments, ct);
+                return new AiInvocationCall<string>(summary, usage.PromptTokens, usage.CompletionTokens, summary);
+            },
             cancellationToken);
+        var replaySummary = recorded.Payload;
 
-        if (string.IsNullOrWhiteSpace(summary))
+        if (string.IsNullOrWhiteSpace(replaySummary))
             return new ReplayOutcome(false, "AI service returned an empty summary.");
 
-        ticket.AiSummary = summary;
+        ticket.AiSummary = replaySummary;
         await db.SaveChangesAsync(cancellationToken);
         return new ReplayOutcome(true);
     }

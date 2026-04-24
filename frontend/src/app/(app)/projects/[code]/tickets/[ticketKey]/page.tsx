@@ -43,6 +43,8 @@ import {
   ExternalLink,
 } from "lucide-react";
 import { useLinkedPullRequests, useCreateTicketBranch } from "@/queries/github";
+import { useTicketAiHistory, useResummarizeTicket, type AiInvocation } from "@/queries/ai";
+import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -143,6 +145,140 @@ function LinkedPullRequestsSection({
             </li>
           ))}
         </ul>
+      )}
+    </div>
+  );
+}
+
+function AiHistorySection({ projectId, ticketId }: { projectId: string; ticketId: string }) {
+  const { data: history, isLoading } = useTicketAiHistory(projectId, ticketId);
+  const resummarize = useResummarizeTicket(projectId, ticketId);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [reason, setReason] = useState("");
+
+  const handleSubmit = async () => {
+    const trimmed = reason.trim();
+    if (trimmed.length < 3) {
+      toast.error("Reason must be at least 3 characters.");
+      return;
+    }
+    try {
+      await resummarize.mutateAsync(trimmed);
+      toast.success("Manual re-summarize triggered.");
+      setDialogOpen(false);
+      setReason("");
+    } catch (err: unknown) {
+      const resp = (
+        err as { response?: { status?: number; data?: { message?: string; errors?: string[] } } }
+      ).response;
+      if (resp?.status === 429) {
+        toast.error(resp.data?.message ?? "AI rate limit exceeded. Try again later.");
+      } else {
+        toast.error(resp?.data?.errors?.[0] ?? resp?.data?.message ?? "Re-summarize failed.");
+      }
+    }
+  };
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between">
+        <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
+          <Sparkles className="h-4 w-4 text-muted-foreground" />
+          AI history
+        </h3>
+        <button
+          type="button"
+          onClick={() => setDialogOpen(true)}
+          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded border border-border text-xs font-medium hover:bg-muted"
+        >
+          <Sparkles className="h-3.5 w-3.5" />
+          Re-summarize
+        </button>
+      </div>
+
+      {isLoading && <Skeleton className="h-12 w-full" />}
+      {!isLoading && (!history || history.length === 0) && (
+        <p className="text-xs text-muted-foreground italic">No AI activity recorded yet.</p>
+      )}
+
+      {history && history.length > 0 && (
+        <ul className="space-y-1.5 text-xs">
+          {history.map((inv: AiInvocation) => (
+            <li
+              key={inv.id}
+              className="flex items-start gap-2 p-2 rounded border border-border hover:bg-muted/30"
+              title={inv.errorMessage ?? inv.outputPreview ?? undefined}
+            >
+              <span
+                className={cn(
+                  "px-1.5 py-0.5 rounded font-medium shrink-0",
+                  inv.trigger === "ManualResummarize"
+                    ? "bg-blue-100 text-blue-700"
+                    : inv.trigger === "WeeklyReport"
+                      ? "bg-purple-100 text-purple-700"
+                      : "bg-gray-100 text-gray-700"
+                )}
+              >
+                {inv.trigger}
+              </span>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 text-foreground">
+                  <span>{format(new Date(inv.startedAt), "MMM d, HH:mm")}</span>
+                  {inv.triggeredByDisplayName && (
+                    <span className="text-muted-foreground">· by {inv.triggeredByDisplayName}</span>
+                  )}
+                  {!inv.success && <span className="text-destructive">· failed</span>}
+                </div>
+                <div className="text-muted-foreground">
+                  {inv.totalTokens} tokens · ${inv.estimatedCostUsd.toFixed(4)}
+                  {inv.reason && <> · {inv.reason}</>}
+                </div>
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      {dialogOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/50" onClick={() => setDialogOpen(false)} />
+          <div className="relative bg-card rounded-xl shadow-xl border border-border w-full max-w-md mx-4 p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-base font-semibold text-card-foreground">Re-summarize ticket</h2>
+              <button onClick={() => setDialogOpen(false)} className="p-1 rounded hover:bg-muted">
+                <X className="h-4 w-4 text-muted-foreground" />
+              </button>
+            </div>
+            <label className="block text-xs font-medium text-muted-foreground mb-1">
+              Reason (required)
+            </label>
+            <textarea
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+              rows={3}
+              placeholder="Why are you re-running this? (audit requirement)"
+              className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground resize-none"
+            />
+            <div className="flex justify-end gap-2 mt-4">
+              <button
+                type="button"
+                onClick={() => setDialogOpen(false)}
+                disabled={resummarize.isPending}
+                className="px-3 py-1.5 rounded border border-border text-sm hover:bg-muted disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleSubmit}
+                disabled={resummarize.isPending}
+                className="px-3 py-1.5 rounded bg-primary text-primary-foreground text-sm font-medium hover:opacity-90 disabled:opacity-50"
+              >
+                {resummarize.isPending ? "Running..." : "Re-summarize"}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
@@ -687,6 +823,9 @@ export default function TicketDetailPage({
             ticketId={ticket.id}
             githubLinked={project?.externalSystem === "GitHub"}
           />
+
+          {/* AI history + manual re-summarize */}
+          <AiHistorySection projectId={projectId} ticketId={ticket.id} />
 
           {/* Comments */}
           <CommentsSection projectId={projectId} ticketId={ticket.id} />

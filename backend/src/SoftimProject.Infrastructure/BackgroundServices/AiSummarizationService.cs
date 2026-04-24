@@ -4,6 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Polly.Registry;
 using SoftimProject.Application.Interfaces;
+using SoftimProject.Domain.Entities;
 using SoftimProject.Domain.Enums;
 
 namespace SoftimProject.Infrastructure.BackgroundServices;
@@ -24,6 +25,7 @@ public sealed class AiSummarizationService(
         var pipeline = services.GetRequiredService<ResiliencePipelineProvider<string>>()
             .GetPipeline(ResiliencePipelines.AiApi);
         var deadLetters = services.GetRequiredService<IDeadLetterQueue>();
+        var recorder = services.GetRequiredService<IAiInvocationRecorder>();
 
         var ticketsToSummarize = await dbContext.Tickets
             .Include(t => t.Comments)
@@ -42,18 +44,36 @@ public sealed class AiSummarizationService(
             {
                 var comments = ticket.Comments.OrderBy(c => c.CreatedAt).Select(c => c.Content).ToList();
 
-                // Retry transient AI call failures (rate-limit bursts, transient 5xx) via
-                // the shared pipeline. The lambda captures per-ticket state so each
-                // execution attempt rebuilds the input fresh.
-                var result = await pipeline.ExecuteAsync(
-                    async ct => await aiService.SummarizeTicketAsync(
-                        ticket.Title,
-                        ticket.Description ?? string.Empty,
-                        comments,
-                        ct),
+                // Audit + rate-limit wrapper around the retry pipeline: one AiInvocation
+                // row per logical call, retries are invisible to the audit log (they
+                // succeed or all fail together).
+                var ctx = new AiInvocationContext(
+                    AiInvocationTrigger.AutoSummarize,
+                    InputText: $"ticket:{ticket.Id}|title:{ticket.Title}|desc:{ticket.Description}|comments:{comments.Count}",
+                    TriggeredByUserId: null, // background — no per-user rate limit here
+                    ProjectId: ticket.ProjectId,
+                    TicketId: ticket.Id);
+
+                var recorded = await recorder.RecordAsync(
+                    ctx,
+                    async ct =>
+                    {
+                        var result = await pipeline.ExecuteAsync(
+                            async ct2 => await aiService.SummarizeTicketAsync(
+                                ticket.Title,
+                                ticket.Description ?? string.Empty,
+                                comments,
+                                ct2),
+                            ct);
+                        return new AiInvocationCall<string>(
+                            result.Summary,
+                            result.Usage.PromptTokens,
+                            result.Usage.CompletionTokens,
+                            result.Summary);
+                    },
                     cancellationToken);
 
-                var summary = result.Summary;
+                var summary = recorded.Payload;
                 if (string.IsNullOrWhiteSpace(summary))
                     continue;
 

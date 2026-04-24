@@ -68,6 +68,9 @@ public static class DependencyInjection
         services.AddSingleton<IDeadLetterReplayer, DeadLetterReplayer>();
         services.AddSingleton<IDeadLetterReplayHandler, AiSummarizeTicketReplayHandler>();
 
+        // AI audit + rate-limit (#16). Stateless — opens its own DbContext scopes.
+        services.AddSingleton<IAiInvocationRecorder, AiInvocationRecorder>();
+
         // Background Services
         services.AddHostedService<JiraSyncService>();
         services.AddHostedService<RedmineSyncService>();

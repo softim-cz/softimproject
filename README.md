@@ -376,6 +376,41 @@ V repozitáři nastavit webhook na `https://<api-host>/api/webhooks/github` s co
 | `GET  /api/v1/projects/{id}/tickets/{id}/github/pull-requests`           | Project member   | Seznam linked PRs (newest first)                      |
 | `POST /api/webhooks/github` (`X-GitHub-Event: pull_request`)             | GitHub (HMAC)    | Upsertuje LinkedPullRequest + status transition       |
 
+## AI audit + rate limit
+
+Každé volání do Azure OpenAI jde přes `IAiInvocationRecorder`, který:
+
+1. **Hashuje vstup** (SHA-256) — umožňuje dedup / detekci opakovaných volání na stejný obsah bez ukládání plného promptu.
+2. **Rate-limit check** per uživatele — default 20 volání za 10 min (konfigurovatelné přes `Ai:RateLimit:CallsPerWindow` a `Ai:RateLimit:WindowMinutes`). Background joby (bez uživatele) rate-limit obchází — škrtí je jejich vlastní PeriodicTimer.
+3. **Měří náklady** — `Ai:Pricing:InputPerMillionTokensUsd` (default $2.50) a `Ai:Pricing:OutputPerMillionTokensUsd` (default $10.00) pro gpt-4o. Přepsat v appsettings pokud máte jiný Azure commit.
+4. **Zapíše `AiInvocation`** row: trigger, user, project/ticket scope, prompt/completion tokens, cost, první 1000 znaků výstupu, success + error, duration, reason (u manual re-run).
+
+### Trigger typy
+
+| Trigger              | Kdy se zapisuje                                                        |
+| -------------------- | ---------------------------------------------------------------------- |
+| `AutoSummarize`      | `AiSummarizationService` (každých 6h)                                  |
+| `WeeklyReport`       | `WeeklyReportService` (pondělí 07:00 CET)                              |
+| `ManualResummarize`  | `POST /tickets/{id}/ai/resummarize` (vyžaduje `reason` 3–500 znaků)   |
+| `Replay`             | DLQ replay z `/admin`                                                   |
+
+### Endpointy
+
+| Endpoint                                                             | Kdo                | Co dělá                                                          |
+| -------------------------------------------------------------------- | ------------------ | ---------------------------------------------------------------- |
+| `GET  /api/v1/projects/{id}/tickets/{id}/ai/invocations`             | Project member     | AI history ticketu (newest first)                                |
+| `POST /api/v1/projects/{id}/tickets/{id}/ai/resummarize`             | Developer+         | Manuální re-run s povinným `reason`. Rate-limit → 429.          |
+| `GET  /api/v1/admin/ai-usage?days=30`                                | Admin              | Agregace tokenů + nákladů per projekt za zvolené období        |
+
+### UI
+
+- **Ticket detail** má sekci **AI history** s chronologickým seznamem volání (trigger, tokens, cost, důvod) a **Re-summarize** tlačítkem otevírajícím dialog s povinným polem "Reason".
+- **/admin** má sekci **AI usage** s window picker (7/30/90 dnů) a tabulkou projektů podle celkových nákladů.
+
+### Rate-limit chování
+
+Při překročení limitu vrací endpoint **HTTP 429** s `ErrorResponse.Message` vysvětlujícím důvod. FE toast ukáže přesnou hlášku. Background joby rate-limit necítí (nemají `TriggeredByUserId`).
+
 ## Související dokumenty
 
 - `REPOSITORY_ANALYSIS.md` – analýza stavu projektu, silné a slabé stránky.
