@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { X } from "lucide-react";
 import { format } from "date-fns";
 import { useUpdateWorklog } from "@/queries/worklogs";
+import { useTickets } from "@/queries/tickets";
 import { useAdminUsers } from "@/queries/admin";
 import { useCurrentUser } from "@/queries/auth";
 import { updateWorklogSchema, type UpdateWorklogInput } from "@/schemas/worklog";
@@ -25,6 +26,8 @@ export function EditWorklogDialog({
   const { data: currentUser } = useCurrentUser();
   const isAdmin = currentUser?.globalRole === GlobalRole.Admin;
   const { data: adminUsers } = useAdminUsers();
+  const { data: ticketsPage } = useTickets(worklog?.projectId ?? "", { pageSize: 200 });
+  const tickets = ticketsPage?.items ?? [];
   const {
     register,
     handleSubmit,
@@ -39,6 +42,7 @@ export function EditWorklogDialog({
   useEffect(() => {
     if (worklog && open) {
       reset({
+        ticketId: worklog.ticketId,
         date: format(new Date(worklog.date), "yyyy-MM-dd"),
         hours: worklog.hours,
         description: worklog.description ?? "",
@@ -55,6 +59,7 @@ export function EditWorklogDialog({
       await updateWorklog.mutateAsync({
         projectId: worklog.projectId,
         worklogId: worklog.id,
+        ticketId: data.ticketId,
         date: data.date,
         hours: data.hours,
         description: data.description,
@@ -87,6 +92,26 @@ export function EditWorklogDialog({
         </div>
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-card-foreground mb-1">
+              Ticket <span className="text-destructive">*</span>
+            </label>
+            <select
+              {...register("ticketId")}
+              className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+            >
+              <option value="">Select a ticket…</option>
+              {tickets.map((t) => (
+                <option key={t.id} value={t.id}>
+                  #{t.number} — {t.title}
+                </option>
+              ))}
+            </select>
+            {errors.ticketId && (
+              <p className="text-xs text-destructive mt-1">{errors.ticketId.message}</p>
+            )}
+          </div>
+
           <div>
             <label className="block text-sm font-medium text-card-foreground mb-1">Date</label>
             <input

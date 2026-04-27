@@ -67,6 +67,7 @@ export function useCreateWorklog() {
 export interface UpdateWorklogRequest {
   projectId: string;
   worklogId: string;
+  ticketId: string;
   date: string;
   hours: number;
   description: string;

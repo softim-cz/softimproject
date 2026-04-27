@@ -11,6 +11,7 @@ namespace SoftimProject.Application.Features.Worklogs.UpdateWorklog;
 public sealed record UpdateWorklogCommand(
     Guid ProjectId,
     Guid WorklogId,
+    Guid TicketId,
     DateOnly Date,
     decimal Hours,
     string Description,
@@ -25,6 +26,7 @@ public sealed class UpdateWorklogCommandValidator : AbstractValidator<UpdateWork
 {
     public UpdateWorklogCommandValidator()
     {
+        RuleFor(x => x.TicketId).NotEmpty();
         RuleFor(x => x.Hours).GreaterThan(0).LessThanOrEqualTo(24);
         RuleFor(x => x.Date).NotEmpty();
         RuleFor(x => x.Description)
@@ -68,6 +70,15 @@ public sealed class UpdateWorklogCommandHandler(
                 throw new NotFoundException(nameof(User), request.OverrideUserId.Value);
 
             worklog.UserId = request.OverrideUserId.Value;
+        }
+
+        if (request.TicketId != worklog.TicketId)
+        {
+            // Re-anchoring to a different ticket is only allowed within the
+            // same project — a cross-project move would need authorization on
+            // the destination project as well, which we don't grant here.
+            await dbContext.GetTicketForProjectAsync(request.ProjectId, request.TicketId, cancellationToken);
+            worklog.TicketId = request.TicketId;
         }
 
         worklog.Date = request.Date;
