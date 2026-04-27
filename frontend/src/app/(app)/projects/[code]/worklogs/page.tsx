@@ -3,6 +3,8 @@
 import { use, useState } from "react";
 import { useWorklogsPaged, useCreateWorklog, useDeleteWorklog } from "@/queries/worklogs";
 import { useProjectByCode } from "@/queries/projects";
+import { useTickets } from "@/queries/tickets";
+import { useAdminUsers } from "@/queries/admin";
 import { useCurrentUser } from "@/queries/auth";
 import { TableSkeleton } from "@/components/shared/loading-skeleton";
 import { EmptyState } from "@/components/shared/empty-state";
@@ -19,16 +21,22 @@ function AddWorklogDialog({
   open,
   onClose,
   projectId,
+  isAdmin,
 }: {
   open: boolean;
   onClose: () => void;
   projectId: string;
+  isAdmin: boolean;
 }) {
   const createWorklog = useCreateWorklog();
+  const { data: ticketsPage } = useTickets(projectId, { pageSize: 200 });
+  const { data: adminUsers } = useAdminUsers();
+  const tickets = ticketsPage?.items ?? [];
   const {
     register,
     handleSubmit,
     reset,
+    watch,
     formState: { errors, isSubmitting },
   } = useForm<CreateWorklogInput>({
     resolver: zodResolver(createWorklogSchema),
@@ -36,12 +44,17 @@ function AddWorklogDialog({
       projectId,
       date: format(new Date(), "yyyy-MM-dd"),
       isBillable: true,
+      description: "",
     },
   });
+  const description = watch("description") ?? "";
 
   const onSubmit = async (data: CreateWorklogInput) => {
     try {
-      await createWorklog.mutateAsync(data);
+      await createWorklog.mutateAsync({
+        ...data,
+        overrideUserId: data.overrideUserId || undefined,
+      });
       toast.success("Worklog added");
       reset();
       onClose();
@@ -65,6 +78,26 @@ function AddWorklogDialog({
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <input type="hidden" {...register("projectId")} />
+
+          <div>
+            <label className="block text-sm font-medium text-card-foreground mb-1">
+              Ticket <span className="text-destructive">*</span>
+            </label>
+            <select
+              {...register("ticketId")}
+              className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+            >
+              <option value="">Select a ticket…</option>
+              {tickets.map((t) => (
+                <option key={t.id} value={t.id}>
+                  #{t.number} — {t.title}
+                </option>
+              ))}
+            </select>
+            {errors.ticketId && (
+              <p className="text-xs text-destructive mt-1">{errors.ticketId.message}</p>
+            )}
+          </div>
 
           <div>
             <label className="block text-sm font-medium text-card-foreground mb-1">Date</label>
@@ -93,16 +126,45 @@ function AddWorklogDialog({
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-card-foreground mb-1">
-              Description
+            <label className="flex items-center justify-between text-sm font-medium text-card-foreground mb-1">
+              <span>
+                Description <span className="text-destructive">*</span>
+              </span>
+              <span className="text-xs font-normal text-muted-foreground">
+                {description.length}/16 min
+              </span>
             </label>
             <textarea
               {...register("description")}
               rows={3}
               className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring resize-none"
-              placeholder="What did you work on?"
+              placeholder="What did you work on? (at least 16 characters)"
             />
+            {errors.description && (
+              <p className="text-xs text-destructive mt-1">{errors.description.message}</p>
+            )}
           </div>
+
+          {isAdmin && (
+            <div>
+              <label className="block text-sm font-medium text-card-foreground mb-1">
+                Log on behalf of (Admin)
+              </label>
+              <select
+                {...register("overrideUserId")}
+                className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+              >
+                <option value="">Myself (default)</option>
+                {(adminUsers ?? [])
+                  .filter((u) => u.isActive)
+                  .map((u) => (
+                    <option key={u.id} value={u.id}>
+                      {u.displayName} ({u.email})
+                    </option>
+                  ))}
+              </select>
+            </div>
+          )}
 
           <label className="flex items-center gap-2 text-sm">
             <input type="checkbox" {...register("isBillable")} className="rounded" />
@@ -318,6 +380,7 @@ export default function ProjectWorklogsPage({ params }: { params: Promise<{ code
         open={dialogOpen}
         onClose={() => setDialogOpen(false)}
         projectId={projectId}
+        isAdmin={currentUser?.globalRole === GlobalRole.Admin}
       />
       <EditWorklogDialog
         worklog={editingWorklog}

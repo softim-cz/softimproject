@@ -339,12 +339,11 @@ public sealed class DatabaseSeeder(ApplicationDbContext dbContext, ILogger<Datab
             dbContext.Worklogs.Add(new Worklog
             {
                 Id = Guid.NewGuid(),
-                ProjectId = Ids.DemoProject,
                 TicketId = Ids.TicketOne,
                 UserId = Ids.RegularUser,
                 Date = DateOnly.FromDateTime(DateTime.UtcNow),
                 Hours = 1.5m,
-                Description = "Seeded worklog.",
+                Description = "Seeded worklog from initial demo data.",
                 Source = WorklogSource.Manual,
                 IsBillable = true,
                 CreatedAt = now

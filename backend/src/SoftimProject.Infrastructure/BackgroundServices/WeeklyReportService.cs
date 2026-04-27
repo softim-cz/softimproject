@@ -44,7 +44,7 @@ public sealed class WeeklyReportService(
             try
             {
                 var worklogs = await dbContext.Worklogs
-                    .Where(w => w.ProjectId == project.Id && w.Date >= periodStart && w.Date <= periodEnd)
+                    .Where(w => w.Ticket.ProjectId == project.Id && w.Date >= periodStart && w.Date <= periodEnd)
                     .ToListAsync(cancellationToken);
 
                 var ticketsCreated = await dbContext.Tickets

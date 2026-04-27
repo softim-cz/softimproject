@@ -42,14 +42,14 @@ public sealed class HealthRecalcService(
             .ToDictionaryAsync(x => x.ProjectId, x => x.Count, cancellationToken);
 
         var spentHours = await dbContext.Worklogs
-            .Where(w => projectIds.Contains(w.ProjectId))
-            .GroupBy(w => w.ProjectId)
+            .Where(w => projectIds.Contains(w.Ticket.ProjectId))
+            .GroupBy(w => w.Ticket.ProjectId)
             .Select(g => new { ProjectId = g.Key, Total = g.Sum(w => w.Hours) })
             .ToDictionaryAsync(x => x.ProjectId, x => x.Total, cancellationToken);
 
         var spentAmounts = await dbContext.Worklogs
-            .Where(w => projectIds.Contains(w.ProjectId) && w.IsBillable && w.HourlyRateSnapshot.HasValue)
-            .GroupBy(w => w.ProjectId)
+            .Where(w => projectIds.Contains(w.Ticket.ProjectId) && w.IsBillable && w.HourlyRateSnapshot.HasValue)
+            .GroupBy(w => w.Ticket.ProjectId)
             .Select(g => new { ProjectId = g.Key, Total = g.Sum(w => w.Hours * w.HourlyRateSnapshot!.Value) })
             .ToDictionaryAsync(x => x.ProjectId, x => x.Total, cancellationToken);
 

@@ -93,7 +93,7 @@ public sealed class ExportXlsxQueryHandler(IApplicationDbContext dbContext)
         {
             var query = dbContext.Worklogs
                 .AsNoTracking()
-                .Where(w => w.ProjectId == request.ProjectId);
+                .Where(w => w.Ticket.ProjectId == request.ProjectId);
 
             if (!string.IsNullOrWhiteSpace(request.AssigneeName))
                 query = query.Where(w => w.User.DisplayName == request.AssigneeName);

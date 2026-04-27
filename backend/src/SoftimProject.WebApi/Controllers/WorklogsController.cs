@@ -11,13 +11,14 @@ public class WorklogsController : ApiControllerBase
     [HttpGet]
     public async Task<IActionResult> GetAll(
         [FromQuery] Guid? projectId = null,
+        [FromQuery] Guid? ticketId = null,
         [FromQuery] DateOnly? from = null,
         [FromQuery] DateOnly? to = null,
         [FromQuery] Guid? userId = null,
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 50)
     {
-        return Ok(await Mediator.Send(new GetWorklogsQuery(projectId, from, to, userId, page, pageSize)));
+        return Ok(await Mediator.Send(new GetWorklogsQuery(projectId, ticketId, from, to, userId, page, pageSize)));
     }
 
     [HttpPost]

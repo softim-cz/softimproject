@@ -279,7 +279,7 @@ public sealed class EasyProjectMigrationService(
                         ct.ThrowIfCancellationRequested();
                         try
                         {
-                            await MigrateWorklog(jobId, te, spProjectId, ticketMap, userMap, adminUserId, ct);
+                            await MigrateWorklog(jobId, te, ticketMap, userMap, adminUserId, ct);
                             worklogsMigrated++;
                             tracker.UpdateCounts(jobId, "worklogs", totalWorklogs, worklogsMigrated);
                         }
@@ -394,7 +394,7 @@ public sealed class EasyProjectMigrationService(
 
                 var project = await dbContext.Projects.FindAsync([spProjectId], ct);
                 if (project != null)
-                    project.SpentHours = await dbContext.Worklogs.Where(w => w.ProjectId == spProjectId).SumAsync(w => w.Hours, ct);
+                    project.SpentHours = await dbContext.Worklogs.Where(w => w.Ticket.ProjectId == spProjectId).SumAsync(w => w.Hours, ct);
             }
             await dbContext.SaveChangesAsync(ct);
 
@@ -580,21 +580,28 @@ public sealed class EasyProjectMigrationService(
         tracker.IncrementCreated(jobId);
     }
 
-    private async Task MigrateWorklog(Guid jobId, EpTimeEntry te, Guid spProjectId, Dictionary<int, Guid> ticketMap, Dictionary<int, Guid> userMap, Guid adminUserId, CancellationToken ct)
+    private async Task MigrateWorklog(Guid jobId, EpTimeEntry te, Dictionary<int, Guid> ticketMap, Dictionary<int, Guid> userMap, Guid adminUserId, CancellationToken ct)
     {
         var externalId = te.Id.ToString();
         if (await dbContext.Worklogs.AnyAsync(w => w.ExternalId == externalId, ct)) { tracker.IncrementSkipped(jobId); return; }
+        if (te.Issue == null || !ticketMap.TryGetValue(te.Issue.Id, out var ticketId))
+        {
+            tracker.AddLog(jobId, $"Skipping worklog #{externalId} — no linked ticket in target project.");
+            tracker.IncrementSkipped(jobId);
+            return;
+        }
         var userId = te.User != null && userMap.TryGetValue(te.User.Id, out var uid) ? uid : adminUserId;
-        var ticketId = te.Issue != null && ticketMap.TryGetValue(te.Issue.Id, out var tid) ? tid : (Guid?)null;
+        var description = string.IsNullOrWhiteSpace(te.Comments)
+            ? $"Migrated from EasyProject time entry #{externalId}."
+            : te.Comments!;
         dbContext.Worklogs.Add(new Worklog
         {
             Id = Guid.NewGuid(),
-            ProjectId = spProjectId,
             TicketId = ticketId,
             UserId = userId,
             Date = ParseDateOnly(te.SpentOn) ?? DateOnly.FromDateTime(DateTime.UtcNow),
             Hours = te.Hours,
-            Description = te.Comments,
+            Description = description,
             Source = WorklogSource.Sync,
             IsBillable = te.EasyIsBillable ?? false,
             ExternalId = externalId,
