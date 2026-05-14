@@ -8,6 +8,8 @@
     <PackageVersion Include="System.Security.Cryptography.Xml" Version="10.0.7" />
     <!-- GHSA-9mv3-2cwr-p262: DataProtection 10.0.0 flagged; pulled transitively by Mvc.Testing -->
     <PackageVersion Include="Microsoft.AspNetCore.DataProtection" Version="10.0.7" />
+    <!-- GHSA-7j59-v9qr-6fq9: Kiota.Abstractions < 1.22.0 leaks sensitive headers on cross-host redirect; pulled transitively by Microsoft.Graph -->
+    <PackageVersion Include="Microsoft.Kiota.Abstractions" Version="1.22.0" />
 
     <!-- EF Core -->
     <PackageVersion Include="Microsoft.EntityFrameworkCore" Version="10.0.0" />
