@@ -5,12 +5,11 @@ namespace SoftimProject.Domain.Entities;
 
 public class Worklog : BaseEntity
 {
-    public Guid ProjectId { get; set; }
-    public Guid? TicketId { get; set; }
+    public Guid TicketId { get; set; }
     public Guid UserId { get; set; }
     public DateOnly Date { get; set; }
     public decimal Hours { get; set; }
-    public string? Description { get; set; }
+    public string Description { get; set; } = string.Empty;
     public WorklogSource Source { get; set; }
     public bool IsBillable { get; set; }
     public decimal? HourlyRateSnapshot { get; set; }
@@ -18,8 +17,6 @@ public class Worklog : BaseEntity
     public string? Invoiced { get; set; }
     public string? ExternalId { get; set; }
 
-    // Navigation properties
-    public Project Project { get; set; } = null!;
-    public Ticket? Ticket { get; set; }
+    public Ticket Ticket { get; set; } = null!;
     public User User { get; set; } = null!;
 }

@@ -93,7 +93,7 @@ public sealed class ExportXlsxQueryHandler(IApplicationDbContext dbContext)
         {
             var query = dbContext.Worklogs
                 .AsNoTracking()
-                .Where(w => w.ProjectId == request.ProjectId);
+                .Where(w => w.Ticket.ProjectId == request.ProjectId);
 
             if (!string.IsNullOrWhiteSpace(request.AssigneeName))
                 query = query.Where(w => w.User.DisplayName == request.AssigneeName);
@@ -109,7 +109,9 @@ public sealed class ExportXlsxQueryHandler(IApplicationDbContext dbContext)
                                    w.Description,
                                    w.Source.ToString(),
                                    w.IsBillable,
-                                   w.Invoiced))
+                                   w.Invoiced,
+                                   w.Ticket.Project.Code + "-" + w.Ticket.Number,
+                                   w.Ticket.Title))
                                .AsAsyncEnumerable()
                                .WithCancellation(cancellationToken))
             {
@@ -185,6 +187,9 @@ public sealed class ExportXlsxQueryHandler(IApplicationDbContext dbContext)
         "source" => worklog.Source,
         "isBillable" => worklog.IsBillable ? "Yes" : "No",
         "invoiced" => worklog.Invoiced ?? string.Empty,
+        "ticket" => $"{worklog.TicketKey} — {worklog.TicketTitle}",
+        "ticketKey" => worklog.TicketKey,
+        "ticketTitle" => worklog.TicketTitle,
         _ => string.Empty
     };
 
@@ -208,5 +213,7 @@ public sealed class ExportXlsxQueryHandler(IApplicationDbContext dbContext)
         string? Description,
         string Source,
         bool IsBillable,
-        string? Invoiced);
+        string? Invoiced,
+        string TicketKey,
+        string TicketTitle);
 }

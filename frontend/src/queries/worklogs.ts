@@ -6,6 +6,7 @@ import type { PagedResult } from "./tickets";
 
 interface WorklogQueryParams extends QueryParams {
   projectId?: string;
+  ticketId?: string;
   from?: string;
   to?: string;
   page?: number;
@@ -44,11 +45,12 @@ export function useWorklogsPaged(params?: WorklogQueryParams) {
 
 export interface CreateWorklogRequest {
   projectId: string;
-  ticketId?: string;
+  ticketId: string;
   date: string;
   hours: number;
-  description?: string;
+  description: string;
   isBillable: boolean;
+  overrideUserId?: string;
 }
 
 export function useCreateWorklog() {
@@ -65,11 +67,13 @@ export function useCreateWorklog() {
 export interface UpdateWorklogRequest {
   projectId: string;
   worklogId: string;
+  ticketId: string;
   date: string;
   hours: number;
-  description?: string;
+  description: string;
   isBillable: boolean;
   invoiced?: string;
+  overrideUserId?: string;
 }
 
 export function useUpdateWorklog() {

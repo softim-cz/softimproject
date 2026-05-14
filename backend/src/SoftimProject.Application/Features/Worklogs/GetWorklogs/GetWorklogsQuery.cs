@@ -14,13 +14,13 @@ public sealed record WorklogDto(
     Guid Id,
     Guid ProjectId,
     string ProjectName,
-    Guid? TicketId,
-    string? TicketTitle,
+    Guid TicketId,
+    string TicketTitle,
     Guid UserId,
     WorklogUserDto User,
     DateOnly Date,
     decimal Hours,
-    string? Description,
+    string Description,
     WorklogSource Source,
     bool IsBillable,
     decimal? HourlyRateSnapshot,
@@ -30,6 +30,7 @@ public sealed record WorklogDto(
 
 public sealed record GetWorklogsQuery(
     Guid? ProjectId = null,
+    Guid? TicketId = null,
     DateOnly? From = null,
     DateOnly? To = null,
     Guid? UserId = null,
@@ -45,7 +46,10 @@ public sealed class GetWorklogsQueryHandler(
         var query = dbContext.Worklogs.AsNoTracking().AsQueryable();
 
         if (request.ProjectId.HasValue)
-            query = query.Where(w => w.ProjectId == request.ProjectId.Value);
+            query = query.Where(w => w.Ticket.ProjectId == request.ProjectId.Value);
+
+        if (request.TicketId.HasValue)
+            query = query.Where(w => w.TicketId == request.TicketId.Value);
 
         if (request.From.HasValue)
             query = query.Where(w => w.Date >= request.From.Value);
@@ -80,10 +84,10 @@ public sealed class GetWorklogsQueryHandler(
             .Take(pageSize)
             .Select(w => new WorklogDto(
                 w.Id,
-                w.ProjectId,
-                w.Project.Name,
+                w.Ticket.ProjectId,
+                w.Ticket.Project.Name,
                 w.TicketId,
-                w.Ticket != null ? w.Ticket.Title : null,
+                w.Ticket.Title,
                 w.UserId,
                 new WorklogUserDto(w.UserId, w.User.DisplayName),
                 w.Date,

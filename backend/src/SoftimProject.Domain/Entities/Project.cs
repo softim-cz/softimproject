@@ -58,7 +58,6 @@ public class Project : BaseEntity
     public ICollection<ProjectMember> Members { get; set; } = new List<ProjectMember>();
     public ICollection<KanbanBoard> Boards { get; set; } = new List<KanbanBoard>();
     public ICollection<Ticket> Tickets { get; set; } = new List<Ticket>();
-    public ICollection<Worklog> Worklogs { get; set; } = new List<Worklog>();
     public ICollection<AiReport> AiReports { get; set; } = new List<AiReport>();
     public ICollection<SyncLog> SyncLogs { get; set; } = new List<SyncLog>();
     public ICollection<Comment> Comments { get; set; } = new List<Comment>();

@@ -1,34 +1,205 @@
 "use client";
 
-import { use, useState } from "react";
+import { use, useState, useMemo, useCallback, useRef, useEffect } from "react";
+import {
+  useReactTable,
+  getCoreRowModel,
+  getSortedRowModel,
+  flexRender,
+  createColumnHelper,
+  type SortingState,
+  type VisibilityState,
+  type ColumnSizingState,
+} from "@tanstack/react-table";
 import { useWorklogsPaged, useCreateWorklog, useDeleteWorklog } from "@/queries/worklogs";
 import { useProjectByCode } from "@/queries/projects";
+import { useTickets } from "@/queries/tickets";
+import { useAdminUsers } from "@/queries/admin";
 import { useCurrentUser } from "@/queries/auth";
+import { useViewConfiguration, useUpsertViewConfiguration } from "@/queries/view-configurations";
+import { exportXlsx } from "@/queries/export";
 import { TableSkeleton } from "@/components/shared/loading-skeleton";
 import { EmptyState } from "@/components/shared/empty-state";
 import { EditWorklogDialog } from "@/components/shared/edit-worklog-dialog";
-import { Clock, Plus, X, Pencil, Trash2, ChevronLeft, ChevronRight } from "lucide-react";
+import {
+  Clock,
+  Plus,
+  X,
+  Pencil,
+  Trash2,
+  ChevronLeft,
+  ChevronRight,
+  Settings2,
+  Download,
+  ArrowUp,
+  ArrowDown,
+  ArrowUpDown,
+} from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { createWorklogSchema, type CreateWorklogInput } from "@/schemas/worklog";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { GlobalRole, ProjectRole, type Worklog } from "@/types";
+import { cn } from "@/lib/utils";
+
+const columnHelper = createColumnHelper<Worklog>();
+
+interface WorklogTableMeta {
+  onEdit?: (worklog: Worklog) => void;
+  onDelete?: (worklog: Worklog) => void;
+  canEdit?: (worklog: Worklog) => boolean;
+  canDelete?: (worklog: Worklog) => boolean;
+  isDeleting?: boolean;
+}
+
+const allColumns = [
+  columnHelper.accessor("date", {
+    header: "Date",
+    size: 110,
+    cell: ({ row }) => (
+      <span className="text-sm text-foreground">
+        {format(new Date(row.original.date), "yyyy-MM-dd")}
+      </span>
+    ),
+  }),
+  columnHelper.accessor("ticketTitle", {
+    id: "ticket",
+    header: "Ticket",
+    size: 280,
+    minSize: 150,
+    cell: ({ row }) => (
+      <span className="text-sm text-foreground truncate block">
+        {row.original.ticketTitle || "-"}
+      </span>
+    ),
+  }),
+  columnHelper.accessor((row) => row.user.displayName, {
+    id: "user",
+    header: "User",
+    size: 160,
+    cell: ({ row }) => (
+      <span className="text-sm text-foreground">{row.original.user.displayName}</span>
+    ),
+  }),
+  columnHelper.accessor("hours", {
+    header: "Hours",
+    size: 80,
+    cell: ({ row }) => (
+      <span className="text-sm font-medium text-foreground">{row.original.hours.toFixed(2)}h</span>
+    ),
+  }),
+  columnHelper.accessor("description", {
+    header: "Description",
+    size: 320,
+    minSize: 150,
+    cell: ({ row }) => (
+      <span className="text-sm text-muted-foreground truncate block">
+        {row.original.description}
+      </span>
+    ),
+  }),
+  columnHelper.accessor("isBillable", {
+    header: "Billable",
+    size: 90,
+    cell: ({ row }) =>
+      row.original.isBillable ? (
+        <span className="text-green-600 text-xs font-medium">Yes</span>
+      ) : (
+        <span className="text-muted-foreground text-xs">No</span>
+      ),
+  }),
+  columnHelper.accessor("source", {
+    header: "Source",
+    size: 100,
+    cell: ({ row }) => <span className="text-sm text-muted-foreground">{row.original.source}</span>,
+  }),
+  columnHelper.accessor("invoiced", {
+    header: "Invoiced",
+    size: 130,
+    cell: ({ row }) => (
+      <span className="text-sm text-muted-foreground">{row.original.invoiced || "-"}</span>
+    ),
+  }),
+  columnHelper.accessor("createdAt", {
+    header: "Created",
+    size: 120,
+    cell: ({ row }) => (
+      <span className="text-sm text-muted-foreground">
+        {format(new Date(row.original.createdAt), "yyyy-MM-dd")}
+      </span>
+    ),
+  }),
+  columnHelper.display({
+    id: "actions",
+    header: "",
+    size: 80,
+    enableResizing: false,
+    enableSorting: false,
+    cell: ({ row, table }) => {
+      const meta = table.options.meta as WorklogTableMeta | undefined;
+      const w = row.original;
+      return (
+        <div className="flex items-center justify-end gap-1">
+          {meta?.canEdit?.(w) && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                meta.onEdit?.(w);
+              }}
+              className="p-1 text-muted-foreground hover:text-foreground rounded"
+              title="Edit"
+              aria-label="Edit worklog"
+            >
+              <Pencil className="h-3.5 w-3.5" />
+            </button>
+          )}
+          {meta?.canDelete?.(w) && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                meta.onDelete?.(w);
+              }}
+              disabled={meta?.isDeleting}
+              className="p-1 text-muted-foreground hover:text-destructive rounded disabled:opacity-50"
+              title="Delete"
+              aria-label="Delete worklog"
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+            </button>
+          )}
+        </div>
+      );
+    },
+  }),
+];
+
+interface WorklogListConfig {
+  columnVisibility?: VisibilityState;
+  columnSizing?: ColumnSizingState;
+  sorting?: SortingState;
+}
 
 function AddWorklogDialog({
   open,
   onClose,
   projectId,
+  isAdmin,
 }: {
   open: boolean;
   onClose: () => void;
   projectId: string;
+  isAdmin: boolean;
 }) {
   const createWorklog = useCreateWorklog();
+  const { data: ticketsPage } = useTickets(projectId, { pageSize: 200 });
+  const { data: adminUsers } = useAdminUsers();
+  const tickets = ticketsPage?.items ?? [];
   const {
     register,
     handleSubmit,
     reset,
+    watch,
     formState: { errors, isSubmitting },
   } = useForm<CreateWorklogInput>({
     resolver: zodResolver(createWorklogSchema),
@@ -36,12 +207,17 @@ function AddWorklogDialog({
       projectId,
       date: format(new Date(), "yyyy-MM-dd"),
       isBillable: true,
+      description: "",
     },
   });
+  const description = watch("description") ?? "";
 
   const onSubmit = async (data: CreateWorklogInput) => {
     try {
-      await createWorklog.mutateAsync(data);
+      await createWorklog.mutateAsync({
+        ...data,
+        overrideUserId: data.overrideUserId || undefined,
+      });
       toast.success("Worklog added");
       reset();
       onClose();
@@ -65,6 +241,26 @@ function AddWorklogDialog({
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <input type="hidden" {...register("projectId")} />
+
+          <div>
+            <label className="block text-sm font-medium text-card-foreground mb-1">
+              Ticket <span className="text-destructive">*</span>
+            </label>
+            <select
+              {...register("ticketId")}
+              className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+            >
+              <option value="">Select a ticket…</option>
+              {tickets.map((t) => (
+                <option key={t.id} value={t.id}>
+                  #{t.number} — {t.title}
+                </option>
+              ))}
+            </select>
+            {errors.ticketId && (
+              <p className="text-xs text-destructive mt-1">{errors.ticketId.message}</p>
+            )}
+          </div>
 
           <div>
             <label className="block text-sm font-medium text-card-foreground mb-1">Date</label>
@@ -93,16 +289,45 @@ function AddWorklogDialog({
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-card-foreground mb-1">
-              Description
+            <label className="flex items-center justify-between text-sm font-medium text-card-foreground mb-1">
+              <span>
+                Description <span className="text-destructive">*</span>
+              </span>
+              <span className="text-xs font-normal text-muted-foreground">
+                {description.length}/16 min
+              </span>
             </label>
             <textarea
               {...register("description")}
               rows={3}
               className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring resize-none"
-              placeholder="What did you work on?"
+              placeholder="What did you work on? (at least 16 characters)"
             />
+            {errors.description && (
+              <p className="text-xs text-destructive mt-1">{errors.description.message}</p>
+            )}
           </div>
+
+          {isAdmin && (
+            <div>
+              <label className="block text-sm font-medium text-card-foreground mb-1">
+                Log on behalf of (Admin)
+              </label>
+              <select
+                {...register("overrideUserId")}
+                className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+              >
+                <option value="">Myself (default)</option>
+                {(adminUsers ?? [])
+                  .filter((u) => u.isActive)
+                  .map((u) => (
+                    <option key={u.id} value={u.id}>
+                      {u.displayName} ({u.email})
+                    </option>
+                  ))}
+              </select>
+            </div>
+          )}
 
           <label className="flex items-center gap-2 text-sm">
             <input type="checkbox" {...register("isBillable")} className="rounded" />
@@ -137,53 +362,232 @@ export default function ProjectWorklogsPage({ params }: { params: Promise<{ code
   const projectId = project?.id ?? "";
   const [page, setPage] = useState(1);
   const { data: worklogsPage, isLoading, error } = useWorklogsPaged({ projectId, page });
-  const worklogs = worklogsPage?.items;
+  const worklogs = useMemo(() => worklogsPage?.items ?? [], [worklogsPage]);
   const { data: currentUser } = useCurrentUser();
   const deleteWorklog = useDeleteWorklog();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingWorklog, setEditingWorklog] = useState<Worklog | null>(null);
+  const [showColumnSettings, setShowColumnSettings] = useState(false);
 
-  const isProjectManager = (projectId: string) =>
+  const { data: viewConfig } = useViewConfiguration("WorklogList", projectId);
+  const upsertConfig = useUpsertViewConfiguration();
+
+  const savedConfig = useMemo<WorklogListConfig>(() => {
+    if (!viewConfig?.configurationJson) return {};
+    try {
+      return JSON.parse(viewConfig.configurationJson) as WorklogListConfig;
+    } catch {
+      return {};
+    }
+  }, [viewConfig?.configurationJson]);
+
+  const [sorting, setSorting] = useState<SortingState>([]);
+  const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
+  const [columnSizing, setColumnSizing] = useState<ColumnSizingState>({});
+
+  useEffect(() => {
+    setSorting(savedConfig.sorting ?? []);
+    setColumnVisibility(savedConfig.columnVisibility ?? {});
+    setColumnSizing(savedConfig.columnSizing ?? {});
+  }, [savedConfig]);
+
+  const saveTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(
+    () => () => {
+      if (saveTimeout.current) clearTimeout(saveTimeout.current);
+    },
+    []
+  );
+
+  const persistConfig = useCallback(
+    (config: WorklogListConfig) => {
+      if (!projectId) return;
+      if (saveTimeout.current) clearTimeout(saveTimeout.current);
+      saveTimeout.current = setTimeout(() => {
+        upsertConfig.mutate({
+          projectId,
+          viewType: "WorklogList",
+          configurationJson: JSON.stringify(config),
+        });
+      }, 1000);
+    },
+    [projectId, upsertConfig]
+  );
+
+  const handleSortingChange = useCallback(
+    (updater: SortingState | ((old: SortingState) => SortingState)) => {
+      setSorting((prev) => {
+        const next = typeof updater === "function" ? updater(prev) : updater;
+        persistConfig({ sorting: next, columnVisibility, columnSizing });
+        return next;
+      });
+    },
+    [persistConfig, columnVisibility, columnSizing]
+  );
+
+  const handleColumnVisibilityChange = useCallback(
+    (updater: VisibilityState | ((old: VisibilityState) => VisibilityState)) => {
+      setColumnVisibility((prev) => {
+        const next = typeof updater === "function" ? updater(prev) : updater;
+        persistConfig({ sorting, columnVisibility: next, columnSizing });
+        return next;
+      });
+    },
+    [persistConfig, sorting, columnSizing]
+  );
+
+  const handleColumnSizingChange = useCallback(
+    (updater: ColumnSizingState | ((old: ColumnSizingState) => ColumnSizingState)) => {
+      setColumnSizing((prev) => {
+        const next = typeof updater === "function" ? updater(prev) : updater;
+        persistConfig({ sorting, columnVisibility, columnSizing: next });
+        return next;
+      });
+    },
+    [persistConfig, sorting, columnVisibility]
+  );
+
+  const isProjectManager = (pid: string) =>
     !!currentUser &&
     currentUser.projectRoles.some(
-      (pr) => pr.projectId === projectId && pr.role === ProjectRole.ProjectManager
+      (pr) => pr.projectId === pid && pr.role === ProjectRole.ProjectManager
     );
 
-  const canEdit = (worklog: Worklog) =>
-    !!currentUser &&
-    currentUser.permissions.timeTrackingUpdate &&
-    (worklog.userId === currentUser.id ||
-      currentUser.globalRole === GlobalRole.Admin ||
-      isProjectManager(worklog.projectId));
+  const canEdit = useCallback(
+    (worklog: Worklog) =>
+      !!currentUser &&
+      currentUser.permissions.timeTrackingUpdate &&
+      (worklog.userId === currentUser.id ||
+        currentUser.globalRole === GlobalRole.Admin ||
+        isProjectManager(worklog.projectId)),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [currentUser]
+  );
 
-  const canDelete = (worklog: Worklog) =>
-    !!currentUser &&
-    currentUser.permissions.timeTrackingDelete &&
-    (worklog.userId === currentUser.id ||
-      currentUser.globalRole === GlobalRole.Admin ||
-      isProjectManager(worklog.projectId));
+  const canDelete = useCallback(
+    (worklog: Worklog) =>
+      !!currentUser &&
+      currentUser.permissions.timeTrackingDelete &&
+      (worklog.userId === currentUser.id ||
+        currentUser.globalRole === GlobalRole.Admin ||
+        isProjectManager(worklog.projectId)),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [currentUser]
+  );
 
-  const handleDelete = async (worklog: Worklog) => {
-    if (!window.confirm("Delete this worklog?")) return;
+  const handleDelete = useCallback(
+    async (worklog: Worklog) => {
+      if (!window.confirm("Delete this worklog?")) return;
+      try {
+        await deleteWorklog.mutateAsync({ projectId: worklog.projectId, worklogId: worklog.id });
+        toast.success("Worklog deleted");
+      } catch {
+        toast.error("Failed to delete worklog");
+      }
+    },
+    [deleteWorklog]
+  );
+
+  // eslint-disable-next-line react-hooks/incompatible-library
+  const table = useReactTable({
+    data: worklogs,
+    columns: allColumns,
+    state: { sorting, columnVisibility, columnSizing },
+    onSortingChange: handleSortingChange,
+    onColumnVisibilityChange: handleColumnVisibilityChange,
+    onColumnSizingChange: handleColumnSizingChange,
+    getCoreRowModel: getCoreRowModel(),
+    getSortedRowModel: getSortedRowModel(),
+    columnResizeMode: "onChange",
+    meta: {
+      onEdit: setEditingWorklog,
+      onDelete: handleDelete,
+      canEdit,
+      canDelete,
+      isDeleting: deleteWorklog.isPending,
+    } satisfies WorklogTableMeta,
+  });
+
+  const handleExport = async () => {
     try {
-      await deleteWorklog.mutateAsync({ projectId: worklog.projectId, worklogId: worklog.id });
-      toast.success("Worklog deleted");
+      const visibleCols = table
+        .getVisibleLeafColumns()
+        .filter((c) => c.id !== "actions")
+        .map((c) => ({
+          field: c.id,
+          header: typeof c.columnDef.header === "string" ? c.columnDef.header : c.id,
+        }));
+      const firstSort = sorting[0];
+      await exportXlsx({
+        projectId,
+        viewType: "Worklogs",
+        columns: visibleCols,
+        sort: firstSort
+          ? { sortField: firstSort.id, sortDirection: firstSort.desc ? "desc" : "asc" }
+          : undefined,
+      });
+      toast.success("Export downloaded");
     } catch {
-      toast.error("Failed to delete worklog");
+      toast.error("Export failed");
     }
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <p className="text-sm text-muted-foreground">Time entries for this project</p>
-        <button
-          onClick={() => setDialogOpen(true)}
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:opacity-90 transition-opacity"
-        >
-          <Plus className="h-4 w-4" />
-          Add Worklog
-        </button>
+        <p className="text-sm text-muted-foreground">
+          Time entries for this project
+          {worklogsPage ? ` — ${worklogsPage.totalCount} total` : ""}
+        </p>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setDialogOpen(true)}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-primary-foreground bg-primary rounded-lg hover:opacity-90 transition-opacity"
+          >
+            <Plus className="h-4 w-4" />
+            Add Worklog
+          </button>
+          <button
+            onClick={handleExport}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground border border-border rounded-lg hover:bg-muted transition-colors"
+          >
+            <Download className="h-4 w-4" />
+            Export
+          </button>
+          <div className="relative">
+            <button
+              onClick={() => setShowColumnSettings((v) => !v)}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground border border-border rounded-lg hover:bg-muted transition-colors"
+            >
+              <Settings2 className="h-4 w-4" />
+              Columns
+            </button>
+            {showColumnSettings && (
+              <div className="absolute right-0 top-full mt-1 z-20 bg-card border border-border rounded-lg shadow-lg p-3 w-56">
+                <p className="text-xs font-medium text-muted-foreground mb-2">Toggle columns</p>
+                {table
+                  .getAllLeafColumns()
+                  .filter((column) => column.id !== "actions")
+                  .map((column) => (
+                    <label
+                      key={column.id}
+                      className="flex items-center gap-2 py-1 text-sm cursor-pointer"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={column.getIsVisible()}
+                        onChange={column.getToggleVisibilityHandler()}
+                        className="rounded"
+                      />
+                      {typeof column.columnDef.header === "string"
+                        ? column.columnDef.header
+                        : column.id}
+                    </label>
+                  ))}
+              </div>
+            )}
+          </div>
+        </div>
       </div>
 
       {isLoading && <TableSkeleton rows={8} />}
@@ -194,7 +598,7 @@ export default function ProjectWorklogsPage({ params }: { params: Promise<{ code
         </div>
       )}
 
-      {worklogs && worklogs.length === 0 && (
+      {worklogs.length === 0 && !isLoading && (
         <EmptyState
           icon={<Clock className="h-12 w-12" />}
           title="No worklogs yet"
@@ -202,80 +606,62 @@ export default function ProjectWorklogsPage({ params }: { params: Promise<{ code
         />
       )}
 
-      {worklogs && worklogs.length > 0 && (
-        <div className="rounded-lg border border-border overflow-hidden">
-          <table className="w-full">
+      {worklogs.length > 0 && (
+        <div className="rounded-lg border border-border overflow-auto">
+          <table className="w-full" style={{ minWidth: table.getTotalSize() }}>
             <thead>
-              <tr className="bg-muted/50">
-                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                  Date
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                  User
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                  Hours
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                  Description
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                  Billable
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                  Source
-                </th>
-                <th className="px-4 py-3 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider w-24">
-                  Actions
-                </th>
-              </tr>
+              {table.getHeaderGroups().map((headerGroup) => (
+                <tr key={headerGroup.id} className="bg-muted/50">
+                  {headerGroup.headers.map((header) => (
+                    <th
+                      key={header.id}
+                      className="relative px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider select-none"
+                      style={{ width: header.getSize() }}
+                    >
+                      {header.isPlaceholder ? null : header.column.getCanSort() ? (
+                        <button
+                          onClick={header.column.getToggleSortingHandler()}
+                          className="flex items-center gap-1 hover:text-foreground transition-colors"
+                        >
+                          {flexRender(header.column.columnDef.header, header.getContext())}
+                          {header.column.getIsSorted() === "asc" ? (
+                            <ArrowUp className="h-3 w-3" />
+                          ) : header.column.getIsSorted() === "desc" ? (
+                            <ArrowDown className="h-3 w-3" />
+                          ) : (
+                            <ArrowUpDown className="h-3 w-3 opacity-30" />
+                          )}
+                        </button>
+                      ) : (
+                        flexRender(header.column.columnDef.header, header.getContext())
+                      )}
+                      {header.column.getCanResize() && (
+                        <div
+                          onMouseDown={header.getResizeHandler()}
+                          onTouchStart={header.getResizeHandler()}
+                          className={cn(
+                            "absolute right-0 top-0 h-full w-1 cursor-col-resize select-none touch-none",
+                            header.column.getIsResizing() ? "bg-primary" : "hover:bg-border"
+                          )}
+                        />
+                      )}
+                    </th>
+                  ))}
+                </tr>
+              ))}
             </thead>
             <tbody className="divide-y divide-border">
-              {worklogs.map((worklog: Worklog) => (
-                <tr key={worklog.id} className="hover:bg-muted/30">
-                  <td className="px-4 py-3 text-sm text-foreground">
-                    {format(new Date(worklog.date), "MMM d, yyyy")}
-                  </td>
-                  <td className="px-4 py-3 text-sm text-foreground">{worklog.user.displayName}</td>
-                  <td className="px-4 py-3 text-sm font-medium text-foreground">
-                    {worklog.hours.toFixed(2)}h
-                  </td>
-                  <td className="px-4 py-3 text-sm text-muted-foreground max-w-xs truncate">
-                    {worklog.description || "-"}
-                  </td>
-                  <td className="px-4 py-3 text-sm">
-                    {worklog.isBillable ? (
-                      <span className="text-green-600 text-xs font-medium">Yes</span>
-                    ) : (
-                      <span className="text-muted-foreground text-xs">No</span>
-                    )}
-                  </td>
-                  <td className="px-4 py-3 text-sm text-muted-foreground">{worklog.source}</td>
-                  <td className="px-4 py-3 text-sm">
-                    <div className="flex items-center justify-end gap-1">
-                      {canEdit(worklog) && (
-                        <button
-                          onClick={() => setEditingWorklog(worklog)}
-                          className="p-1 text-muted-foreground hover:text-foreground rounded"
-                          title="Edit"
-                          aria-label="Edit worklog"
-                        >
-                          <Pencil className="h-3.5 w-3.5" />
-                        </button>
-                      )}
-                      {canDelete(worklog) && (
-                        <button
-                          onClick={() => handleDelete(worklog)}
-                          disabled={deleteWorklog.isPending}
-                          className="p-1 text-muted-foreground hover:text-destructive rounded disabled:opacity-50"
-                          title="Delete"
-                          aria-label="Delete worklog"
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </button>
-                      )}
-                    </div>
-                  </td>
+              {table.getRowModel().rows.map((row) => (
+                <tr key={row.id} className="hover:bg-muted/30">
+                  {row.getVisibleCells().map((cell) => (
+                    <td
+                      key={cell.id}
+                      className="px-4 py-3"
+                      style={{ width: cell.column.getSize() }}
+                    >
+                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                    </td>
+                  ))}
                 </tr>
               ))}
             </tbody>
@@ -318,6 +704,7 @@ export default function ProjectWorklogsPage({ params }: { params: Promise<{ code
         open={dialogOpen}
         onClose={() => setDialogOpen(false)}
         projectId={projectId}
+        isAdmin={currentUser?.globalRole === GlobalRole.Admin}
       />
       <EditWorklogDialog
         worklog={editingWorklog}

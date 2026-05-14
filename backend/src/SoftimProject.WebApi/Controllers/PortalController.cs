@@ -60,7 +60,7 @@ public class PortalController(IApplicationDbContext dbContext) : ControllerBase
             .FirstOrDefaultAsync(ct);
 
         var totalHours = await dbContext.Worklogs
-            .Where(w => w.ProjectId == project.Id && w.IsBillable)
+            .Where(w => w.Ticket.ProjectId == project.Id && w.IsBillable)
             .SumAsync(w => (decimal?)w.Hours, ct) ?? 0m;
 
         return Ok(new PortalResponseDto(

@@ -239,16 +239,20 @@ export interface Comment {
 export interface Worklog {
   id: string;
   projectId: string;
-  ticketId?: string;
+  projectName: string;
+  ticketId: string;
+  ticketTitle: string;
   userId: string;
   user: User;
   date: string;
   hours: number;
-  description?: string;
+  description: string;
   source: WorklogSource;
   isBillable: boolean;
+  hourlyRateSnapshot?: number;
   aiSummary?: string;
   invoiced?: string;
+  createdAt: string;
 }
 
 export interface Notification {

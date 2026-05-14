@@ -3,6 +3,8 @@
 import { useState, useEffect } from "react";
 import { useWorklogs, useCreateWorklog, useDeleteWorklog } from "@/queries/worklogs";
 import { useProjects } from "@/queries/projects";
+import { useTickets } from "@/queries/tickets";
+import { useAdminUsers } from "@/queries/admin";
 import { useCurrentUser } from "@/queries/auth";
 import { useTimerStore } from "@/stores/timer-store";
 import { TableSkeleton } from "@/components/shared/loading-skeleton";
@@ -22,7 +24,10 @@ function TimerDisplay() {
   const { data: projects } = useProjects();
   const createWorklog = useCreateWorklog();
   const [timerProjectId, setTimerProjectId] = useState("");
+  const [timerTicketId, setTimerTicketId] = useState("");
   const [timerDescription, setTimerDescription] = useState("");
+  const { data: timerTicketsPage } = useTickets(timerProjectId || "", { pageSize: 200 });
+  const timerTickets = timerTicketsPage?.items ?? [];
 
   useEffect(() => {
     if (!isRunning) return;
@@ -35,25 +40,35 @@ function TimerDisplay() {
       toast.error("Select a project first");
       return;
     }
-    start(timerProjectId, undefined, timerDescription);
+    if (!timerTicketId) {
+      toast.error("Select a ticket first");
+      return;
+    }
+    start(timerProjectId, timerTicketId, timerDescription);
   };
 
   const handleStop = async () => {
     const result = stop();
-    if (result.elapsed > 0 && result.projectId) {
-      try {
-        await createWorklog.mutateAsync({
-          projectId: result.projectId,
-          date: format(new Date(), "yyyy-MM-dd"),
-          hours: parseFloat((result.elapsed / 3600).toFixed(2)),
-          description: result.description,
-          isBillable: true,
-        });
-        toast.success("Worklog saved from timer");
-        reset();
-      } catch {
-        toast.error("Failed to save worklog");
-      }
+    if (result.elapsed === 0 || !result.projectId || !result.ticketId) {
+      reset();
+      return;
+    }
+    const trimmed = (result.description ?? "").trim();
+    const finalDescription =
+      trimmed.length >= 16 ? trimmed : `Timer session: ${trimmed || "untitled"}`.padEnd(16, " ");
+    try {
+      await createWorklog.mutateAsync({
+        projectId: result.projectId,
+        ticketId: result.ticketId,
+        date: format(new Date(), "yyyy-MM-dd"),
+        hours: parseFloat((result.elapsed / 3600).toFixed(2)),
+        description: finalDescription,
+        isBillable: true,
+      });
+      toast.success("Worklog saved from timer");
+      reset();
+    } catch {
+      toast.error("Failed to save worklog");
     }
   };
 
@@ -68,13 +83,29 @@ function TimerDisplay() {
         <div className="space-y-3">
           <select
             value={timerProjectId}
-            onChange={(e) => setTimerProjectId(e.target.value)}
+            onChange={(e) => {
+              setTimerProjectId(e.target.value);
+              setTimerTicketId("");
+            }}
             className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
           >
             <option value="">Select project</option>
             {projects?.map((p: Project) => (
               <option key={p.id} value={p.id}>
                 {p.name}
+              </option>
+            ))}
+          </select>
+          <select
+            value={timerTicketId}
+            onChange={(e) => setTimerTicketId(e.target.value)}
+            disabled={!timerProjectId}
+            className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-50"
+          >
+            <option value="">Select ticket</option>
+            {timerTickets.map((t) => (
+              <option key={t.id} value={t.id}>
+                #{t.number} — {t.title}
               </option>
             ))}
           </select>
@@ -115,22 +146,34 @@ function TimerDisplay() {
 function QuickLogDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
   const { data: projects } = useProjects();
   const createWorklog = useCreateWorklog();
+  const { data: currentUser } = useCurrentUser();
+  const isAdmin = currentUser?.globalRole === GlobalRole.Admin;
+  const { data: adminUsers } = useAdminUsers();
   const {
     register,
     handleSubmit,
     reset,
+    watch,
     formState: { errors, isSubmitting },
   } = useForm<CreateWorklogInput>({
     resolver: zodResolver(createWorklogSchema),
     defaultValues: {
       date: format(new Date(), "yyyy-MM-dd"),
       isBillable: true,
+      description: "",
     },
   });
+  const description = watch("description") ?? "";
+  const selectedProjectId = watch("projectId");
+  const { data: ticketsPage } = useTickets(selectedProjectId || "", { pageSize: 200 });
+  const tickets = ticketsPage?.items ?? [];
 
   const onSubmit = async (data: CreateWorklogInput) => {
     try {
-      await createWorklog.mutateAsync(data);
+      await createWorklog.mutateAsync({
+        ...data,
+        overrideUserId: data.overrideUserId || undefined,
+      });
       toast.success("Worklog added");
       reset();
       onClose();
@@ -171,6 +214,27 @@ function QuickLogDialog({ open, onClose }: { open: boolean; onClose: () => void 
             )}
           </div>
 
+          <div>
+            <label className="block text-sm font-medium text-card-foreground mb-1">
+              Ticket <span className="text-destructive">*</span>
+            </label>
+            <select
+              {...register("ticketId")}
+              disabled={!selectedProjectId}
+              className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring disabled:opacity-50"
+            >
+              <option value="">Select a ticket…</option>
+              {tickets.map((t) => (
+                <option key={t.id} value={t.id}>
+                  #{t.number} — {t.title}
+                </option>
+              ))}
+            </select>
+            {errors.ticketId && (
+              <p className="text-xs text-destructive mt-1">{errors.ticketId.message}</p>
+            )}
+          </div>
+
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-card-foreground mb-1">Date</label>
@@ -193,16 +257,45 @@ function QuickLogDialog({ open, onClose }: { open: boolean; onClose: () => void 
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-card-foreground mb-1">
-              Description
+            <label className="flex items-center justify-between text-sm font-medium text-card-foreground mb-1">
+              <span>
+                Description <span className="text-destructive">*</span>
+              </span>
+              <span className="text-xs font-normal text-muted-foreground">
+                {description.length}/16 min
+              </span>
             </label>
             <textarea
               {...register("description")}
               rows={2}
               className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring resize-none"
-              placeholder="What did you work on?"
+              placeholder="What did you work on? (at least 16 characters)"
             />
+            {errors.description && (
+              <p className="text-xs text-destructive mt-1">{errors.description.message}</p>
+            )}
           </div>
+
+          {isAdmin && (
+            <div>
+              <label className="block text-sm font-medium text-card-foreground mb-1">
+                Log on behalf of (Admin)
+              </label>
+              <select
+                {...register("overrideUserId")}
+                className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+              >
+                <option value="">Myself (default)</option>
+                {(adminUsers ?? [])
+                  .filter((u) => u.isActive)
+                  .map((u) => (
+                    <option key={u.id} value={u.id}>
+                      {u.displayName} ({u.email})
+                    </option>
+                  ))}
+              </select>
+            </div>
+          )}
 
           <label className="flex items-center gap-2 text-sm">
             <input type="checkbox" {...register("isBillable")} className="rounded" />
@@ -347,6 +440,9 @@ export default function WorklogsPage() {
                         Date
                       </th>
                       <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground uppercase">
+                        Ticket
+                      </th>
+                      <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground uppercase">
                         User
                       </th>
                       <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground uppercase">
@@ -368,6 +464,9 @@ export default function WorklogsPage() {
                       <tr key={worklog.id} className="hover:bg-muted/30">
                         <td className="px-3 py-2 text-sm text-foreground">
                           {format(new Date(worklog.date), "MMM d")}
+                        </td>
+                        <td className="px-3 py-2 text-sm text-muted-foreground truncate max-w-[14rem]">
+                          {worklog.ticketTitle ? `${worklog.ticketTitle}` : "-"}
                         </td>
                         <td className="px-3 py-2 text-sm text-foreground">
                           {worklog.user.displayName}

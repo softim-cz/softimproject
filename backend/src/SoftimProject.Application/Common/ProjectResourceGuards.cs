@@ -76,7 +76,8 @@ public static class ProjectResourceGuards
         CancellationToken cancellationToken)
     {
         return await dbContext.Worklogs
-            .FirstOrDefaultAsync(w => w.Id == worklogId && w.ProjectId == projectId, cancellationToken)
+            .Include(w => w.Ticket)
+            .FirstOrDefaultAsync(w => w.Id == worklogId && w.Ticket.ProjectId == projectId, cancellationToken)
             ?? throw new NotFoundException(nameof(Worklog), worklogId);
     }
 }

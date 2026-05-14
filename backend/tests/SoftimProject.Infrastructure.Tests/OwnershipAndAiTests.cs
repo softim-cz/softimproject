@@ -58,7 +58,7 @@ public class OwnershipAndAiTests
         var handler = new CreateWorklogCommandHandler(dbContext, currentUser.Object);
 
         var act = () => handler.Handle(
-            new CreateWorklogCommand(seed.OtherProject.Id, seed.Ticket.Id, new DateOnly(2026, 3, 5), 2m, "Review", true),
+            new CreateWorklogCommand(seed.OtherProject.Id, seed.Ticket.Id, new DateOnly(2026, 3, 5), 2m, "Reviewing audit findings.", true),
             CancellationToken.None);
 
         await act.Should().ThrowAsync<NotFoundException>();

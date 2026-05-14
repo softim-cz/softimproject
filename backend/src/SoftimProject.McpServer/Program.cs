@@ -113,7 +113,7 @@ tools.MapPost("/worklogs", async (CreateWorklogRequest request, IMediator mediat
         ct);
     return Results.Created($"/tools/worklogs/{id}", new { Id = id });
 }).WithName("LogWorklog")
-  .WithDescription("Create a worklog entry. IRequireProjectRole(Developer) is enforced; Guest role returns 403.");
+  .WithDescription("Create a worklog entry. TicketId is required, Description must be at least 16 characters. IRequireProjectRole(Developer) is enforced; Guest role returns 403.");
 
 tools.MapGet("/projects/{projectId:guid}/worklogs", async (
     Guid projectId,
@@ -145,8 +145,8 @@ public partial class Program { }
 
 public sealed record CreateWorklogRequest(
     Guid ProjectId,
-    Guid? TicketId,
+    Guid TicketId,
     string Date,
     decimal Hours,
-    string? Description,
+    string Description,
     bool IsBillable);

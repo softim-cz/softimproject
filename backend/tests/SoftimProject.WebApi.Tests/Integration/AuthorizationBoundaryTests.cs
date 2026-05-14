@@ -145,10 +145,10 @@ public sealed class AuthorizationBoundaryTests : IClassFixture<IntegrationTestFa
         var payload = new
         {
             projectId = TestDataSeeder.ProjectAId,
-            ticketId = (Guid?)null,
+            ticketId = Guid.NewGuid(),
             date = DateOnly.FromDateTime(DateTime.UtcNow),
             hours = 1.0m,
-            description = "guest worklog",
+            description = "Guest is not allowed to log work here.",
             isBillable = false,
         };
 

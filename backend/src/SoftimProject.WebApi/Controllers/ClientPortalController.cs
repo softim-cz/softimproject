@@ -85,7 +85,7 @@ public class ClientPortalController(IApplicationDbContext dbContext) : Controlle
             ?? throw new NotFoundException("Project", token);
 
         var worklogs = await dbContext.Worklogs
-            .Where(w => w.ProjectId == project.Id && w.IsBillable)
+            .Where(w => w.Ticket.ProjectId == project.Id && w.IsBillable)
             .GroupBy(w => w.UserId)
             .Select(g => new ClientWorklogSummaryDto(
                 g.First().User.DisplayName,
