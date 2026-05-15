@@ -11,6 +11,7 @@ using SoftimProject.Infrastructure.BackgroundServices;
 using SoftimProject.Infrastructure.Persistence;
 using SoftimProject.Infrastructure.Services;
 using SoftimProject.Infrastructure.Services.EasyProject;
+using SoftimProject.Infrastructure.Services.Email;
 
 namespace SoftimProject.Infrastructure;
 
@@ -75,6 +76,13 @@ public static class DependencyInjection
         services.AddHostedService<JiraSyncService>();
         services.AddHostedService<RedmineSyncService>();
         services.AddHostedService<EmailPollingService>();
+
+        // Email-to-ticket sync (#49). Gated by Sync:Email:Enabled — when false, the hosted
+        // service short-circuits each tick without touching Graph. GraphMailboxClient is
+        // resolved lazily on the first iteration, so misconfigured secrets don't crash
+        // startup; they surface as JobRun failures with a clear error.
+        services.AddOptions<EmailSyncOptions>().Bind(configuration.GetSection("Sync:Email"));
+        services.AddScoped<IEmailMailboxClient, GraphMailboxClient>();
         services.AddHostedService<AiSummarizationService>();
         services.AddHostedService<DeadlineNotificationService>();
         services.AddHostedService<WeeklyReportService>();

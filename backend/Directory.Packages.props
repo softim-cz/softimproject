@@ -60,8 +60,9 @@
     <!-- GitHub -->
     <PackageVersion Include="Octokit" Version="14.0.0" />
 
-    <!-- Microsoft Graph (Teams notifications) -->
+    <!-- Microsoft Graph (Teams notifications + Email-to-ticket sync) -->
     <PackageVersion Include="Microsoft.Graph" Version="5.68.0" />
+    <PackageVersion Include="Azure.Identity" Version="1.14.2" />
 
     <!-- Testing -->
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />

@@ -341,6 +341,32 @@ Stránka `/admin` má sekci **Dead-letter queue** s filtrem "include resolved" a
 - Chyba přežije retries → DLQ row, warning log, `SyncLog`/`JobRun` failed status.
 - Admin v `/admin` klikne Replay → idempotentní operace se znovu pustí; pokud projde, entry se označí Replayed.
 
+## External sync — Email-to-ticket
+
+`EmailPollingService` (každé 2 min) čte nepřečtenou poštu z jedné sdílené schránky přes Microsoft Graph a převádí ji na tickety nebo komentáře. Disabled by default — zapnout přes `Sync:Email:Enabled = true` v konfiguraci.
+
+### Routing
+
+Email se přiřadí k projektu podle plus-aliasu v recipientech: `inbox+<key>@<your-domain>` se mapuje na projekt, který má `ExternalSystem = "Email"` a `ExternalProjectId = "<key>"` (case-insensitive). Prefix `inbox+` je konfigurovatelný (`Sync:Email:AliasPrefix`). Emaily bez matchingu se rovnou označí jako přečtené (nepouštět je pak znovu na log).
+
+### Reply detection
+
+Subject ve tvaru `[#<CODE>-<NUM>]` (např. `Re: [#ACME-42] ...`) přidá komentář k existujícímu ticketu místo vytvoření nového. Fallback: pokud ticket s tím číslem v daném projektu neexistuje, vytvoří se nový.
+
+### Idempotence
+
+Graph message id se ukládá do `Ticket.ExternalId` (pro nové tickety) nebo `Comment.ExternalId` se `Source = CommentSource.Email` (pro komentáře). Druhé spuštění stejného message id je no-op.
+
+### Provisioning
+
+1. V Entra ID založ App Registration (single-tenant). Přidej **application permission** `Mail.ReadWrite` (ne delegated) a admin-consent ji.
+2. Vygeneruj client secret. Uložit do Azure App Service Configuration jako `Sync__Email__ClientSecret` (nikdy do repo).
+3. (Volitelně) Omez aplikaci jen na konkrétní schránku přes `New-ApplicationAccessPolicy` v Exchange Online, ať app nevidí celý tenant.
+4. Konfigurace: `TenantId`, `ClientId`, `ClientSecret`, `MailboxUserId` (UPN nebo Graph id sdílené schránky).
+5. Per-projekt zapni nastavením `ExternalSystem = "Email"` + `ExternalProjectId = "<key>"`. Klienti pak píšou na `inbox+<key>@your-domain`.
+
+SyncLog řádky (jeden per projekt s aktivitou) reflektují skutečnost — `ItemsSynced` = počet zpracovaných emailů, `Failed` = ty, které spadly v transientní chybě (zůstávají nepřečtené, příští tick je zkusí znovu).
+
 ## GitHub E2E flow
 
 Projekty napojené na GitHub (přes OAuth v Project settings) mají v ticket detailu sekci **Linked pull requests** s tlačítkem **Create branch**.
