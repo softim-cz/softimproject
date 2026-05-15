@@ -127,6 +127,33 @@ public sealed class JobsHealthTests : IClassFixture<IntegrationTestFactory>
     }
 
     [Fact]
+    public async Task Unversioned_alias_returns_same_payload_as_versioned_endpoint()
+    {
+        var jobName = $"AliasJob_{Guid.NewGuid():N}";
+        using var scope = _factory.Services.CreateScope();
+        scope.ServiceProvider.GetRequiredService<IJobRegistry>()
+            .Register(jobName, TimeSpan.FromHours(1));
+
+        var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        db.JobRuns.Add(new JobRun
+        {
+            Id = Guid.NewGuid(),
+            JobName = jobName,
+            StartedAt = DateTime.UtcNow.AddMinutes(-1),
+            CompletedAt = DateTime.UtcNow.AddMinutes(-1).AddSeconds(1),
+            Status = JobRunStatus.Success,
+            DurationMs = 1000,
+        });
+        await db.SaveChangesAsync();
+
+        using var client = AnonymousClient();
+        var aliasResponse = await client.GetAsync("/health/jobs");
+        var aliasBody = await aliasResponse.Content.ReadFromJsonAsync<JobsHealthDto>(JsonOptions);
+
+        aliasBody!.Jobs.Should().Contain(j => j.JobName == jobName);
+    }
+
+    [Fact]
     public async Task Jobs_health_flags_job_as_overdue_and_endpoint_returns_503_when_any_job_is_stale()
     {
         var jobName = $"StuckJob_{Guid.NewGuid():N}";
