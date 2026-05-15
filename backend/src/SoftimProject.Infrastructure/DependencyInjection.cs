@@ -73,8 +73,6 @@ public static class DependencyInjection
         services.AddSingleton<IAiInvocationRecorder, AiInvocationRecorder>();
 
         // Background Services
-        services.AddHostedService<JiraSyncService>();
-        services.AddHostedService<RedmineSyncService>();
         services.AddHostedService<EmailPollingService>();
 
         // Email-to-ticket sync (#49). Gated by Sync:Email:Enabled — when false, the hosted

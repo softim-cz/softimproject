@@ -161,6 +161,21 @@ try
 
     app.MapControllers();
     app.MapHealthChecks("/health");
+
+    // Unversioned alias for the versioned HealthController.GetJobs at /api/v1/health/jobs.
+    // Probes and the smoke-check curl in CONTRIBUTING expect /health/jobs (consistent with
+    // the unversioned /health liveness probe), so we expose both. Same anonymous access,
+    // same payload, same 503-on-degraded contract.
+    app.MapGet("/health/jobs",
+        async (MediatR.ISender mediator, CancellationToken ct) =>
+        {
+            var result = await mediator.Send(
+                new SoftimProject.Application.Features.Health.GetJobsHealthQuery(), ct);
+            return result.Status == "Healthy"
+                ? Results.Ok(result)
+                : Results.Json(result, statusCode: StatusCodes.Status503ServiceUnavailable);
+        }).AllowAnonymous();
+
     app.MapHub<KanbanHub>("/hubs/kanban");
     app.MapHub<NotificationHub>("/hubs/notifications");
     app.MapHub<MigrationHub>("/hubs/migration");
