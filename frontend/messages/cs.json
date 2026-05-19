@@ -167,6 +167,24 @@
       "settings": "Nastavení"
     }
   },
+  "EditWorklog": {
+    "title": "Upravit výkaz",
+    "close": "Zavřít",
+    "ticket": "Ticket",
+    "selectTicket": "Vyberte ticket…",
+    "date": "Datum",
+    "hours": "Hodiny",
+    "description": "Popis",
+    "descriptionPlaceholder": "Na čem jste pracovali? (alespoň 16 znaků)",
+    "descriptionCounter": "{count}/16 min",
+    "ownerAdmin": "Vlastník (Admin)",
+    "billable": "K vyúčtování",
+    "invoiced": "Fakturováno",
+    "saving": "Ukládám...",
+    "save": "Uložit",
+    "updated": "Výkaz aktualizován",
+    "updateFailed": "Aktualizace výkazu se nezdařila"
+  },
   "WorklogsPage": {
     "title": "Výkazy",
     "subtitle": "Sledování a správa zaznamenaného času",

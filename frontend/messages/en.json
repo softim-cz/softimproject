@@ -167,6 +167,24 @@
       "settings": "Settings"
     }
   },
+  "EditWorklog": {
+    "title": "Edit Worklog",
+    "close": "Close",
+    "ticket": "Ticket",
+    "selectTicket": "Select a ticket…",
+    "date": "Date",
+    "hours": "Hours",
+    "description": "Description",
+    "descriptionPlaceholder": "What did you work on? (at least 16 characters)",
+    "descriptionCounter": "{count}/16 min",
+    "ownerAdmin": "Owner (Admin)",
+    "billable": "Billable",
+    "invoiced": "Invoiced",
+    "saving": "Saving...",
+    "save": "Save",
+    "updated": "Worklog updated",
+    "updateFailed": "Failed to update worklog"
+  },
   "WorklogsPage": {
     "title": "Worklogs",
     "subtitle": "Track and manage your time entries",
