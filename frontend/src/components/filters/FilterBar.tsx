@@ -10,6 +10,7 @@ import {
 } from "@/queries/saved-filters";
 import { FilterBuilder } from "./FilterBuilder";
 import { toast } from "sonner";
+import { useTranslations } from "next-intl";
 
 interface FilterBarProps {
   viewKey: string;
@@ -19,6 +20,7 @@ interface FilterBarProps {
 }
 
 export function FilterBar({ viewKey, viewType, projectId, filterFields }: FilterBarProps) {
+  const t = useTranslations("FilterBar");
   const { activeFilters, setFilters, removeFilter, clearFilters } = useFilterStore();
   const filters = activeFilters[viewKey] ?? [];
   const { data: savedFilters } = useSavedFilters(viewType, projectId);
@@ -38,7 +40,7 @@ export function FilterBar({ viewKey, viewType, projectId, filterFields }: Filter
       const conditions = JSON.parse(saved.filterJson) as FilterCondition[];
       setFilters(viewKey, conditions);
     } catch {
-      toast.error("Failed to load filter");
+      toast.error(t("loadFilter"));
     }
     setShowSaved(false);
   };
@@ -54,11 +56,11 @@ export function FilterBar({ viewKey, viewType, projectId, filterFields }: Filter
         isSystem: false,
         sortOrder: 0,
       });
-      toast.success("Filter saved");
+      toast.success(t("saveFilter"));
       setSaveName("");
       setShowSaveDialog(false);
     } catch {
-      toast.error("Failed to save filter");
+      toast.error(t("saveFilter"));
     }
   };
 
@@ -69,7 +71,7 @@ export function FilterBar({ viewKey, viewType, projectId, filterFields }: Filter
       case "neq":
         return "!=";
       case "contains":
-        return "contains";
+        return t("operatorContains");
       case "gt":
         return ">";
       case "lt":
@@ -92,7 +94,7 @@ export function FilterBar({ viewKey, viewType, projectId, filterFields }: Filter
             className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground border border-border rounded-lg hover:bg-muted transition-colors"
           >
             <Filter className="h-3.5 w-3.5" />
-            Add filter
+            {t("addFilter")}
           </button>
           {showBuilder && (
             <div className="absolute left-0 top-full mt-1 z-20">
@@ -115,12 +117,12 @@ export function FilterBar({ viewKey, viewType, projectId, filterFields }: Filter
             className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground border border-border rounded-lg hover:bg-muted transition-colors"
           >
             <ChevronDown className="h-3.5 w-3.5" />
-            Saved filters
+            {t("savedFilters")}
           </button>
           {showSaved && savedFilters && (
             <div className="absolute left-0 top-full mt-1 z-20 bg-card border border-border rounded-lg shadow-lg py-1 w-56 max-h-64 overflow-y-auto">
               {savedFilters.length === 0 ? (
-                <p className="px-3 py-2 text-xs text-muted-foreground">No saved filters</p>
+                <p className="px-3 py-2 text-xs text-muted-foreground">{t("savedFilters")}</p>
               ) : (
                 savedFilters.map((sf) => (
                   <button
@@ -161,7 +163,7 @@ export function FilterBar({ viewKey, viewType, projectId, filterFields }: Filter
               onClick={() => clearFilters(viewKey)}
               className="text-xs text-muted-foreground hover:text-destructive transition-colors"
             >
-              Clear all
+              {t("clearAll")}
             </button>
             <div className="relative">
               <button
@@ -169,7 +171,7 @@ export function FilterBar({ viewKey, viewType, projectId, filterFields }: Filter
                 className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
               >
                 <Save className="h-3 w-3" />
-                Save
+                {t("saveFilter")}
               </button>
               {showSaveDialog && (
                 <div className="absolute left-0 top-full mt-1 z-20 bg-card border border-border rounded-lg shadow-lg p-3 w-56">
@@ -177,7 +179,7 @@ export function FilterBar({ viewKey, viewType, projectId, filterFields }: Filter
                     type="text"
                     value={saveName}
                     onChange={(e) => setSaveName(e.target.value)}
-                    placeholder="Filter name"
+                    placeholder={t("filterName")}
                     className="w-full rounded border border-input bg-background px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-ring mb-2"
                     onKeyDown={(e) => {
                       if (e.key === "Enter") handleSaveFilter();
@@ -188,7 +190,7 @@ export function FilterBar({ viewKey, viewType, projectId, filterFields }: Filter
                     disabled={!saveName.trim()}
                     className="w-full px-2 py-1 text-sm bg-primary text-primary-foreground rounded hover:opacity-90 disabled:opacity-50"
                   >
-                    Save filter
+                    {t("saveFilter")}
                   </button>
                 </div>
               )}
