@@ -6,6 +6,7 @@ import { Skeleton } from "@/components/shared/loading-skeleton";
 import { EmptyState } from "@/components/shared/empty-state";
 import { Users, ChevronLeft, ChevronRight } from "lucide-react";
 import { format, startOfWeek, addDays, addWeeks } from "date-fns";
+import { useTranslations } from "next-intl";
 import { cn } from "@/lib/utils";
 
 function getHeatColor(hours: number, maxHours: number = 8): string {
@@ -19,6 +20,7 @@ function getHeatColor(hours: number, maxHours: number = 8): string {
 }
 
 export default function ResourcesPage() {
+  const t = useTranslations("Resources");
   const [weekOffset, setWeekOffset] = useState(0);
   const now = new Date();
   const currentWeekStart = startOfWeek(weekOffset === 0 ? now : addWeeks(now, weekOffset), {
@@ -32,7 +34,6 @@ export default function ResourcesPage() {
 
   const { data: worklogs, isLoading, error } = useWorklogs({ from, to });
 
-  // Group worklogs by user
   const userRows = useMemo(() => {
     if (!worklogs) return [];
 
@@ -60,11 +61,10 @@ export default function ResourcesPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-foreground">Resources</h1>
-        <p className="text-sm text-muted-foreground mt-1">Capacity heatmap and team allocation</p>
+        <h1 className="text-2xl font-bold text-foreground">{t("title")}</h1>
+        <p className="text-sm text-muted-foreground mt-1">{t("subtitle")}</p>
       </div>
 
-      {/* Week navigation */}
       <div className="flex items-center gap-4">
         <button
           onClick={() => setWeekOffset((o) => o - 1)}
@@ -73,7 +73,10 @@ export default function ResourcesPage() {
           <ChevronLeft className="h-4 w-4" />
         </button>
         <span className="text-sm font-medium text-foreground">
-          {format(weekDays[0], "MMM d")} - {format(weekDays[6], "MMM d, yyyy")}
+          {t("weekRange", {
+            start: format(weekDays[0], "MMM d"),
+            end: format(weekDays[6], "MMM d, yyyy"),
+          })}
         </span>
         <button
           onClick={() => setWeekOffset((o) => o + 1)}
@@ -86,33 +89,32 @@ export default function ResourcesPage() {
             onClick={() => setWeekOffset(0)}
             className="text-sm text-accent-orange hover:underline"
           >
-            This week
+            {t("thisWeek")}
           </button>
         )}
       </div>
 
-      {/* Legend */}
       <div className="flex items-center gap-4 text-xs text-muted-foreground">
-        <span>Hours:</span>
+        <span>{t("legend")}</span>
         <div className="flex items-center gap-1">
           <div className="h-4 w-4 rounded bg-gray-100 border border-border" />
           <span>0</span>
         </div>
         <div className="flex items-center gap-1">
           <div className="h-4 w-4 rounded bg-green-100" />
-          <span>1-2</span>
+          <span>1–2</span>
         </div>
         <div className="flex items-center gap-1">
           <div className="h-4 w-4 rounded bg-green-300" />
-          <span>3-4</span>
+          <span>3–4</span>
         </div>
         <div className="flex items-center gap-1">
           <div className="h-4 w-4 rounded bg-green-500" />
-          <span>5-6</span>
+          <span>5–6</span>
         </div>
         <div className="flex items-center gap-1">
           <div className="h-4 w-4 rounded bg-green-700" />
-          <span>7-8</span>
+          <span>7–8</span>
         </div>
         <div className="flex items-center gap-1">
           <div className="h-4 w-4 rounded bg-red-500" />
@@ -120,7 +122,6 @@ export default function ResourcesPage() {
         </div>
       </div>
 
-      {/* Heatmap */}
       {isLoading && (
         <div className="space-y-2">
           {Array.from({ length: 4 }).map((_, i) => (
@@ -131,15 +132,15 @@ export default function ResourcesPage() {
 
       {error && (
         <div className="rounded-lg border border-destructive/50 bg-destructive/5 p-4 text-sm text-destructive">
-          Failed to load resource data.
+          {t("loadFailed")}
         </div>
       )}
 
       {worklogs && userRows.length === 0 && (
         <EmptyState
           icon={<Users className="h-12 w-12" />}
-          title="No data for this week"
-          description="No worklogs have been recorded for this period."
+          title={t("noDataTitle")}
+          description={t("noDataDesc")}
         />
       )}
 
@@ -149,7 +150,7 @@ export default function ResourcesPage() {
             <thead>
               <tr className="bg-muted/50">
                 <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider w-48">
-                  Team Member
+                  {t("teamMember")}
                 </th>
                 {weekDays.map((day) => (
                   <th
@@ -161,7 +162,7 @@ export default function ResourcesPage() {
                   </th>
                 ))}
                 <th className="px-4 py-3 text-center text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                  Total
+                  {t("total")}
                 </th>
               </tr>
             </thead>
