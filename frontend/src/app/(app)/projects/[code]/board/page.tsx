@@ -30,6 +30,7 @@ import { useDroppable } from "@dnd-kit/core";
 import { cn } from "@/lib/utils";
 import { CreateTicketDialog } from "@/components/tickets/CreateTicketDialog";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import {
   MessageSquare,
   Paperclip,
@@ -66,15 +67,15 @@ interface KanbanConfig {
   cardFields: CardField[];
 }
 
-const CARD_FIELD_LABELS: Record<CardFieldKey, string> = {
-  priority: "Priority",
-  assignee: "Assignee",
-  dueDate: "Due Date",
-  comments: "Comments",
-  attachments: "Attachments",
-  taskType: "Task Type",
-  taskState: "Task State",
-  estimatedHours: "Est. Hours",
+const CARD_FIELD_TKEY: Record<CardFieldKey, string> = {
+  priority: "fieldPriority",
+  assignee: "fieldAssignee",
+  dueDate: "fieldDueDate",
+  comments: "fieldComments",
+  attachments: "fieldAttachments",
+  taskType: "fieldTaskType",
+  taskState: "fieldTaskState",
+  estimatedHours: "fieldEstimatedHours",
 };
 
 const ALL_FIELD_KEYS: CardFieldKey[] = [
@@ -270,6 +271,8 @@ const KanbanColumn = memo(function KanbanColumn({
   code: string;
   cardFields: CardField[];
 }) {
+  const t = useTranslations("Board");
+  const tCommon = useTranslations("Common");
   const { setNodeRef, isOver } = useDroppable({ id: column.id });
   const [isAdding, setIsAdding] = useState(false);
   const [newTitle, setNewTitle] = useState("");
@@ -323,7 +326,7 @@ const KanbanColumn = memo(function KanbanColumn({
           ))}
         </SortableContext>
         {column.tickets.length === 0 && !isAdding && (
-          <p className="text-xs text-muted-foreground text-center py-8">Drop tickets here</p>
+          <p className="text-xs text-muted-foreground text-center py-8">{t("dropTicketsHere")}</p>
         )}
         {isAdding ? (
           <div className="p-2 space-y-2">
@@ -339,7 +342,7 @@ const KanbanColumn = memo(function KanbanColumn({
                 }
               }}
               className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm"
-              placeholder="Task title..."
+              placeholder={t("taskTitlePlaceholder")}
             />
             <div className="flex gap-1">
               <button
@@ -347,7 +350,7 @@ const KanbanColumn = memo(function KanbanColumn({
                 disabled={createTicket.isPending}
                 className="px-3 py-1.5 rounded-lg bg-primary text-primary-foreground text-xs font-medium hover:opacity-90 disabled:opacity-50"
               >
-                Add
+                {t("add")}
               </button>
               <button
                 onClick={() => {
@@ -356,7 +359,7 @@ const KanbanColumn = memo(function KanbanColumn({
                 }}
                 className="px-3 py-1.5 rounded-lg border border-border text-xs text-muted-foreground hover:text-foreground"
               >
-                Cancel
+                {tCommon("cancel")}
               </button>
             </div>
           </div>
@@ -365,7 +368,7 @@ const KanbanColumn = memo(function KanbanColumn({
             onClick={() => setIsAdding(true)}
             className="w-full text-left px-2 py-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
           >
-            + New
+            {t("newColumn")}
           </button>
         )}
       </div>
@@ -373,14 +376,19 @@ const KanbanColumn = memo(function KanbanColumn({
   );
 });
 
-function getSwimlaneName(ticket: Ticket, groupBy: GroupBy): string {
+function getSwimlaneName(
+  ticket: Ticket,
+  groupBy: GroupBy,
+  unassignedLabel: string,
+  noTypeLabel: string
+): string {
   switch (groupBy) {
     case "assignee":
-      return ticket.assignee?.displayName || "Unassigned";
+      return ticket.assignee?.displayName || unassignedLabel;
     case "priority":
       return ticket.ticketPriorityName;
     case "taskType":
-      return ticket.taskTypeName || "No type";
+      return ticket.taskTypeName || noTypeLabel;
     default:
       return "";
   }
@@ -388,7 +396,9 @@ function getSwimlaneName(ticket: Ticket, groupBy: GroupBy): string {
 
 function buildSwimlanes(
   board: KanbanBoard,
-  groupBy: GroupBy
+  groupBy: GroupBy,
+  unassignedLabel: string,
+  noTypeLabel: string
 ): { name: string; columns: KanbanColumnType[] }[] {
   const visibleColumns = board.columns.filter((c) => c.isVisible);
 
@@ -400,23 +410,20 @@ function buildSwimlanes(
     c.tickets.map((t) => ({ ...t, _columnId: c.id }))
   );
 
-  const groupNames = Array.from(new Set(allTickets.map((t) => getSwimlaneName(t, groupBy)))).sort();
+  const groupNames = Array.from(
+    new Set(allTickets.map((t) => getSwimlaneName(t, groupBy, unassignedLabel, noTypeLabel)))
+  ).sort();
 
   return groupNames.map((name) => ({
     name,
     columns: visibleColumns.map((col) => ({
       ...col,
-      tickets: col.tickets.filter((t) => getSwimlaneName(t, groupBy) === name),
+      tickets: col.tickets.filter(
+        (t) => getSwimlaneName(t, groupBy, unassignedLabel, noTypeLabel) === name
+      ),
     })),
   }));
 }
-
-const groupByOptions: { value: GroupBy; label: string }[] = [
-  { value: "none", label: "No grouping" },
-  { value: "assignee", label: "Assignee" },
-  { value: "priority", label: "Priority" },
-  { value: "taskType", label: "Task Type" },
-];
 
 function SortableFieldRow({
   field,
@@ -425,6 +432,7 @@ function SortableFieldRow({
   field: CardField;
   onToggle: (key: CardFieldKey) => void;
 }) {
+  const t = useTranslations("Board");
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: field.key,
   });
@@ -445,7 +453,7 @@ function SortableFieldRow({
         {...attributes}
         {...listeners}
         className="cursor-grab active:cursor-grabbing text-muted-foreground hover:text-foreground"
-        aria-label="Drag to reorder"
+        aria-label={t("dragToReorder")}
         type="button"
       >
         <GripVertical className="h-3.5 w-3.5" />
@@ -457,13 +465,14 @@ function SortableFieldRow({
           onChange={() => onToggle(field.key)}
           className="rounded"
         />
-        {CARD_FIELD_LABELS[field.key]}
+        {t(CARD_FIELD_TKEY[field.key] as "fieldPriority")}
       </label>
     </div>
   );
 }
 
 export default function BoardPage({ params }: { params: Promise<{ code: string }> }) {
+  const t = useTranslations("Board");
   const { code } = use(params);
   const { data: project } = useProjectByCode(code);
   const projectId = project?.id ?? "";
@@ -487,7 +496,7 @@ export default function BoardPage({ params }: { params: Promise<{ code: string }
     } catch {
       return defaultConfig;
     }
-  }, [viewConfig?.configurationJson]);
+  }, [viewConfig]);
 
   const [groupBy, setGroupBy] = useState<GroupBy>(savedConfig.groupBy);
   const [cardFields, setCardFields] = useState<CardField[]>(savedConfig.cardFields);
@@ -607,7 +616,20 @@ export default function BoardPage({ params }: { params: Promise<{ code: string }
     [cardFields, handleFieldReorder]
   );
 
-  const swimlanes = useMemo(() => (board ? buildSwimlanes(board, groupBy) : []), [board, groupBy]);
+  const unassignedLabel = t("unassigned");
+  const noTypeLabel = t("noType");
+
+  const swimlanes = useMemo(
+    () => (board ? buildSwimlanes(board, groupBy, unassignedLabel, noTypeLabel) : []),
+    [board, groupBy, unassignedLabel, noTypeLabel]
+  );
+
+  const groupByOptions: { value: GroupBy; label: string }[] = [
+    { value: "none", label: t("groupByNone") },
+    { value: "assignee", label: t("groupAssignee") },
+    { value: "priority", label: t("groupPriority") },
+    { value: "taskType", label: t("groupTaskType") },
+  ];
 
   if (isLoading) {
     return (
@@ -621,7 +643,7 @@ export default function BoardPage({ params }: { params: Promise<{ code: string }
   if (error) {
     return (
       <div className="rounded-lg border border-destructive/50 bg-destructive/5 p-4 text-sm text-destructive">
-        Failed to load board. Please try again.
+        {t("loadFailed")}
       </div>
     );
   }
@@ -630,8 +652,8 @@ export default function BoardPage({ params }: { params: Promise<{ code: string }
     return (
       <EmptyState
         icon={<LayoutGrid className="h-12 w-12" />}
-        title="No board configured"
-        description="Set up a board for this project in settings."
+        title={t("noBoardTitle")}
+        description={t("noBoardDesc")}
       />
     );
   }
@@ -647,7 +669,7 @@ export default function BoardPage({ params }: { params: Promise<{ code: string }
             className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-primary-foreground bg-primary rounded-lg hover:opacity-90 transition-opacity"
           >
             <Plus className="h-4 w-4" />
-            New Task
+            {t("newTask")}
           </button>
           {/* Group by dropdown */}
           <div className="relative">
@@ -660,8 +682,10 @@ export default function BoardPage({ params }: { params: Promise<{ code: string }
             >
               <ChevronDown className="h-4 w-4" />
               {groupBy === "none"
-                ? "Group by"
-                : `By ${groupByOptions.find((o) => o.value === groupBy)?.label}`}
+                ? t("groupBy")
+                : t("groupByPrefix", {
+                    label: groupByOptions.find((o) => o.value === groupBy)?.label ?? "",
+                  })}
             </button>
             {showGroupBy && (
               <div className="absolute right-0 top-full mt-1 z-20 bg-card border border-border rounded-lg shadow-lg py-1 w-44">
@@ -691,24 +715,29 @@ export default function BoardPage({ params }: { params: Promise<{ code: string }
               className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground border border-border rounded-lg hover:bg-muted transition-colors"
             >
               <Settings2 className="h-4 w-4" />
-              Card fields
+              {t("cardFields")}
             </button>
             {showCardSettings && (
               <div className="absolute right-0 top-full mt-1 z-20 bg-card border border-border rounded-lg shadow-lg p-3 w-60">
-                <p className="text-xs font-medium text-muted-foreground mb-2">Preset</p>
+                <p className="text-xs font-medium text-muted-foreground mb-2">{t("preset")}</p>
                 <div className="flex gap-1 mb-3">
                   {(Object.keys(PRESETS) as Array<keyof typeof PRESETS>).map((name) => (
                     <button
                       key={name}
                       onClick={() => handlePresetSelect(name)}
-                      className="flex-1 px-2 py-1 text-xs rounded border border-border hover:bg-muted capitalize transition-colors"
+                      className="flex-1 px-2 py-1 text-xs rounded border border-border hover:bg-muted transition-colors"
                     >
-                      {name}
+                      {t(
+                        `preset${name.charAt(0).toUpperCase()}${name.slice(1)}` as
+                          | "presetCompact"
+                          | "presetDefault"
+                          | "presetDetailed"
+                      )}
                     </button>
                   ))}
                 </div>
                 <p className="text-xs font-medium text-muted-foreground mb-1">
-                  Fields (drag to reorder)
+                  {t("fieldsDragToReorder")}
                 </p>
                 <DndContext
                   sensors={sensors}

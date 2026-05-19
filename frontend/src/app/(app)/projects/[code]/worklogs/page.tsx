@@ -40,6 +40,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { createWorklogSchema, type CreateWorklogInput } from "@/schemas/worklog";
 import { toast } from "sonner";
 import { format } from "date-fns";
+import { useTranslations } from "next-intl";
 import { GlobalRole, ProjectRole, type Worklog } from "@/types";
 import { cn } from "@/lib/utils";
 
@@ -53,126 +54,132 @@ interface WorklogTableMeta {
   isDeleting?: boolean;
 }
 
-const allColumns = [
-  columnHelper.accessor("date", {
-    header: "Date",
-    size: 110,
-    cell: ({ row }) => (
-      <span className="text-sm text-foreground">
-        {format(new Date(row.original.date), "yyyy-MM-dd")}
-      </span>
-    ),
-  }),
-  columnHelper.accessor("ticketTitle", {
-    id: "ticket",
-    header: "Ticket",
-    size: 280,
-    minSize: 150,
-    cell: ({ row }) => (
-      <span className="text-sm text-foreground truncate block">
-        {row.original.ticketTitle || "-"}
-      </span>
-    ),
-  }),
-  columnHelper.accessor((row) => row.user.displayName, {
-    id: "user",
-    header: "User",
-    size: 160,
-    cell: ({ row }) => (
-      <span className="text-sm text-foreground">{row.original.user.displayName}</span>
-    ),
-  }),
-  columnHelper.accessor("hours", {
-    header: "Hours",
-    size: 80,
-    cell: ({ row }) => (
-      <span className="text-sm font-medium text-foreground">{row.original.hours.toFixed(2)}h</span>
-    ),
-  }),
-  columnHelper.accessor("description", {
-    header: "Description",
-    size: 320,
-    minSize: 150,
-    cell: ({ row }) => (
-      <span className="text-sm text-muted-foreground truncate block">
-        {row.original.description}
-      </span>
-    ),
-  }),
-  columnHelper.accessor("isBillable", {
-    header: "Billable",
-    size: 90,
-    cell: ({ row }) =>
-      row.original.isBillable ? (
-        <span className="text-green-600 text-xs font-medium">Yes</span>
-      ) : (
-        <span className="text-muted-foreground text-xs">No</span>
+function buildAllColumns(t: (key: string) => string) {
+  return [
+    columnHelper.accessor("date", {
+      header: t("date"),
+      size: 110,
+      cell: ({ row }) => (
+        <span className="text-sm text-foreground">
+          {format(new Date(row.original.date), "yyyy-MM-dd")}
+        </span>
       ),
-  }),
-  columnHelper.accessor("source", {
-    header: "Source",
-    size: 100,
-    cell: ({ row }) => <span className="text-sm text-muted-foreground">{row.original.source}</span>,
-  }),
-  columnHelper.accessor("invoiced", {
-    header: "Invoiced",
-    size: 130,
-    cell: ({ row }) => (
-      <span className="text-sm text-muted-foreground">{row.original.invoiced || "-"}</span>
-    ),
-  }),
-  columnHelper.accessor("createdAt", {
-    header: "Created",
-    size: 120,
-    cell: ({ row }) => (
-      <span className="text-sm text-muted-foreground">
-        {format(new Date(row.original.createdAt), "yyyy-MM-dd")}
-      </span>
-    ),
-  }),
-  columnHelper.display({
-    id: "actions",
-    header: "",
-    size: 80,
-    enableResizing: false,
-    enableSorting: false,
-    cell: ({ row, table }) => {
-      const meta = table.options.meta as WorklogTableMeta | undefined;
-      const w = row.original;
-      return (
-        <div className="flex items-center justify-end gap-1">
-          {meta?.canEdit?.(w) && (
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                meta.onEdit?.(w);
-              }}
-              className="p-1 text-muted-foreground hover:text-foreground rounded"
-              title="Edit"
-              aria-label="Edit worklog"
-            >
-              <Pencil className="h-3.5 w-3.5" />
-            </button>
-          )}
-          {meta?.canDelete?.(w) && (
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                meta.onDelete?.(w);
-              }}
-              disabled={meta?.isDeleting}
-              className="p-1 text-muted-foreground hover:text-destructive rounded disabled:opacity-50"
-              title="Delete"
-              aria-label="Delete worklog"
-            >
-              <Trash2 className="h-3.5 w-3.5" />
-            </button>
-          )}
-        </div>
-      );
-    },
-  }),
-];
+    }),
+    columnHelper.accessor("ticketTitle", {
+      id: "ticket",
+      header: t("ticket"),
+      size: 280,
+      minSize: 150,
+      cell: ({ row }) => (
+        <span className="text-sm text-foreground truncate block">
+          {row.original.ticketTitle || "-"}
+        </span>
+      ),
+    }),
+    columnHelper.accessor((row) => row.user.displayName, {
+      id: "user",
+      header: t("user"),
+      size: 160,
+      cell: ({ row }) => (
+        <span className="text-sm text-foreground">{row.original.user.displayName}</span>
+      ),
+    }),
+    columnHelper.accessor("hours", {
+      header: t("hours"),
+      size: 80,
+      cell: ({ row }) => (
+        <span className="text-sm font-medium text-foreground">
+          {row.original.hours.toFixed(2)}h
+        </span>
+      ),
+    }),
+    columnHelper.accessor("description", {
+      header: t("description"),
+      size: 320,
+      minSize: 150,
+      cell: ({ row }) => (
+        <span className="text-sm text-muted-foreground truncate block">
+          {row.original.description}
+        </span>
+      ),
+    }),
+    columnHelper.accessor("isBillable", {
+      header: t("billable"),
+      size: 90,
+      cell: ({ row }) =>
+        row.original.isBillable ? (
+          <span className="text-green-600 text-xs font-medium">{t("yes")}</span>
+        ) : (
+          <span className="text-muted-foreground text-xs">{t("no")}</span>
+        ),
+    }),
+    columnHelper.accessor("source", {
+      header: t("source"),
+      size: 100,
+      cell: ({ row }) => (
+        <span className="text-sm text-muted-foreground">{row.original.source}</span>
+      ),
+    }),
+    columnHelper.accessor("invoiced", {
+      header: t("invoiced"),
+      size: 130,
+      cell: ({ row }) => (
+        <span className="text-sm text-muted-foreground">{row.original.invoiced || "-"}</span>
+      ),
+    }),
+    columnHelper.accessor("createdAt", {
+      header: t("created"),
+      size: 120,
+      cell: ({ row }) => (
+        <span className="text-sm text-muted-foreground">
+          {format(new Date(row.original.createdAt), "yyyy-MM-dd")}
+        </span>
+      ),
+    }),
+    columnHelper.display({
+      id: "actions",
+      header: "",
+      size: 80,
+      enableResizing: false,
+      enableSorting: false,
+      cell: ({ row, table }) => {
+        const meta = table.options.meta as WorklogTableMeta | undefined;
+        const w = row.original;
+        return (
+          <div className="flex items-center justify-end gap-1">
+            {meta?.canEdit?.(w) && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  meta.onEdit?.(w);
+                }}
+                className="p-1 text-muted-foreground hover:text-foreground rounded"
+                title={t("editAriaLabel")}
+                aria-label={t("editAriaLabel")}
+              >
+                <Pencil className="h-3.5 w-3.5" />
+              </button>
+            )}
+            {meta?.canDelete?.(w) && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  meta.onDelete?.(w);
+                }}
+                disabled={meta?.isDeleting}
+                className="p-1 text-muted-foreground hover:text-destructive rounded disabled:opacity-50"
+                title={t("deleteAriaLabel")}
+                aria-label={t("deleteAriaLabel")}
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+              </button>
+            )}
+          </div>
+        );
+      },
+    }),
+  ];
+}
 
 interface WorklogListConfig {
   columnVisibility?: VisibilityState;
@@ -191,6 +198,8 @@ function AddWorklogDialog({
   projectId: string;
   isAdmin: boolean;
 }) {
+  const t = useTranslations("ProjectWorklogs");
+  const tCommon = useTranslations("Common");
   const createWorklog = useCreateWorklog();
   const { data: ticketsPage } = useTickets(projectId, { pageSize: 200 });
   const { data: adminUsers } = useAdminUsers();
@@ -218,11 +227,11 @@ function AddWorklogDialog({
         ...data,
         overrideUserId: data.overrideUserId || undefined,
       });
-      toast.success("Worklog added");
+      toast.success(t("added"));
       reset();
       onClose();
     } catch {
-      toast.error("Failed to add worklog");
+      toast.error(t("addFailed"));
     }
   };
 
@@ -233,7 +242,7 @@ function AddWorklogDialog({
       <div className="absolute inset-0 bg-black/50" onClick={onClose} />
       <div className="relative bg-card rounded-xl shadow-xl border border-border w-full max-w-md mx-4 p-6">
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-lg font-semibold text-card-foreground">Add Worklog</h2>
+          <h2 className="text-lg font-semibold text-card-foreground">{t("addWorklog")}</h2>
           <button onClick={onClose} className="p-1 rounded hover:bg-muted transition-colors">
             <X className="h-5 w-5 text-muted-foreground" />
           </button>
@@ -244,16 +253,16 @@ function AddWorklogDialog({
 
           <div>
             <label className="block text-sm font-medium text-card-foreground mb-1">
-              Ticket <span className="text-destructive">*</span>
+              {t("ticket")} <span className="text-destructive">*</span>
             </label>
             <select
               {...register("ticketId")}
               className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
             >
-              <option value="">Select a ticket…</option>
-              {tickets.map((t) => (
-                <option key={t.id} value={t.id}>
-                  #{t.number} — {t.title}
+              <option value="">{t("selectTicket")}</option>
+              {tickets.map((tk) => (
+                <option key={tk.id} value={tk.id}>
+                  #{tk.number} — {tk.title}
                 </option>
               ))}
             </select>
@@ -263,7 +272,9 @@ function AddWorklogDialog({
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-card-foreground mb-1">Date</label>
+            <label className="block text-sm font-medium text-card-foreground mb-1">
+              {t("date")}
+            </label>
             <input
               {...register("date")}
               type="date"
@@ -273,7 +284,9 @@ function AddWorklogDialog({
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-card-foreground mb-1">Hours</label>
+            <label className="block text-sm font-medium text-card-foreground mb-1">
+              {t("hours")}
+            </label>
             <input
               {...register("hours", { valueAsNumber: true })}
               type="number"
@@ -291,17 +304,17 @@ function AddWorklogDialog({
           <div>
             <label className="flex items-center justify-between text-sm font-medium text-card-foreground mb-1">
               <span>
-                Description <span className="text-destructive">*</span>
+                {t("description")} <span className="text-destructive">*</span>
               </span>
               <span className="text-xs font-normal text-muted-foreground">
-                {description.length}/16 min
+                {t("descriptionCounter", { count: description.length })}
               </span>
             </label>
             <textarea
               {...register("description")}
               rows={3}
               className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring resize-none"
-              placeholder="What did you work on? (at least 16 characters)"
+              placeholder={t("descriptionPlaceholder")}
             />
             {errors.description && (
               <p className="text-xs text-destructive mt-1">{errors.description.message}</p>
@@ -311,13 +324,13 @@ function AddWorklogDialog({
           {isAdmin && (
             <div>
               <label className="block text-sm font-medium text-card-foreground mb-1">
-                Log on behalf of (Admin)
+                {t("logOnBehalf")}
               </label>
               <select
                 {...register("overrideUserId")}
                 className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
               >
-                <option value="">Myself (default)</option>
+                <option value="">{t("logAsMyself")}</option>
                 {(adminUsers ?? [])
                   .filter((u) => u.isActive)
                   .map((u) => (
@@ -331,7 +344,7 @@ function AddWorklogDialog({
 
           <label className="flex items-center gap-2 text-sm">
             <input type="checkbox" {...register("isBillable")} className="rounded" />
-            Billable
+            {t("billable")}
           </label>
 
           <div className="flex justify-end gap-3 pt-2">
@@ -340,14 +353,14 @@ function AddWorklogDialog({
               onClick={onClose}
               className="px-4 py-2 rounded-lg border border-border text-sm font-medium hover:bg-muted transition-colors"
             >
-              Cancel
+              {tCommon("cancel")}
             </button>
             <button
               type="submit"
               disabled={isSubmitting}
               className="px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:opacity-90 transition-opacity disabled:opacity-50"
             >
-              {isSubmitting ? "Adding..." : "Add Worklog"}
+              {isSubmitting ? t("addingWorklog") : t("addWorklog")}
             </button>
           </div>
         </form>
@@ -357,9 +370,11 @@ function AddWorklogDialog({
 }
 
 export default function ProjectWorklogsPage({ params }: { params: Promise<{ code: string }> }) {
+  const t = useTranslations("ProjectWorklogs");
   const { code } = use(params);
   const { data: project } = useProjectByCode(code);
   const projectId = project?.id ?? "";
+  const allColumns = useMemo(() => buildAllColumns(t), [t]);
   const [page, setPage] = useState(1);
   const { data: worklogsPage, isLoading, error } = useWorklogsPaged({ projectId, page });
   const worklogs = useMemo(() => worklogsPage?.items ?? [], [worklogsPage]);
@@ -477,15 +492,15 @@ export default function ProjectWorklogsPage({ params }: { params: Promise<{ code
 
   const handleDelete = useCallback(
     async (worklog: Worklog) => {
-      if (!window.confirm("Delete this worklog?")) return;
+      if (!window.confirm(t("deleteConfirm"))) return;
       try {
         await deleteWorklog.mutateAsync({ projectId: worklog.projectId, worklogId: worklog.id });
-        toast.success("Worklog deleted");
+        toast.success(t("deleted"));
       } catch {
-        toast.error("Failed to delete worklog");
+        toast.error(t("deleteFailed"));
       }
     },
-    [deleteWorklog]
+    [deleteWorklog, t]
   );
 
   // eslint-disable-next-line react-hooks/incompatible-library
@@ -526,9 +541,9 @@ export default function ProjectWorklogsPage({ params }: { params: Promise<{ code
           ? { sortField: firstSort.id, sortDirection: firstSort.desc ? "desc" : "asc" }
           : undefined,
       });
-      toast.success("Export downloaded");
+      toast.success(t("exportDownloaded"));
     } catch {
-      toast.error("Export failed");
+      toast.error(t("exportFailed"));
     }
   };
 
@@ -536,8 +551,8 @@ export default function ProjectWorklogsPage({ params }: { params: Promise<{ code
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <p className="text-sm text-muted-foreground">
-          Time entries for this project
-          {worklogsPage ? ` — ${worklogsPage.totalCount} total` : ""}
+          {t("subtitle")}
+          {worklogsPage ? t("totalSuffix", { count: worklogsPage.totalCount }) : ""}
         </p>
         <div className="flex items-center gap-2">
           <button
@@ -545,14 +560,14 @@ export default function ProjectWorklogsPage({ params }: { params: Promise<{ code
             className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-primary-foreground bg-primary rounded-lg hover:opacity-90 transition-opacity"
           >
             <Plus className="h-4 w-4" />
-            Add Worklog
+            {t("addWorklog")}
           </button>
           <button
             onClick={handleExport}
             className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground border border-border rounded-lg hover:bg-muted transition-colors"
           >
             <Download className="h-4 w-4" />
-            Export
+            {t("export")}
           </button>
           <div className="relative">
             <button
@@ -560,11 +575,13 @@ export default function ProjectWorklogsPage({ params }: { params: Promise<{ code
               className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground border border-border rounded-lg hover:bg-muted transition-colors"
             >
               <Settings2 className="h-4 w-4" />
-              Columns
+              {t("columns")}
             </button>
             {showColumnSettings && (
               <div className="absolute right-0 top-full mt-1 z-20 bg-card border border-border rounded-lg shadow-lg p-3 w-56">
-                <p className="text-xs font-medium text-muted-foreground mb-2">Toggle columns</p>
+                <p className="text-xs font-medium text-muted-foreground mb-2">
+                  {t("toggleColumns")}
+                </p>
                 {table
                   .getAllLeafColumns()
                   .filter((column) => column.id !== "actions")
@@ -594,15 +611,15 @@ export default function ProjectWorklogsPage({ params }: { params: Promise<{ code
 
       {error && (
         <div className="rounded-lg border border-destructive/50 bg-destructive/5 p-4 text-sm text-destructive">
-          Failed to load worklogs. Please try again.
+          {t("loadFailed")}
         </div>
       )}
 
       {worklogs.length === 0 && !isLoading && (
         <EmptyState
           icon={<Clock className="h-12 w-12" />}
-          title="No worklogs yet"
-          description="Start tracking time for this project."
+          title={t("noWorklogs")}
+          description={t("noWorklogsDesc")}
         />
       )}
 
@@ -672,16 +689,18 @@ export default function ProjectWorklogsPage({ params }: { params: Promise<{ code
       {worklogsPage && worklogsPage.totalCount > worklogsPage.pageSize && (
         <div className="flex items-center justify-between text-sm text-muted-foreground">
           <span>
-            {(page - 1) * worklogsPage.pageSize + 1}–
-            {Math.min(page * worklogsPage.pageSize, worklogsPage.totalCount)} of{" "}
-            {worklogsPage.totalCount}
+            {t("pageRange", {
+              from: (page - 1) * worklogsPage.pageSize + 1,
+              to: Math.min(page * worklogsPage.pageSize, worklogsPage.totalCount),
+              total: worklogsPage.totalCount,
+            })}
           </span>
           <div className="flex items-center gap-1">
             <button
               onClick={() => setPage((p) => Math.max(1, p - 1))}
               disabled={!worklogsPage.hasPreviousPage}
               className="p-1.5 rounded-lg border border-border hover:bg-muted disabled:opacity-40 disabled:cursor-not-allowed"
-              aria-label="Previous page"
+              aria-label={t("previousPage")}
             >
               <ChevronLeft className="h-4 w-4" />
             </button>
@@ -692,7 +711,7 @@ export default function ProjectWorklogsPage({ params }: { params: Promise<{ code
               onClick={() => setPage((p) => p + 1)}
               disabled={!worklogsPage.hasNextPage}
               className="p-1.5 rounded-lg border border-border hover:bg-muted disabled:opacity-40 disabled:cursor-not-allowed"
-              aria-label="Next page"
+              aria-label={t("nextPage")}
             >
               <ChevronRight className="h-4 w-4" />
             </button>

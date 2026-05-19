@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
+import { useTranslations } from "next-intl";
 import { X } from "lucide-react";
 import { format } from "date-fns";
 import { useUpdateWorklog } from "@/queries/worklogs";
@@ -22,6 +23,8 @@ export function EditWorklogDialog({
   open: boolean;
   onClose: () => void;
 }) {
+  const t = useTranslations("EditWorklog");
+  const tCommon = useTranslations("Common");
   const updateWorklog = useUpdateWorklog();
   const { data: currentUser } = useCurrentUser();
   const isAdmin = currentUser?.globalRole === GlobalRole.Admin;
@@ -67,10 +70,10 @@ export function EditWorklogDialog({
         invoiced: data.invoiced?.trim() ? data.invoiced : undefined,
         overrideUserId: isAdmin && data.overrideUserId ? data.overrideUserId : undefined,
       });
-      toast.success("Worklog updated");
+      toast.success(t("updated"));
       onClose();
     } catch {
-      toast.error("Failed to update worklog");
+      toast.error(t("updateFailed"));
     }
   };
 
@@ -81,11 +84,11 @@ export function EditWorklogDialog({
       <div className="absolute inset-0 bg-black/50" onClick={onClose} />
       <div className="relative bg-card rounded-xl shadow-xl border border-border w-full max-w-md mx-4 p-6">
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-lg font-semibold text-card-foreground">Edit Worklog</h2>
+          <h2 className="text-lg font-semibold text-card-foreground">{t("title")}</h2>
           <button
             onClick={onClose}
             className="p-1 rounded hover:bg-muted transition-colors"
-            aria-label="Close"
+            aria-label={t("close")}
           >
             <X className="h-5 w-5 text-muted-foreground" />
           </button>
@@ -94,16 +97,16 @@ export function EditWorklogDialog({
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-card-foreground mb-1">
-              Ticket <span className="text-destructive">*</span>
+              {t("ticket")} <span className="text-destructive">*</span>
             </label>
             <select
               {...register("ticketId")}
               className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
             >
-              <option value="">Select a ticket…</option>
-              {tickets.map((t) => (
-                <option key={t.id} value={t.id}>
-                  #{t.number} — {t.title}
+              <option value="">{t("selectTicket")}</option>
+              {tickets.map((tk) => (
+                <option key={tk.id} value={tk.id}>
+                  #{tk.number} — {tk.title}
                 </option>
               ))}
             </select>
@@ -113,7 +116,9 @@ export function EditWorklogDialog({
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-card-foreground mb-1">Date</label>
+            <label className="block text-sm font-medium text-card-foreground mb-1">
+              {t("date")}
+            </label>
             <input
               {...register("date")}
               type="date"
@@ -123,7 +128,9 @@ export function EditWorklogDialog({
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-card-foreground mb-1">Hours</label>
+            <label className="block text-sm font-medium text-card-foreground mb-1">
+              {t("hours")}
+            </label>
             <input
               {...register("hours", { valueAsNumber: true })}
               type="number"
@@ -140,17 +147,17 @@ export function EditWorklogDialog({
           <div>
             <label className="flex items-center justify-between text-sm font-medium text-card-foreground mb-1">
               <span>
-                Description <span className="text-destructive">*</span>
+                {t("description")} <span className="text-destructive">*</span>
               </span>
               <span className="text-xs font-normal text-muted-foreground">
-                {description.length}/16 min
+                {t("descriptionCounter", { count: description.length })}
               </span>
             </label>
             <textarea
               {...register("description")}
               rows={3}
               className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring resize-none"
-              placeholder="What did you work on? (at least 16 characters)"
+              placeholder={t("descriptionPlaceholder")}
             />
             {errors.description && (
               <p className="text-xs text-destructive mt-1">{errors.description.message}</p>
@@ -160,7 +167,7 @@ export function EditWorklogDialog({
           {isAdmin && (
             <div>
               <label className="block text-sm font-medium text-card-foreground mb-1">
-                Owner (Admin)
+                {t("ownerAdmin")}
               </label>
               <select
                 {...register("overrideUserId")}
@@ -179,11 +186,13 @@ export function EditWorklogDialog({
 
           <label className="flex items-center gap-2 text-sm">
             <input type="checkbox" {...register("isBillable")} className="rounded" />
-            Billable
+            {t("billable")}
           </label>
 
           <div>
-            <label className="block text-sm font-medium text-card-foreground mb-1">Invoiced</label>
+            <label className="block text-sm font-medium text-card-foreground mb-1">
+              {t("invoiced")}
+            </label>
             <input
               {...register("invoiced")}
               type="text"
@@ -201,14 +210,14 @@ export function EditWorklogDialog({
               onClick={onClose}
               className="px-4 py-2 rounded-lg border border-border text-sm font-medium hover:bg-muted transition-colors"
             >
-              Cancel
+              {tCommon("cancel")}
             </button>
             <button
               type="submit"
               disabled={isSubmitting}
               className="px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:opacity-90 transition-opacity disabled:opacity-50"
             >
-              {isSubmitting ? "Saving..." : "Save"}
+              {isSubmitting ? t("saving") : t("save")}
             </button>
           </div>
         </form>

@@ -63,12 +63,15 @@ import {
 import { SortableContext, verticalListSortingStrategy, useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { toast } from "sonner";
+import { useTranslations } from "next-intl";
 import { cn } from "@/lib/utils";
 import { ProjectStatus, ProjectRole } from "@/types";
 import type { ProjectCustomFieldValue, ProjectMember } from "@/types";
 import { useSearchParams, useRouter } from "next/navigation";
 
 export default function ProjectSettingsPage({ params }: { params: Promise<{ code: string }> }) {
+  const t = useTranslations("ProjectSettings");
+  const tProjects = useTranslations("Projects");
   const { code } = use(params);
   const router = useRouter();
   const { data: project, isLoading, error } = useProjectByCode(code);
@@ -82,7 +85,6 @@ export default function ProjectSettingsPage({ params }: { params: Promise<{ code
   const [confirmDelete, setConfirmDelete] = useState("");
   const [generalDirty, setGeneralDirty] = useState(false);
 
-  // This synchronizes local draft state with a newly loaded project.
   useEffect(() => {
     if (project) {
       setEditName(project.name);
@@ -104,7 +106,7 @@ export default function ProjectSettingsPage({ params }: { params: Promise<{ code
   if (error || !project) {
     return (
       <div className="rounded-lg border border-destructive/50 bg-destructive/5 p-4 text-sm text-destructive">
-        Failed to load project settings.
+        {t("loadFailed")}
       </div>
     );
   }
@@ -112,9 +114,9 @@ export default function ProjectSettingsPage({ params }: { params: Promise<{ code
   const handleStatusChange = async (status: ProjectStatus) => {
     try {
       await updateProject.mutateAsync({ id: projectId, status });
-      toast.success("Project status updated");
+      toast.success(t("statusUpdated"));
     } catch {
-      toast.error("Failed to update status");
+      toast.error(t("statusUpdateFailed"));
     }
   };
 
@@ -130,13 +132,13 @@ export default function ProjectSettingsPage({ params }: { params: Promise<{ code
         name: editName.trim(),
         code: editCode,
       });
-      toast.success("Project settings saved");
+      toast.success(t("settingsSaved"));
       setGeneralDirty(false);
       if (codeChanged) {
         router.push(`/projects/${editCode}/settings`);
       }
     } catch {
-      toast.error("Failed to save project settings");
+      toast.error(t("settingsSaveFailed"));
     }
   };
 
@@ -147,52 +149,51 @@ export default function ProjectSettingsPage({ params }: { params: Promise<{ code
         clientAccessEnabled: !project.clientAccessEnabled,
       });
       toast.success(
-        project.clientAccessEnabled
-          ? "Client portal access disabled"
-          : "Client portal access enabled"
+        project.clientAccessEnabled ? t("clientAccessDisabled") : t("clientAccessEnabled")
       );
     } catch {
-      toast.error("Failed to update client access");
+      toast.error(t("clientAccessUpdateFailed"));
     }
   };
 
   const handleGenerateToken = async () => {
     const confirmMessage = project.clientAccessToken
-      ? "Regenerate portal token? The current link will stop working immediately."
-      : "Generate a portal token? Anyone with the link can see this project's board.";
+      ? t("regenerateConfirm")
+      : t("generateConfirm");
     if (!window.confirm(confirmMessage)) return;
     try {
       await generateToken.mutateAsync(projectId);
-      toast.success("Portal token generated");
+      toast.success(t("tokenGenerated"));
     } catch {
-      toast.error("Failed to generate token");
+      toast.error(t("tokenGenerateFailed"));
     }
   };
 
   const handleRevokeToken = async () => {
-    if (!window.confirm("Revoke portal access? The existing link will stop working.")) return;
+    if (!window.confirm(t("revokeConfirm"))) return;
     try {
       await revokeToken.mutateAsync(projectId);
-      toast.success("Portal access revoked");
+      toast.success(t("accessRevoked"));
     } catch {
-      toast.error("Failed to revoke access");
+      toast.error(t("accessRevokeFailed"));
     }
   };
 
   return (
     <div className="space-y-8 max-w-3xl">
-      <p className="text-sm text-muted-foreground">Configure project settings and integrations</p>
+      <p className="text-sm text-muted-foreground">{t("subtitle")}</p>
 
-      {/* General settings */}
       <section className="rounded-lg border border-border bg-card p-6 space-y-4">
         <div className="flex items-center gap-2 mb-2">
           <Settings className="h-5 w-5 text-muted-foreground" />
-          <h2 className="text-lg font-semibold text-card-foreground">General</h2>
+          <h2 className="text-lg font-semibold text-card-foreground">{t("general")}</h2>
         </div>
 
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-card-foreground mb-1">Name</label>
+            <label className="block text-sm font-medium text-card-foreground mb-1">
+              {t("name")}
+            </label>
             <input
               type="text"
               value={editName}
@@ -203,11 +204,13 @@ export default function ProjectSettingsPage({ params }: { params: Promise<{ code
               className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
             />
             {!nameValid && editName !== project.name && (
-              <p className="text-xs text-destructive mt-1">Name is required</p>
+              <p className="text-xs text-destructive mt-1">{t("nameRequired")}</p>
             )}
           </div>
           <div>
-            <label className="block text-sm font-medium text-card-foreground mb-1">Code</label>
+            <label className="block text-sm font-medium text-card-foreground mb-1">
+              {t("code")}
+            </label>
             <input
               type="text"
               value={editCode}
@@ -219,7 +222,7 @@ export default function ProjectSettingsPage({ params }: { params: Promise<{ code
               className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground font-mono focus:outline-none focus:ring-2 focus:ring-ring"
             />
             {!codeValid && editCode !== project.code && (
-              <p className="text-xs text-destructive mt-1">2-6 uppercase letters</p>
+              <p className="text-xs text-destructive mt-1">{t("codeValidation")}</p>
             )}
           </div>
         </div>
@@ -230,12 +233,14 @@ export default function ProjectSettingsPage({ params }: { params: Promise<{ code
             disabled={!generalDirty || !nameValid || !codeValid || updateProject.isPending}
             className="px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:opacity-90 transition-opacity disabled:opacity-50"
           >
-            {updateProject.isPending ? "Saving..." : "Save"}
+            {updateProject.isPending ? t("saving") : t("save")}
           </button>
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-card-foreground mb-1">Status</label>
+          <label className="block text-sm font-medium text-card-foreground mb-1">
+            {t("status")}
+          </label>
           <select
             value={project.status}
             onChange={(e) => handleStatusChange(e.target.value as ProjectStatus)}
@@ -243,7 +248,7 @@ export default function ProjectSettingsPage({ params }: { params: Promise<{ code
           >
             {Object.values(ProjectStatus).map((status) => (
               <option key={status} value={status}>
-                {status}
+                {tProjects(`status.${status}` as "status.Active")}
               </option>
             ))}
           </select>
@@ -251,7 +256,9 @@ export default function ProjectSettingsPage({ params }: { params: Promise<{ code
 
         {project.projectTemplateName && (
           <div>
-            <label className="block text-sm font-medium text-card-foreground mb-1">Template</label>
+            <label className="block text-sm font-medium text-card-foreground mb-1">
+              {t("template")}
+            </label>
             <p className="text-sm text-muted-foreground">{project.projectTemplateName}</p>
           </div>
         )}
@@ -265,7 +272,7 @@ export default function ProjectSettingsPage({ params }: { params: Promise<{ code
               disabled={updateProject.isPending || !project.clientAccessToken}
               className="rounded"
             />
-            Client portal access enabled
+            {t("clientPortalEnabled")}
           </label>
           {project.clientAccessEnabled && project.clientAccessToken && (
             <ClientPortalLink token={project.clientAccessToken} />
@@ -277,10 +284,10 @@ export default function ProjectSettingsPage({ params }: { params: Promise<{ code
               className="px-3 py-1.5 rounded-lg border border-border text-xs font-medium text-foreground hover:bg-muted transition-colors disabled:opacity-50"
             >
               {generateToken.isPending
-                ? "Generating..."
+                ? t("generating")
                 : project.clientAccessToken
-                  ? "Regenerate token"
-                  : "Generate token"}
+                  ? t("regenerateToken")
+                  : t("generateToken")}
             </button>
             {project.clientAccessToken && (
               <button
@@ -288,41 +295,32 @@ export default function ProjectSettingsPage({ params }: { params: Promise<{ code
                 disabled={revokeToken.isPending}
                 className="px-3 py-1.5 rounded-lg border border-destructive/50 text-xs font-medium text-destructive hover:bg-destructive/5 transition-colors disabled:opacity-50"
               >
-                {revokeToken.isPending ? "Revoking..." : "Revoke access"}
+                {revokeToken.isPending ? t("revoking") : t("revokeAccess")}
               </button>
             )}
           </div>
           {!project.clientAccessToken && (
-            <p className="text-xs text-muted-foreground">
-              No token yet — generate one to enable the portal.
-            </p>
+            <p className="text-xs text-muted-foreground">{t("noTokenYet")}</p>
           )}
         </div>
       </section>
 
-      {/* Custom Fields */}
       <CustomFieldsSection projectId={projectId} />
 
-      {/* Members */}
       <MembersSection projectId={projectId} members={project.members ?? []} />
 
-      {/* Board configuration */}
       <BoardConfigSection projectId={projectId} projectTemplateId={project.projectTemplateId} />
 
-      {/* GitHub Integration */}
       <GitHubIntegrationSection projectId={projectId} project={project} />
 
-      {/* Danger Zone */}
       <section className="rounded-lg border border-destructive/50 bg-destructive/5 p-6 space-y-4">
         <div className="flex items-center gap-2 mb-2">
           <AlertTriangle className="h-5 w-5 text-destructive" />
-          <h2 className="text-lg font-semibold text-destructive">Danger Zone</h2>
+          <h2 className="text-lg font-semibold text-destructive">{t("dangerZone")}</h2>
         </div>
         <p className="text-sm text-muted-foreground">
-          Deleting a project is permanent. All tickets, worklogs, comments, and attachments will be
-          removed. Type the project code{" "}
-          <span className="font-mono font-semibold text-foreground">{project.code}</span> to
-          confirm.
+          {t("dangerDescription")}{" "}
+          <span className="font-mono font-semibold text-foreground">{project.code}</span>.
         </p>
         <div className="flex items-center gap-3">
           <input
@@ -336,16 +334,16 @@ export default function ProjectSettingsPage({ params }: { params: Promise<{ code
             onClick={async () => {
               try {
                 await deleteProject.mutateAsync(projectId);
-                toast.success("Project deleted");
+                toast.success(t("deleted"));
                 router.push("/projects");
               } catch {
-                toast.error("Failed to delete project");
+                toast.error(t("deleteFailed"));
               }
             }}
             disabled={confirmDelete !== project.code || deleteProject.isPending}
             className="px-4 py-2 rounded-lg bg-destructive text-destructive-foreground text-sm font-medium hover:opacity-90 transition-opacity disabled:opacity-50"
           >
-            {deleteProject.isPending ? "Deleting..." : "Delete Project"}
+            {deleteProject.isPending ? t("deleting") : t("deleteProject")}
           </button>
         </div>
       </section>
@@ -354,6 +352,7 @@ export default function ProjectSettingsPage({ params }: { params: Promise<{ code
 }
 
 function ClientPortalLink({ token }: { token: string }) {
+  const t = useTranslations("ProjectSettings");
   const [copied, setCopied] = useState(false);
   const url =
     typeof window !== "undefined"
@@ -366,7 +365,7 @@ function ClientPortalLink({ token }: { token: string }) {
       setCopied(true);
       setTimeout(() => setCopied(false), 1500);
     } catch {
-      toast.error("Failed to copy link");
+      toast.error(t("copyFailed"));
     }
   };
 
@@ -382,36 +381,36 @@ function ClientPortalLink({ token }: { token: string }) {
       <button
         onClick={handleCopy}
         className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
-        title="Copy link"
+        title={t("copyLink")}
       >
         {copied ? (
           <Check className="h-3.5 w-3.5 text-green-600" />
         ) : (
           <Copy className="h-3.5 w-3.5" />
         )}
-        {copied ? "Copied" : "Copy"}
+        {copied ? t("copied") : t("copy")}
       </button>
       <a
         href={url}
         target="_blank"
         rel="noopener noreferrer"
         className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
-        title="Open portal"
+        title={t("openPortal")}
       >
         <ExternalLink className="h-3.5 w-3.5" />
-        Open
+        {t("openLink")}
       </a>
     </div>
   );
 }
 
 function CustomFieldsSection({ projectId }: { projectId: string }) {
+  const t = useTranslations("ProjectSettings");
   const { data: fields, isLoading } = useProjectCustomFieldValues(projectId);
   const saveMutation = useSaveProjectCustomFieldValues();
   const [values, setValues] = useState<Record<string, string>>({});
   const [dirty, setDirty] = useState(false);
 
-  // This resets field drafts when the loaded field set changes.
   useEffect(() => {
     if (fields) {
       const initial: Record<string, string> = {};
@@ -448,10 +447,10 @@ function CustomFieldsSection({ projectId }: { projectId: string }) {
           value: values[f.customFieldDefinitionId] || undefined,
         })),
       });
-      toast.success("Custom fields saved");
+      toast.success(t("customFieldsSaved"));
       setDirty(false);
     } catch {
-      toast.error("Failed to save custom fields");
+      toast.error(t("customFieldsSaveFailed"));
     }
   };
 
@@ -492,7 +491,7 @@ function CustomFieldsSection({ projectId }: { projectId: string }) {
             onChange={(e) => handleChange(field.customFieldDefinitionId, e.target.value)}
             className={inputClass}
           >
-            <option value="">-- Select --</option>
+            <option value="">{t("selectPlaceholder")}</option>
             {opts.map((o) => (
               <option key={o} value={o}>
                 {o}
@@ -517,7 +516,7 @@ function CustomFieldsSection({ projectId }: { projectId: string }) {
     <section className="rounded-lg border border-border bg-card p-6 space-y-4">
       <div className="flex items-center gap-2 mb-2">
         <SlidersHorizontal className="h-5 w-5 text-muted-foreground" />
-        <h2 className="text-lg font-semibold text-card-foreground">Custom Fields</h2>
+        <h2 className="text-lg font-semibold text-card-foreground">{t("customFields")}</h2>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -541,7 +540,7 @@ function CustomFieldsSection({ projectId }: { projectId: string }) {
           disabled={!dirty || saveMutation.isPending}
           className="px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:opacity-90 transition-opacity disabled:opacity-50"
         >
-          {saveMutation.isPending ? "Saving..." : "Save Custom Fields"}
+          {saveMutation.isPending ? t("saving") : t("saveCustomFields")}
         </button>
       </div>
     </section>
@@ -559,6 +558,7 @@ function GitHubIntegrationSection({
     gitHubConnectedByUserId?: string;
   };
 }) {
+  const t = useTranslations("ProjectSettings");
   const { data: ghStatus, refetch: refetchStatus } = useGitHubStatus();
   const { data: repos, isLoading: reposLoading } = useGitHubRepos(ghStatus?.connected ?? false);
   const authorize = useGitHubAuthorize();
@@ -571,36 +571,34 @@ function GitHubIntegrationSection({
 
   const [selectedRepo, setSelectedRepo] = useState("");
 
-  // Handle callback from GitHub OAuth redirect
   useEffect(() => {
     const githubParam = searchParams.get("github");
     if (githubParam === "connected") {
-      toast.success("GitHub account connected!");
+      toast.success(t("githubConnected"));
       refetchStatus();
-      // Clean the URL
       window.history.replaceState({}, "", window.location.pathname);
     } else if (githubParam === "error") {
-      const message = searchParams.get("message") || "Failed to connect GitHub";
+      const message = searchParams.get("message") || t("githubConnectFailed");
       toast.error(message);
       window.history.replaceState({}, "", window.location.pathname);
     }
-  }, [searchParams, refetchStatus]);
+  }, [searchParams, refetchStatus, t]);
 
   const handleConnect = async () => {
     try {
       const { url } = await authorize.mutateAsync(projectId);
       window.location.href = url;
     } catch {
-      toast.error("Failed to start GitHub authorization");
+      toast.error(t("githubAuthFailed"));
     }
   };
 
   const handleDisconnect = async () => {
     try {
       await disconnect.mutateAsync();
-      toast.success("GitHub disconnected");
+      toast.success(t("githubDisconnected"));
     } catch {
-      toast.error("Failed to disconnect GitHub");
+      toast.error(t("githubDisconnectFailed"));
     }
   };
 
@@ -608,19 +606,19 @@ function GitHubIntegrationSection({
     if (!selectedRepo) return;
     try {
       await linkRepo.mutateAsync({ projectId, repositoryFullName: selectedRepo });
-      toast.success(`Linked to ${selectedRepo}`);
+      toast.success(t("linkedTo", { repo: selectedRepo }));
       setSelectedRepo("");
     } catch {
-      toast.error("Failed to link repository");
+      toast.error(t("linkFailed"));
     }
   };
 
   const handleUnlinkRepo = async () => {
     try {
       await unlinkRepo.mutateAsync(projectId);
-      toast.success("Repository unlinked");
+      toast.success(t("unlinked"));
     } catch {
-      toast.error("Failed to unlink repository");
+      toast.error(t("unlinkFailed"));
     }
   };
 
@@ -628,12 +626,12 @@ function GitHubIntegrationSection({
     try {
       const result = await testConnection.mutateAsync(projectId);
       if (result.success) {
-        toast.success(`Connected to ${result.repositoryName}`);
+        toast.success(t("connectedTo", { repo: result.repositoryName ?? "" }));
       } else {
-        toast.error(result.error ?? "Connection failed");
+        toast.error(result.error ?? t("connectionFailed"));
       }
     } catch {
-      toast.error("Connection test failed");
+      toast.error(t("connectionFailed"));
     }
   };
 
@@ -644,11 +642,14 @@ function GitHubIntegrationSection({
         toast.error(result.error);
       } else {
         toast.success(
-          `Synced ${result.synced} items${result.failed > 0 ? `, ${result.failed} failed` : ""}`
+          t("synced", {
+            synced: result.synced,
+            failedSuffix: result.failed > 0 ? t("failedSuffix", { failed: result.failed }) : "",
+          })
         );
       }
     } catch {
-      toast.error("Sync failed");
+      toast.error(t("syncFailed"));
     }
   };
 
@@ -666,37 +667,33 @@ function GitHubIntegrationSection({
     <section className="rounded-lg border border-border bg-card p-6 space-y-4">
       <div className="flex items-center gap-2 mb-2">
         <Github className="h-5 w-5 text-muted-foreground" />
-        <h2 className="text-lg font-semibold text-card-foreground">GitHub Integration</h2>
+        <h2 className="text-lg font-semibold text-card-foreground">{t("github")}</h2>
       </div>
 
-      {/* State A: Not connected */}
       {!isConnected && (
         <div className="space-y-3">
-          <p className="text-sm text-muted-foreground">
-            Connect your GitHub account to sync issues and comments.
-          </p>
+          <p className="text-sm text-muted-foreground">{t("githubConnectIntro")}</p>
           <button onClick={handleConnect} disabled={authorize.isPending} className={btnPrimary}>
             {authorize.isPending ? (
               <span className="inline-flex items-center gap-1.5">
                 <Loader2 className="h-4 w-4 animate-spin" />
-                Connecting...
+                {t("githubConnecting")}
               </span>
             ) : (
               <span className="inline-flex items-center gap-1.5">
                 <LinkIcon className="h-4 w-4" />
-                Connect to GitHub
+                {t("githubConnect")}
               </span>
             )}
           </button>
         </div>
       )}
 
-      {/* State B: Connected, no repo linked */}
       {isConnected && !hasLinkedRepo && (
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <p className="text-sm text-foreground">
-              Connected as <span className="font-semibold">@{ghStatus!.login}</span>
+              {t("githubConnectedAs")} <span className="font-semibold">@{ghStatus!.login}</span>
             </p>
             <button
               onClick={handleDisconnect}
@@ -708,25 +705,25 @@ function GitHubIntegrationSection({
               ) : (
                 <X className="h-4 w-4" />
               )}
-              Disconnect
+              {t("githubDisconnect")}
             </button>
           </div>
 
           <div>
             <label className="block text-sm font-medium text-card-foreground mb-1">
-              Repository
+              {t("repository")}
             </label>
             <select
               value={selectedRepo}
               onChange={(e) => setSelectedRepo(e.target.value)}
               className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
             >
-              <option value="">Select repository...</option>
-              {reposLoading && <option disabled>Loading repositories...</option>}
+              <option value="">{t("selectRepo")}</option>
+              {reposLoading && <option disabled>{t("loadingRepos")}</option>}
               {repos?.map((r) => (
                 <option key={r.fullName} value={r.fullName}>
                   {r.fullName}
-                  {r.isPrivate ? " (private)" : ""}
+                  {r.isPrivate ? ` ${t("private")}` : ""}
                 </option>
               ))}
             </select>
@@ -740,21 +737,20 @@ function GitHubIntegrationSection({
             {linkRepo.isPending ? (
               <span className="inline-flex items-center gap-1.5">
                 <Loader2 className="h-4 w-4 animate-spin" />
-                Linking...
+                {t("linking")}
               </span>
             ) : (
-              "Link Repository"
+              t("linkRepo")
             )}
           </button>
         </div>
       )}
 
-      {/* State C: Connected + repo linked */}
       {isConnected && hasLinkedRepo && (
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <p className="text-sm text-foreground">
-              Connected as <span className="font-semibold">@{ghStatus!.login}</span>
+              {t("githubConnectedAs")} <span className="font-semibold">@{ghStatus!.login}</span>
             </p>
             <button
               onClick={handleDisconnect}
@@ -766,13 +762,13 @@ function GitHubIntegrationSection({
               ) : (
                 <X className="h-4 w-4" />
               )}
-              Disconnect
+              {t("githubDisconnect")}
             </button>
           </div>
 
           <div className="flex items-center justify-between">
             <p className="text-sm text-foreground">
-              Repository:{" "}
+              {t("repository")}:{" "}
               <span className="font-semibold font-mono">{project.externalProjectId}</span>
             </p>
             <button
@@ -785,38 +781,36 @@ function GitHubIntegrationSection({
               ) : (
                 <Unlink className="h-4 w-4" />
               )}
-              Unlink
+              {t("unlink")}
             </button>
           </div>
 
           <div className="flex items-center gap-2 pt-2">
             <button onClick={handleTest} disabled={testConnection.isPending} className={btnOutline}>
               {testConnection.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
-              Test Connection
+              {t("testConnection")}
             </button>
             <button onClick={handleSync} disabled={triggerSync.isPending} className={btnOutline}>
               {triggerSync.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
-              Sync Now
+              {t("syncNow")}
             </button>
           </div>
         </div>
       )}
 
-      {/* Fallback: repo linked but user not connected (legacy PAT) */}
       {!isConnected && hasLinkedRepo && (
         <div className="space-y-3 mt-4 pt-4 border-t border-border">
           <p className="text-sm text-muted-foreground">
-            Repository <span className="font-mono font-semibold">{project.externalProjectId}</span>{" "}
-            is linked via a legacy API token. Connect your GitHub account for a better experience.
+            {t("legacyTokenIntro", { repo: project.externalProjectId ?? "" })}
           </p>
           <div className="flex items-center gap-2">
             <button onClick={handleTest} disabled={testConnection.isPending} className={btnOutline}>
               {testConnection.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
-              Test Connection
+              {t("testConnection")}
             </button>
             <button onClick={handleSync} disabled={triggerSync.isPending} className={btnOutline}>
               {triggerSync.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
-              Sync Now
+              {t("syncNow")}
             </button>
           </div>
         </div>
@@ -826,6 +820,7 @@ function GitHubIntegrationSection({
 }
 
 function MembersSection({ projectId, members }: { projectId: string; members: ProjectMember[] }) {
+  const t = useTranslations("ProjectSettings");
   const { data: users } = useProjectUsers();
   const addMember = useAddProjectMember();
   const updateMember = useUpdateProjectMember();
@@ -847,11 +842,11 @@ function MembersSection({ projectId, members }: { projectId: string; members: Pr
     if (!addUserId) return;
     try {
       await addMember.mutateAsync({ projectId, userId: addUserId, role: addRole });
-      toast.success("Member added");
+      toast.success(t("memberAdded"));
       setAddUserId("");
       setAddRole(ProjectRole.Developer);
     } catch {
-      toast.error("Failed to add member");
+      toast.error(t("memberAddFailed"));
     }
   };
 
@@ -863,19 +858,19 @@ function MembersSection({ projectId, members }: { projectId: string; members: Pr
         role,
         hourlyRateOverride: member.hourlyRateOverride,
       });
-      toast.success("Role updated");
+      toast.success(t("roleUpdated"));
     } catch {
-      toast.error("Failed to update role");
+      toast.error(t("roleUpdateFailed"));
     }
   };
 
   const handleRemove = async (member: ProjectMember) => {
-    if (!window.confirm(`Remove ${member.displayName} from project?`)) return;
+    if (!window.confirm(t("removeConfirm", { name: member.displayName }))) return;
     try {
       await removeMember.mutateAsync({ projectId, memberId: member.id });
-      toast.success("Member removed");
+      toast.success(t("memberRemoved"));
     } catch {
-      toast.error("Failed to remove member");
+      toast.error(t("memberRemoveFailed"));
     }
   };
 
@@ -883,19 +878,19 @@ function MembersSection({ projectId, members }: { projectId: string; members: Pr
     <section className="rounded-lg border border-border bg-card p-6 space-y-4">
       <div className="flex items-center gap-2 mb-2">
         <Users className="h-5 w-5 text-muted-foreground" />
-        <h2 className="text-lg font-semibold text-card-foreground">Members</h2>
+        <h2 className="text-lg font-semibold text-card-foreground">{t("members")}</h2>
       </div>
 
       {members.length === 0 ? (
-        <p className="text-sm text-muted-foreground">No members yet. Add members below.</p>
+        <p className="text-sm text-muted-foreground">{t("noMembersYet")}</p>
       ) : (
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-border text-left">
-                <th className="pb-2 font-medium text-muted-foreground">Member</th>
-                <th className="pb-2 font-medium text-muted-foreground">Email</th>
-                <th className="pb-2 font-medium text-muted-foreground">Role</th>
+                <th className="pb-2 font-medium text-muted-foreground">{t("memberCol")}</th>
+                <th className="pb-2 font-medium text-muted-foreground">{t("emailCol")}</th>
+                <th className="pb-2 font-medium text-muted-foreground">{t("roleCol")}</th>
                 <th className="pb-2 font-medium text-muted-foreground w-20"></th>
               </tr>
             </thead>
@@ -905,8 +900,6 @@ function MembersSection({ projectId, members }: { projectId: string; members: Pr
                   <td className="py-3">
                     <div className="flex items-center gap-2">
                       {member.avatarUrl ? (
-                        // next/image would need remotePatterns for Graph photo URLs
-                        // with per-request SAS tokens; not worth it for a 28px avatar.
                         // eslint-disable-next-line @next/next/no-img-element
                         <img src={member.avatarUrl} alt="" className="h-7 w-7 rounded-full" />
                       ) : (
@@ -949,16 +942,16 @@ function MembersSection({ projectId, members }: { projectId: string; members: Pr
       )}
 
       <div className="pt-2 border-t border-border">
-        <p className="text-sm font-medium text-card-foreground mb-2">Add member</p>
+        <p className="text-sm font-medium text-card-foreground mb-2">{t("addMember")}</p>
         <div className="flex items-end gap-3">
           <div className="flex-1">
-            <label className="block text-xs text-muted-foreground mb-1">User</label>
+            <label className="block text-xs text-muted-foreground mb-1">{t("user")}</label>
             <select
               value={addUserId}
               onChange={(e) => setAddUserId(e.target.value)}
               className={`w-full ${inputClass}`}
             >
-              <option value="">Select user...</option>
+              <option value="">{t("selectUser")}</option>
               {availableUsers.map((u) => (
                 <option key={u.id} value={u.id}>
                   {u.displayName} ({u.email})
@@ -967,7 +960,7 @@ function MembersSection({ projectId, members }: { projectId: string; members: Pr
             </select>
           </div>
           <div>
-            <label className="block text-xs text-muted-foreground mb-1">Role</label>
+            <label className="block text-xs text-muted-foreground mb-1">{t("role")}</label>
             <select
               value={addRole}
               onChange={(e) => setAddRole(e.target.value as ProjectRole)}
@@ -985,7 +978,7 @@ function MembersSection({ projectId, members }: { projectId: string; members: Pr
             disabled={!addUserId || addMember.isPending}
             className={btnPrimary}
           >
-            {addMember.isPending ? "Adding..." : "Add"}
+            {addMember.isPending ? t("adding") : t("add")}
           </button>
         </div>
       </div>
@@ -1014,6 +1007,7 @@ function ColorPicker({
   value: string | undefined;
   onChange: (v: string | undefined) => void;
 }) {
+  const t = useTranslations("ProjectSettings");
   return (
     <div className="flex items-center gap-1.5">
       {COLOR_PRESETS.map((color) => (
@@ -1031,7 +1025,7 @@ function ColorPicker({
                 ? `0 0 0 2px var(--background), 0 0 0 4px ${color ?? "var(--foreground)"}`
                 : "none",
           }}
-          title={color ?? "None"}
+          title={color ?? t("colorNone")}
         >
           {color === null && <X className="h-3 w-3 text-muted-foreground" />}
         </button>
@@ -1049,8 +1043,9 @@ function TaskStateMultiSelect({
   selected: string[];
   onChange: (ids: string[]) => void;
   taskStates: { id: string; name: string; color: string }[];
-  stateAssignments?: Record<string, string>; // stateId -> owning column name (for states assigned to a different column)
+  stateAssignments?: Record<string, string>;
 }) {
+  const t = useTranslations("ProjectSettings");
   const toggle = (id: string) => {
     onChange(selected.includes(id) ? selected.filter((s) => s !== id) : [...selected, id]);
   };
@@ -1059,7 +1054,7 @@ function TaskStateMultiSelect({
     <div className="space-y-1.5">
       <div className="flex flex-wrap gap-1 min-h-[24px]">
         {selected.map((id) => {
-          const ts = taskStates.find((t) => t.id === id);
+          const ts = taskStates.find((tk) => tk.id === id);
           if (!ts) return null;
           return (
             <span
@@ -1083,11 +1078,7 @@ function TaskStateMultiSelect({
             <label
               key={ts.id}
               className="flex items-center gap-2 px-3 py-1.5 text-sm cursor-pointer hover:bg-muted transition-colors"
-              title={
-                isOwnedByOther
-                  ? `Currently in column "${owner}" — selecting will move it here.`
-                  : undefined
-              }
+              title={isOwnedByOther ? t("stateInColumn", { column: owner }) : undefined}
             >
               <input
                 type="checkbox"
@@ -1102,7 +1093,7 @@ function TaskStateMultiSelect({
               <span className={cn(isOwnedByOther && "text-muted-foreground")}>{ts.name}</span>
               {isOwnedByOther && (
                 <span className="ml-auto text-xs text-muted-foreground italic">
-                  in &quot;{owner}&quot;
+                  {t("stateInColumnShort", { column: owner })}
                 </span>
               )}
             </label>
@@ -1150,6 +1141,8 @@ function SortableColumnRow({
   activeTaskStates: { id: string; name: string; color: string }[];
   stateAssignments: Record<string, string>;
 }) {
+  const t = useTranslations("ProjectSettings");
+  const tCommon = useTranslations("Common");
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: col.id,
   });
@@ -1178,7 +1171,7 @@ function SortableColumnRow({
             value={editState.name}
             onChange={(e) => onEditChange({ name: e.target.value })}
             className={`flex-1 ${inputClass}`}
-            placeholder="Column name"
+            placeholder={t("columnName")}
           />
           <input
             type="number"
@@ -1188,15 +1181,20 @@ function SortableColumnRow({
             placeholder="WIP"
             min={1}
           />
-          <button onClick={onSaveEdit} disabled={updatePending} className={btnOutline} title="Save">
+          <button
+            onClick={onSaveEdit}
+            disabled={updatePending}
+            className={btnOutline}
+            title={t("save")}
+          >
             <Check className="h-4 w-4 text-green-600" />
           </button>
-          <button onClick={onCancelEdit} className={btnOutline} title="Cancel">
+          <button onClick={onCancelEdit} className={btnOutline} title={tCommon("cancel")}>
             <X className="h-4 w-4" />
           </button>
         </div>
         <div>
-          <label className="block text-xs text-muted-foreground mb-1">Task States</label>
+          <label className="block text-xs text-muted-foreground mb-1">{t("taskStates")}</label>
           <TaskStateMultiSelect
             selected={editState.taskStateIds}
             onChange={(ids) => onEditChange({ taskStateIds: ids })}
@@ -1205,7 +1203,7 @@ function SortableColumnRow({
           />
         </div>
         <div>
-          <label className="block text-xs text-muted-foreground mb-1">Color</label>
+          <label className="block text-xs text-muted-foreground mb-1">{t("color")}</label>
           <ColorPicker value={editState.color} onChange={(c) => onEditChange({ color: c })} />
         </div>
       </div>
@@ -1215,9 +1213,9 @@ function SortableColumnRow({
   const canHide = col.ticketCount === 0;
   const hideTitle = col.isVisible
     ? canHide
-      ? "Hide column on board"
-      : `Cannot hide — column has ${col.ticketCount} ticket${col.ticketCount === 1 ? "" : "s"}`
-    : "Show column on board";
+      ? t("hideColumn")
+      : t("cannotHide", { count: col.ticketCount })
+    : t("showColumn");
 
   return (
     <div
@@ -1244,7 +1242,7 @@ function SortableColumnRow({
       <span className="flex-1 text-sm font-medium text-foreground">
         {col.name}
         {!col.isVisible && (
-          <span className="ml-2 text-xs text-muted-foreground italic">(hidden)</span>
+          <span className="ml-2 text-xs text-muted-foreground italic">{t("hidden")}</span>
         )}
       </span>
       <div className="flex flex-wrap gap-1">
@@ -1259,7 +1257,7 @@ function SortableColumnRow({
         ))}
       </div>
       <span className="text-xs text-muted-foreground w-16 text-center">
-        WIP: {col.wipLimit ?? "\u2013"}
+        WIP: {col.wipLimit ?? "–"}
       </span>
       <button
         onClick={onToggleVisibility}
@@ -1269,10 +1267,15 @@ function SortableColumnRow({
       >
         {col.isVisible ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
       </button>
-      <button onClick={onStartEdit} className={btnOutline} title="Edit">
+      <button onClick={onStartEdit} className={btnOutline} title={tCommon("edit")}>
         <Pencil className="h-4 w-4" />
       </button>
-      <button onClick={onDelete} disabled={deletePending} className={btnDestructive} title="Delete">
+      <button
+        onClick={onDelete}
+        disabled={deletePending}
+        className={btnDestructive}
+        title={tCommon("delete")}
+      >
         <Trash2 className="h-4 w-4" />
       </button>
     </div>
@@ -1286,6 +1289,7 @@ function BoardConfigSection({
   projectId: string;
   projectTemplateId?: string;
 }) {
+  const t = useTranslations("ProjectSettings");
   const { data: board, isLoading: boardLoading } = useBoard(projectId);
   const { data: taskStates } = useTaskStates(projectTemplateId);
   const createColumn = useCreateColumn();
@@ -1329,9 +1333,9 @@ function BoardConfigSection({
       <section className="rounded-lg border border-border bg-card p-6 space-y-4">
         <div className="flex items-center gap-2 mb-2">
           <LayoutGrid className="h-5 w-5 text-muted-foreground" />
-          <h2 className="text-lg font-semibold text-card-foreground">Board Configuration</h2>
+          <h2 className="text-lg font-semibold text-card-foreground">{t("boardConfig")}</h2>
         </div>
-        <p className="text-sm text-muted-foreground">No board found for this project.</p>
+        <p className="text-sm text-muted-foreground">{t("noBoard")}</p>
       </section>
     );
   }
@@ -1347,13 +1351,13 @@ function BoardConfigSection({
         mapsToTaskStateIds: newTaskStateIds,
         color: newColor,
       });
-      toast.success("Column added");
+      toast.success(t("columnAdded"));
       setNewName("");
       setNewTaskStateIds([]);
       setNewWipLimit("");
       setNewColor(undefined);
     } catch {
-      toast.error("Failed to add column");
+      toast.error(t("columnAddFailed"));
     }
   };
 
@@ -1381,25 +1385,20 @@ function BoardConfigSection({
         color: editState.color,
         isVisible: originalColumn?.isVisible ?? true,
       });
-      toast.success("Column updated");
+      toast.success(t("columnUpdated"));
       setEditingId(null);
     } catch {
-      toast.error("Failed to update column");
+      toast.error(t("columnUpdateFailed"));
     }
   };
 
   const handleDeleteColumn = async (columnId: string) => {
-    if (
-      !window.confirm(
-        "Delete this column? Tickets in this column will lose their column assignment but keep their task state."
-      )
-    )
-      return;
+    if (!window.confirm(t("columnDeleteConfirm"))) return;
     try {
       await deleteColumn.mutateAsync({ projectId, boardId: board.id, columnId });
-      toast.success("Column deleted");
+      toast.success(t("columnDeleted"));
     } catch {
-      toast.error("Failed to delete column");
+      toast.error(t("columnDeleteFailed"));
     }
   };
 
@@ -1415,7 +1414,7 @@ function BoardConfigSection({
     try {
       await reorderColumns.mutateAsync({ projectId, boardId: board.id, columnIds: ids });
     } catch {
-      toast.error("Failed to reorder columns");
+      toast.error(t("reorderFailed"));
     }
   };
 
@@ -1431,16 +1430,15 @@ function BoardConfigSection({
         color: col.color,
         isVisible: !col.isVisible,
       });
-      toast.success(col.isVisible ? "Column hidden" : "Column shown");
+      toast.success(col.isVisible ? t("columnHidden") : t("columnShown"));
     } catch (err) {
       const message =
         (err as { response?: { data?: { message?: string } } })?.response?.data?.message ??
-        "Failed to toggle visibility";
+        t("columnHidden_failed");
       toast.error(message);
     }
   };
 
-  // stateId -> column name where that state currently lives (for conflict hints).
   const stateOwners = columns.reduce<Record<string, string>>((acc, c) => {
     c.taskStates.forEach((ts) => {
       acc[ts.id] = c.name;
@@ -1452,11 +1450,11 @@ function BoardConfigSection({
     <section className="rounded-lg border border-border bg-card p-6 space-y-4">
       <div className="flex items-center gap-2 mb-2">
         <LayoutGrid className="h-5 w-5 text-muted-foreground" />
-        <h2 className="text-lg font-semibold text-card-foreground">Board Configuration</h2>
+        <h2 className="text-lg font-semibold text-card-foreground">{t("boardConfig")}</h2>
       </div>
 
       {columns.length === 0 ? (
-        <p className="text-sm text-muted-foreground">No columns configured. Add columns below.</p>
+        <p className="text-sm text-muted-foreground">{t("noColumns")}</p>
       ) : (
         <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
           <SortableContext items={columns.map((c) => c.id)} strategy={verticalListSortingStrategy}>
@@ -1499,32 +1497,32 @@ function BoardConfigSection({
       )}
 
       <div className="pt-2 border-t border-border space-y-3">
-        <p className="text-sm font-medium text-card-foreground">Add column</p>
+        <p className="text-sm font-medium text-card-foreground">{t("addColumn")}</p>
         <div className="flex items-end gap-3">
           <div className="flex-1">
-            <label className="block text-xs text-muted-foreground mb-1">Name</label>
+            <label className="block text-xs text-muted-foreground mb-1">{t("name")}</label>
             <input
               type="text"
               value={newName}
               onChange={(e) => setNewName(e.target.value)}
-              placeholder="Column name"
+              placeholder={t("columnName")}
               className={`w-full ${inputClass}`}
             />
           </div>
           <div>
-            <label className="block text-xs text-muted-foreground mb-1">WIP Limit</label>
+            <label className="block text-xs text-muted-foreground mb-1">{t("wipLimit")}</label>
             <input
               type="number"
               value={newWipLimit}
               onChange={(e) => setNewWipLimit(e.target.value)}
-              placeholder="Optional"
+              placeholder={t("wipLimitOptional")}
               min={1}
               className={`w-24 ${inputClass}`}
             />
           </div>
         </div>
         <div>
-          <label className="block text-xs text-muted-foreground mb-1">Task States</label>
+          <label className="block text-xs text-muted-foreground mb-1">{t("taskStates")}</label>
           <TaskStateMultiSelect
             selected={newTaskStateIds}
             onChange={setNewTaskStateIds}
@@ -1533,7 +1531,7 @@ function BoardConfigSection({
           />
         </div>
         <div>
-          <label className="block text-xs text-muted-foreground mb-1">Color</label>
+          <label className="block text-xs text-muted-foreground mb-1">{t("color")}</label>
           <ColorPicker value={newColor} onChange={setNewColor} />
         </div>
         <button
@@ -1541,7 +1539,7 @@ function BoardConfigSection({
           disabled={!newName.trim() || newTaskStateIds.length === 0 || createColumn.isPending}
           className={btnPrimary}
         >
-          {createColumn.isPending ? "Adding..." : "Add Column"}
+          {createColumn.isPending ? t("adding") : t("addColumn")}
         </button>
       </div>
     </section>

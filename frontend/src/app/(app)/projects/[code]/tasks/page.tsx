@@ -35,133 +35,127 @@ import {
   ChevronRight,
 } from "lucide-react";
 import { toast } from "sonner";
+import { useTranslations } from "next-intl";
 import { cn } from "@/lib/utils";
 import type { Ticket } from "@/types";
 
-const taskFilterFields = [
-  { value: "title", label: "Title" },
-  { value: "taskStateName", label: "Status" },
-  { value: "ticketPriorityName", label: "Priority" },
-  { value: "assignee", label: "Assignee" },
-  { value: "taskTypeName", label: "Task Type" },
-  { value: "dueDate", label: "Due Date" },
-];
-
 const columnHelper = createColumnHelper<Ticket>();
 
-const allColumns = [
-  columnHelper.accessor("key", {
-    header: "Key",
-    size: 100,
-    minSize: 80,
-    cell: ({ row }) => (
-      <span className="text-sm font-mono text-muted-foreground">{row.original.key}</span>
-    ),
-  }),
-  columnHelper.accessor("title", {
-    header: "Title",
-    size: 300,
-    minSize: 150,
-    cell: ({ row, table }) => {
-      const meta = table.options.meta as TableMeta | undefined;
-      return (
-        <button
-          onClick={() => meta?.onRowClick?.(row.original)}
-          className="text-left text-sm font-medium text-foreground hover:text-primary truncate block w-full"
-        >
+function buildAllColumns(t: (key: string) => string) {
+  return [
+    columnHelper.accessor("key", {
+      header: t("ticketCol"),
+      size: 100,
+      minSize: 80,
+      cell: ({ row }) => (
+        <span className="text-sm font-mono text-muted-foreground">{row.original.key}</span>
+      ),
+    }),
+    columnHelper.accessor("title", {
+      header: t("titleCol"),
+      size: 300,
+      minSize: 150,
+      cell: ({ row, table }) => {
+        const meta = table.options.meta as TableMeta | undefined;
+        return (
+          <button
+            onClick={() => meta?.onRowClick?.(row.original)}
+            className="text-left text-sm font-medium text-foreground hover:text-primary truncate block w-full"
+          >
+            {row.original.taskTypeIcon && <span className="mr-1">{row.original.taskTypeIcon}</span>}
+            {row.original.title}
+          </button>
+        );
+      },
+    }),
+    columnHelper.accessor("taskStateName", {
+      header: t("statusCol"),
+      size: 120,
+      cell: ({ row }) => (
+        <StatusBadge name={row.original.taskStateName} color={row.original.taskStateColor} />
+      ),
+    }),
+    columnHelper.accessor("ticketPriorityName", {
+      header: t("priorityCol"),
+      size: 100,
+      cell: ({ row }) => (
+        <PriorityBadge
+          name={row.original.ticketPriorityName}
+          color={row.original.ticketPriorityColor}
+        />
+      ),
+    }),
+    columnHelper.accessor("assignee", {
+      header: t("assigneeCol"),
+      size: 150,
+      cell: ({ row }) => (
+        <span className="text-sm text-foreground">
+          {row.original.assignee?.displayName || t("unassigned")}
+        </span>
+      ),
+      sortingFn: (rowA, rowB) => {
+        const a = rowA.original.assignee?.displayName || "";
+        const b = rowB.original.assignee?.displayName || "";
+        return a.localeCompare(b);
+      },
+    }),
+    columnHelper.accessor("taskTypeName", {
+      header: t("typeCol"),
+      size: 120,
+      cell: ({ row }) => (
+        <span className="text-sm text-foreground">
           {row.original.taskTypeIcon && <span className="mr-1">{row.original.taskTypeIcon}</span>}
-          {row.original.title}
-        </button>
-      );
-    },
-  }),
-  columnHelper.accessor("taskStateName", {
-    header: "Status",
-    size: 120,
-    cell: ({ row }) => (
-      <StatusBadge name={row.original.taskStateName} color={row.original.taskStateColor} />
-    ),
-  }),
-  columnHelper.accessor("ticketPriorityName", {
-    header: "Priority",
-    size: 100,
-    cell: ({ row }) => (
-      <PriorityBadge
-        name={row.original.ticketPriorityName}
-        color={row.original.ticketPriorityColor}
-      />
-    ),
-  }),
-  columnHelper.accessor("assignee", {
-    header: "Assignee",
-    size: 150,
-    cell: ({ row }) => (
-      <span className="text-sm text-foreground">
-        {row.original.assignee?.displayName || "Unassigned"}
-      </span>
-    ),
-    sortingFn: (rowA, rowB) => {
-      const a = rowA.original.assignee?.displayName || "";
-      const b = rowB.original.assignee?.displayName || "";
-      return a.localeCompare(b);
-    },
-  }),
-  columnHelper.accessor("taskTypeName", {
-    header: "Type",
-    size: 120,
-    cell: ({ row }) => (
-      <span className="text-sm text-foreground">
-        {row.original.taskTypeIcon && <span className="mr-1">{row.original.taskTypeIcon}</span>}
-        {row.original.taskTypeName || "-"}
-      </span>
-    ),
-  }),
-  columnHelper.accessor("dueDate", {
-    header: "Due Date",
-    size: 110,
-    cell: ({ row }) => (
-      <span className="text-sm text-foreground">
-        {row.original.dueDate ? new Date(row.original.dueDate).toLocaleDateString() : "-"}
-      </span>
-    ),
-  }),
-  columnHelper.accessor("estimatedHours", {
-    header: "Est. Hours",
-    size: 100,
-    cell: ({ row }) => (
-      <span className="text-sm text-foreground">
-        {row.original.estimatedHours != null ? `${row.original.estimatedHours}h` : "-"}
-      </span>
-    ),
-  }),
-  columnHelper.accessor("cumulativeWorkedHours", {
-    header: "Worked",
-    size: 90,
-    cell: ({ row }) => (
-      <span className="text-sm text-foreground">
-        {row.original.cumulativeWorkedHours != null && row.original.cumulativeWorkedHours > 0
-          ? `${row.original.cumulativeWorkedHours}h`
-          : "-"}
-      </span>
-    ),
-  }),
-  columnHelper.accessor("commentsCount", {
-    header: "Comments",
-    size: 90,
-    cell: ({ row }) => (
-      <span className="text-sm text-muted-foreground">{row.original.commentsCount}</span>
-    ),
-  }),
-  columnHelper.accessor("createdAt", {
-    header: "Created",
-    size: 110,
-    cell: ({ row }) => (
-      <span className="text-sm text-muted-foreground">
-        {new Date(row.original.createdAt).toLocaleDateString()}
-      </span>
-    ),
-  }),
-];
+          {row.original.taskTypeName || "-"}
+        </span>
+      ),
+    }),
+    columnHelper.accessor("dueDate", {
+      header: t("dueDateCol"),
+      size: 110,
+      cell: ({ row }) => (
+        <span className="text-sm text-foreground">
+          {row.original.dueDate ? new Date(row.original.dueDate).toLocaleDateString() : "-"}
+        </span>
+      ),
+    }),
+    columnHelper.accessor("estimatedHours", {
+      header: t("estimatedHoursCol"),
+      size: 100,
+      cell: ({ row }) => (
+        <span className="text-sm text-foreground">
+          {row.original.estimatedHours != null ? `${row.original.estimatedHours}h` : "-"}
+        </span>
+      ),
+    }),
+    columnHelper.accessor("cumulativeWorkedHours", {
+      header: t("workedCol"),
+      size: 90,
+      cell: ({ row }) => (
+        <span className="text-sm text-foreground">
+          {row.original.cumulativeWorkedHours != null && row.original.cumulativeWorkedHours > 0
+            ? `${row.original.cumulativeWorkedHours}h`
+            : "-"}
+        </span>
+      ),
+    }),
+    columnHelper.accessor("commentsCount", {
+      header: t("commentsCol"),
+      size: 90,
+      cell: ({ row }) => (
+        <span className="text-sm text-muted-foreground">{row.original.commentsCount}</span>
+      ),
+    }),
+    columnHelper.accessor("createdAt", {
+      header: t("createdCol"),
+      size: 110,
+      cell: ({ row }) => (
+        <span className="text-sm text-muted-foreground">
+          {new Date(row.original.createdAt).toLocaleDateString()}
+        </span>
+      ),
+    }),
+  ];
+}
 
 interface TableMeta {
   onRowClick?: (ticket: Ticket) => void;
@@ -236,9 +230,24 @@ function splitFilters(filters: FilterCondition[]) {
 }
 
 export default function TaskListPage({ params }: { params: Promise<{ code: string }> }) {
+  const t = useTranslations("Tasks");
   const { code } = use(params);
   const { data: project } = useProjectByCode(code);
   const projectId = project?.id ?? "";
+
+  const taskFilterFields = useMemo(
+    () => [
+      { value: "title", label: t("filterTitle") },
+      { value: "taskStateName", label: t("filterStatus") },
+      { value: "ticketPriorityName", label: t("filterPriority") },
+      { value: "assignee", label: t("filterAssignee") },
+      { value: "taskTypeName", label: t("filterTaskType") },
+      { value: "dueDate", label: t("filterDueDate") },
+    ],
+    [t]
+  );
+
+  const allColumns = useMemo(() => buildAllColumns(t), [t]);
   const { data: viewConfig } = useViewConfiguration("TaskList", projectId);
   const upsertConfig = useUpsertViewConfiguration();
 
@@ -390,7 +399,7 @@ export default function TaskListPage({ params }: { params: Promise<{ code: strin
   if (error) {
     return (
       <div className="rounded-lg border border-destructive/50 bg-destructive/5 p-4 text-sm text-destructive">
-        Failed to load tasks. Please try again.
+        {t("loadFailed")}
       </div>
     );
   }
@@ -403,8 +412,12 @@ export default function TaskListPage({ params }: { params: Promise<{ code: strin
         <div className="flex items-center justify-between mb-4 mt-2">
           <p className="text-sm text-muted-foreground">
             {localFilters.length > 0
-              ? `${filteredTickets.length} of ${tickets?.totalCount ?? 0} tasks`
-              : `${tickets?.totalCount ?? 0} task${(tickets?.totalCount ?? 0) !== 1 ? "s" : ""}`}
+              ? t("pageRange", {
+                  from: 1,
+                  to: filteredTickets.length,
+                  total: tickets?.totalCount ?? 0,
+                })
+              : `${tickets?.totalCount ?? 0}`}
           </p>
           <div className="flex items-center gap-2">
             <button
@@ -412,7 +425,7 @@ export default function TaskListPage({ params }: { params: Promise<{ code: strin
               className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-primary-foreground bg-primary rounded-lg hover:opacity-90 transition-opacity"
             >
               <Plus className="h-4 w-4" />
-              New Task
+              {t("newTask")}
             </button>
             <button
               onClick={async () => {
@@ -439,20 +452,18 @@ export default function TaskListPage({ params }: { params: Promise<{ code: strin
                       : undefined,
                   });
                   if (localFilters.length > 0) {
-                    toast.warning(
-                      `Export hotov. ${localFilters.length} filtr(y) se na server neposílá — výstup může obsahovat řádky navíc.`
-                    );
+                    toast.warning(t("exportDownloaded"));
                   } else {
-                    toast.success("Export downloaded");
+                    toast.success(t("exportDownloaded"));
                   }
                 } catch {
-                  toast.error("Export failed");
+                  toast.error(t("exportFailed"));
                 }
               }}
               className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground border border-border rounded-lg hover:bg-muted transition-colors"
             >
               <Download className="h-4 w-4" />
-              Export
+              {t("export")}
             </button>
             <div className="relative">
               <button
@@ -460,11 +471,13 @@ export default function TaskListPage({ params }: { params: Promise<{ code: strin
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground border border-border rounded-lg hover:bg-muted transition-colors"
               >
                 <Settings2 className="h-4 w-4" />
-                Columns
+                {t("columns")}
               </button>
               {showColumnSettings && (
                 <div className="absolute right-0 top-full mt-1 z-20 bg-card border border-border rounded-lg shadow-lg p-3 w-56">
-                  <p className="text-xs font-medium text-muted-foreground mb-2">Toggle columns</p>
+                  <p className="text-xs font-medium text-muted-foreground mb-2">
+                    {t("toggleColumns")}
+                  </p>
                   {table.getAllLeafColumns().map((column) => (
                     <label
                       key={column.id}
@@ -490,8 +503,8 @@ export default function TaskListPage({ params }: { params: Promise<{ code: strin
         {!tickets?.items?.length ? (
           <EmptyState
             icon={<List className="h-12 w-12" />}
-            title="No tasks yet"
-            description="Create tickets on the board or add them via the API."
+            title={t("noTasks")}
+            description={t("noTasksDesc")}
           />
         ) : (
           <>
@@ -561,23 +574,23 @@ export default function TaskListPage({ params }: { params: Promise<{ code: strin
             {tickets && tickets.totalPages > 1 && (
               <div className="flex items-center justify-between pt-3">
                 <p className="text-sm text-muted-foreground">
-                  Page {tickets.page} of {tickets.totalPages}
+                  {t("pageOf", { page: tickets.page, total: tickets.totalPages })}
                 </p>
                 <div className="flex items-center gap-1">
                   <button
                     onClick={() => setPage((p) => p - 1)}
                     disabled={!tickets.hasPreviousPage}
                     className="inline-flex items-center gap-1 px-2 py-1.5 text-sm border border-border rounded-lg hover:bg-muted transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                    aria-label={t("previousPage")}
                   >
                     <ChevronLeft className="h-4 w-4" />
-                    Prev
                   </button>
                   <button
                     onClick={() => setPage((p) => p + 1)}
                     disabled={!tickets.hasNextPage}
                     className="inline-flex items-center gap-1 px-2 py-1.5 text-sm border border-border rounded-lg hover:bg-muted transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                    aria-label={t("nextPage")}
                   >
-                    Next
                     <ChevronRight className="h-4 w-4" />
                   </button>
                 </div>

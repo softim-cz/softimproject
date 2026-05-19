@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useTranslations } from "next-intl";
 import {
   LayoutDashboard,
   FolderKanban,
@@ -20,17 +21,18 @@ import { useTimerStore } from "@/stores/timer-store";
 import { useEffect } from "react";
 
 const navigation = [
-  { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-  { name: "Projects", href: "/projects", icon: FolderKanban },
-  { name: "Worklogs", href: "/worklogs", icon: Clock },
-  { name: "Resources", href: "/resources", icon: Users },
-  { name: "Admin", href: "/admin", icon: Settings },
-  { name: "Lookups", href: "/admin/lookups", icon: BookOpen },
-  { name: "Migration", href: "/admin/migration", icon: Import },
-];
+  { key: "dashboard", href: "/dashboard", icon: LayoutDashboard },
+  { key: "projects", href: "/projects", icon: FolderKanban },
+  { key: "worklogs", href: "/worklogs", icon: Clock },
+  { key: "resources", href: "/resources", icon: Users },
+  { key: "admin", href: "/admin", icon: Settings },
+  { key: "lookups", href: "/admin/lookups", icon: BookOpen },
+  { key: "migration", href: "/admin/migration", icon: Import },
+] as const;
 
 function TimerWidget({ collapsed }: { collapsed: boolean }) {
   const { isRunning, elapsed, tick, description } = useTimerStore();
+  const t = useTranslations("Timer");
 
   useEffect(() => {
     if (!isRunning) return;
@@ -55,7 +57,7 @@ function TimerWidget({ collapsed }: { collapsed: boolean }) {
         {!collapsed && (
           <div className="flex-1 min-w-0">
             <p className="text-xs font-medium text-foreground truncate">
-              {description || "Timer running"}
+              {description || t("running")}
             </p>
             <p className="text-lg font-mono font-bold text-accent-orange">
               {formatElapsedTime(elapsed)}
@@ -69,6 +71,8 @@ function TimerWidget({ collapsed }: { collapsed: boolean }) {
 
 export function Sidebar({ collapsed }: { collapsed: boolean }) {
   const pathname = usePathname();
+  const t = useTranslations("Nav");
+  const tTopbar = useTranslations("Topbar");
   const toggleSidebar = useUiStore((s) => s.toggleSidebar);
 
   return (
@@ -100,9 +104,10 @@ export function Sidebar({ collapsed }: { collapsed: boolean }) {
       <nav className="flex-1 py-4 space-y-1 px-2">
         {navigation.map((item) => {
           const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
+          const label = t(item.key);
           return (
             <Link
-              key={item.name}
+              key={item.key}
               href={item.href}
               className={cn(
                 "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors",
@@ -111,10 +116,10 @@ export function Sidebar({ collapsed }: { collapsed: boolean }) {
                   : "text-white/70 hover:bg-white/10 hover:text-white",
                 collapsed && "justify-center px-2"
               )}
-              title={collapsed ? item.name : undefined}
+              title={collapsed ? label : undefined}
             >
               <item.icon className="h-5 w-5 shrink-0" />
-              {!collapsed && <span>{item.name}</span>}
+              {!collapsed && <span>{label}</span>}
             </Link>
           );
         })}
@@ -125,7 +130,7 @@ export function Sidebar({ collapsed }: { collapsed: boolean }) {
       <button
         onClick={toggleSidebar}
         className="flex items-center justify-center py-3 border-t border-white/10 text-white/50 hover:text-white transition-colors"
-        aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+        aria-label={collapsed ? tTopbar("expandSidebar") : tTopbar("collapseSidebar")}
       >
         {collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
       </button>

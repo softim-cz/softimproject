@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import type { AdminUser, ApplicationRoleEntity } from "@/types";
 import { GlobalRole } from "@/types";
+import { useTranslations } from "next-intl";
 import { cn } from "@/lib/utils";
 import {
   useAdminUsers,
@@ -32,6 +33,7 @@ import { useAdminAiUsage } from "@/queries/ai";
 import { AlertTriangle, RotateCw, Trash2, Sparkles } from "lucide-react";
 
 function UserManagement() {
+  const t = useTranslations("Admin");
   const { data: users, isLoading, error } = useAdminUsers();
   const { data: appRoles } = useApplicationRoles();
   const { data: currentUser } = useCurrentUser();
@@ -46,13 +48,13 @@ function UserManagement() {
   if (error) {
     return (
       <div className="rounded-lg border border-destructive/50 bg-destructive/5 p-4 text-sm text-destructive">
-        Failed to load users.
+        {t("loadUsersFailed")}
       </div>
     );
   }
 
   if (!users || users.length === 0) {
-    return <EmptyState icon={<Users className="h-10 w-10" />} title="No users found" />;
+    return <EmptyState icon={<Users className="h-10 w-10" />} title={t("noUsers")} />;
   }
 
   const toggleRole = (user: AdminUser, roleId: string) => {
@@ -107,19 +109,19 @@ function UserManagement() {
         <thead>
           <tr className="bg-muted/50">
             <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-              User
+              {t("user")}
             </th>
             <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-              Email
+              {t("email")}
             </th>
             <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-              Company / Role
+              {t("companyRole")}
             </th>
             <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-              Global Role
+              {t("globalRole")}
             </th>
             <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-              Status
+              {t("status")}
             </th>
             <th className="px-4 py-3 w-10" />
           </tr>
@@ -158,7 +160,7 @@ function UserManagement() {
                     value={user.globalRole}
                     onChange={(e) => changeGlobalRole(user, e.target.value as GlobalRole)}
                     disabled={isSelf(user) || updateGlobalRole.isPending}
-                    title={isSelf(user) ? "Vlastní roli nelze měnit" : undefined}
+                    title={isSelf(user) ? t("cannotChangeOwnRole") : undefined}
                     className={cn(
                       "text-xs font-medium rounded-md border border-border bg-card px-2 py-1",
                       "focus:outline-none focus:ring-2 focus:ring-accent-orange",
@@ -168,7 +170,7 @@ function UserManagement() {
                     <option value={GlobalRole.Admin}>Admin</option>
                     <option value={GlobalRole.User}>User</option>
                     {user.globalRole === GlobalRole.Manager && (
-                      <option value={GlobalRole.Manager}>Manager (legacy)</option>
+                      <option value={GlobalRole.Manager}>{t("managerLegacy")}</option>
                     )}
                   </select>
                 </td>
@@ -177,7 +179,7 @@ function UserManagement() {
                     type="button"
                     onClick={() => toggleActive(user)}
                     disabled={isSelf(user) || updateActive.isPending}
-                    title={isSelf(user) ? "Vlastní účet nelze deaktivovat" : undefined}
+                    title={isSelf(user) ? t("cannotDeactivateOwn") : undefined}
                     className={cn(
                       "flex items-center gap-1 text-xs rounded-md px-2 py-1 border",
                       user.isActive
@@ -189,12 +191,12 @@ function UserManagement() {
                     {user.isActive ? (
                       <>
                         <CheckCircle2 className="h-3.5 w-3.5" />
-                        Active
+                        {t("active")}
                       </>
                     ) : (
                       <>
                         <XCircle className="h-3.5 w-3.5" />
-                        Inactive
+                        {t("inactive")}
                       </>
                     )}
                   </button>
@@ -223,7 +225,7 @@ function UserManagement() {
                 <tr key={`${user.id}-roles`}>
                   <td colSpan={6} className="px-4 py-3 bg-muted/20">
                     <p className="text-xs font-medium text-muted-foreground mb-2">
-                      Application Roles
+                      {t("applicationRoles")}
                     </p>
                     <div className="flex flex-wrap gap-2">
                       {appRoles.map((role: ApplicationRoleEntity) => (
@@ -241,9 +243,7 @@ function UserManagement() {
                         </button>
                       ))}
                       {appRoles.length === 0 && (
-                        <p className="text-xs text-muted-foreground">
-                          No application roles configured. Create them in Lookups.
-                        </p>
+                        <p className="text-xs text-muted-foreground">{t("noAppRoles")}</p>
                       )}
                     </div>
                   </td>
@@ -258,6 +258,7 @@ function UserManagement() {
 }
 
 function SystemHealth() {
+  const t = useTranslations("Admin");
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
       <div className="rounded-lg border border-border bg-card p-5">
@@ -267,7 +268,7 @@ function SystemHealth() {
           </div>
           <div>
             <p className="text-sm font-medium text-card-foreground">API</p>
-            <p className="text-xs text-green-600">Healthy</p>
+            <p className="text-xs text-green-600">{t("healthy")}</p>
           </div>
         </div>
       </div>
@@ -278,7 +279,7 @@ function SystemHealth() {
           </div>
           <div>
             <p className="text-sm font-medium text-card-foreground">SignalR</p>
-            <p className="text-xs text-green-600">Connected</p>
+            <p className="text-xs text-green-600">{t("connected")}</p>
           </div>
         </div>
       </div>
@@ -289,7 +290,7 @@ function SystemHealth() {
           </div>
           <div>
             <p className="text-sm font-medium text-card-foreground">Database</p>
-            <p className="text-xs text-green-600">Operational</p>
+            <p className="text-xs text-green-600">{t("operational")}</p>
           </div>
         </div>
       </div>
@@ -298,6 +299,7 @@ function SystemHealth() {
 }
 
 function DeadLetterQueue() {
+  const t = useTranslations("Admin");
   const [includeResolved, setIncludeResolved] = useState(false);
   const { data: entries, isLoading, error } = useDeadLetterEntries(includeResolved);
   const replay = useReplayDeadLetter();
@@ -308,14 +310,14 @@ function DeadLetterQueue() {
   if (error)
     return (
       <div className="rounded-lg border border-destructive/50 bg-destructive/5 p-4 text-sm text-destructive">
-        Failed to load dead-letter queue.
+        {t("loadDLQFailed")}
       </div>
     );
   if (!entries || entries.length === 0)
     return (
       <EmptyState
         icon={<AlertTriangle className="h-10 w-10" />}
-        title={includeResolved ? "No dead-letter entries" : "No pending failures"}
+        title={includeResolved ? t("noDLQEntries") : t("noPendingFailures")}
       />
     );
 
@@ -332,16 +334,16 @@ function DeadLetterQueue() {
     setRowError(null);
     replay.mutate(entry.id, {
       onError: (err) =>
-        setRowError({ id: entry.id, message: extractMessage(err, "Replay selhal.") }),
+        setRowError({ id: entry.id, message: extractMessage(err, t("replayFailed")) }),
     });
   };
 
   const handleDismiss = (entry: DeadLetterEntry) => {
-    if (!window.confirm("Dismiss this dead-letter entry?")) return;
+    if (!window.confirm(t("dismissConfirm"))) return;
     setRowError(null);
     dismiss.mutate(entry.id, {
       onError: (err) =>
-        setRowError({ id: entry.id, message: extractMessage(err, "Dismiss selhal.") }),
+        setRowError({ id: entry.id, message: extractMessage(err, t("dismissFailed")) }),
     });
   };
 
@@ -353,26 +355,26 @@ function DeadLetterQueue() {
           checked={includeResolved}
           onChange={(e) => setIncludeResolved(e.target.checked)}
         />
-        Include resolved / dismissed
+        {t("includeResolved")}
       </label>
       <div className="rounded-lg border border-border overflow-hidden">
         <table className="w-full">
           <thead>
             <tr className="bg-muted/50">
               <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                Operation
+                {t("operation")}
               </th>
               <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                Key
+                {t("key")}
               </th>
               <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                Attempts
+                {t("attempts")}
               </th>
               <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                Last failed
+                {t("lastFailed")}
               </th>
               <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                Status
+                {t("status")}
               </th>
               <th className="px-4 py-3 w-40" />
             </tr>
@@ -416,18 +418,18 @@ function DeadLetterQueue() {
                           onClick={() => handleReplay(entry)}
                           disabled={replay.isPending}
                           className="inline-flex items-center gap-1 px-2 py-1 rounded border border-border text-xs hover:bg-muted disabled:opacity-50"
-                          title="Replay"
+                          title={t("replay")}
                         >
-                          <RotateCw className="h-3.5 w-3.5" /> Replay
+                          <RotateCw className="h-3.5 w-3.5" /> {t("replay")}
                         </button>
                         <button
                           type="button"
                           onClick={() => handleDismiss(entry)}
                           disabled={dismiss.isPending}
                           className="inline-flex items-center gap-1 px-2 py-1 rounded border border-border text-xs hover:bg-destructive/10 text-destructive disabled:opacity-50"
-                          title="Dismiss"
+                          title={t("dismiss")}
                         >
-                          <Trash2 className="h-3.5 w-3.5" /> Dismiss
+                          <Trash2 className="h-3.5 w-3.5" /> {t("dismiss")}
                         </button>
                       </div>
                     )}
@@ -450,6 +452,7 @@ function DeadLetterQueue() {
 }
 
 function AiUsage() {
+  const t = useTranslations("Admin");
   const [days, setDays] = useState(30);
   const { data, isLoading, error } = useAdminAiUsage(days);
 
@@ -457,7 +460,7 @@ function AiUsage() {
   if (error)
     return (
       <div className="rounded-lg border border-destructive/50 bg-destructive/5 p-4 text-sm text-destructive">
-        Failed to load AI usage.
+        {t("loadAiUsageFailed")}
       </div>
     );
   if (!data) return null;
@@ -465,30 +468,30 @@ function AiUsage() {
   return (
     <div className="space-y-3">
       <div className="flex items-center gap-3">
-        <label className="text-xs text-muted-foreground">Window:</label>
+        <label className="text-xs text-muted-foreground">{t("window")}</label>
         <select
           value={days}
           onChange={(e) => setDays(parseInt(e.target.value, 10))}
           className="text-xs rounded-md border border-border bg-card px-2 py-1"
         >
-          <option value={7}>7 days</option>
-          <option value={30}>30 days</option>
-          <option value={90}>90 days</option>
+          <option value={7}>{t("daysWindow", { count: 7 })}</option>
+          <option value={30}>{t("daysWindow", { count: 30 })}</option>
+          <option value={90}>{t("daysWindow", { count: 90 })}</option>
         </select>
       </div>
       <div className="grid grid-cols-3 gap-3">
         <div className="rounded-lg border border-border bg-card p-4">
-          <p className="text-xs text-muted-foreground">Invocations</p>
+          <p className="text-xs text-muted-foreground">{t("invocations")}</p>
           <p className="text-xl font-semibold text-foreground">{data.totalInvocations}</p>
         </div>
         <div className="rounded-lg border border-border bg-card p-4">
-          <p className="text-xs text-muted-foreground">Total tokens</p>
+          <p className="text-xs text-muted-foreground">{t("totalTokens")}</p>
           <p className="text-xl font-semibold text-foreground">
             {data.totalTokens.toLocaleString()}
           </p>
         </div>
         <div className="rounded-lg border border-border bg-card p-4">
-          <p className="text-xs text-muted-foreground">Estimated cost</p>
+          <p className="text-xs text-muted-foreground">{t("estimatedCost")}</p>
           <p className="text-xl font-semibold text-foreground">${data.totalCostUsd.toFixed(4)}</p>
         </div>
       </div>
@@ -498,19 +501,19 @@ function AiUsage() {
             <thead className="bg-muted/50">
               <tr>
                 <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground uppercase">
-                  Project
+                  {t("project")}
                 </th>
                 <th className="px-3 py-2 text-right text-xs font-medium text-muted-foreground uppercase">
-                  Calls
+                  {t("calls")}
                 </th>
                 <th className="px-3 py-2 text-right text-xs font-medium text-muted-foreground uppercase">
-                  Tokens
+                  {t("tokens")}
                 </th>
                 <th className="px-3 py-2 text-right text-xs font-medium text-muted-foreground uppercase">
-                  Cost
+                  {t("cost")}
                 </th>
                 <th className="px-3 py-2 text-right text-xs font-medium text-muted-foreground uppercase">
-                  Failures
+                  {t("failures")}
                 </th>
               </tr>
             </thead>
@@ -519,7 +522,7 @@ function AiUsage() {
                 <tr key={row.projectId ?? "unknown"} className="hover:bg-muted/30">
                   <td className="px-3 py-2 text-foreground">
                     {row.projectName ?? (
-                      <span className="text-muted-foreground italic">(no project)</span>
+                      <span className="text-muted-foreground italic">{t("noProject")}</span>
                     )}
                   </td>
                   <td className="px-3 py-2 text-right">{row.invocationCount}</td>
@@ -543,10 +546,11 @@ function AiUsage() {
 }
 
 function IntegrationStatus() {
+  const t = useTranslations("Admin");
   const integrations = [
-    { name: "Jira", status: "Not configured", connected: false },
-    { name: "Redmine", status: "Not configured", connected: false },
-    { name: "Azure DevOps", status: "Not configured", connected: false },
+    { name: "Jira", status: t("notConfigured"), connected: false },
+    { name: "Redmine", status: t("notConfigured"), connected: false },
+    { name: "Azure DevOps", status: t("notConfigured"), connected: false },
   ];
 
   return (
@@ -564,10 +568,10 @@ function IntegrationStatus() {
             </div>
           </div>
           {integration.connected ? (
-            <span className="text-xs text-green-600 font-medium">Connected</span>
+            <span className="text-xs text-green-600 font-medium">{t("connected")}</span>
           ) : (
             <button className="text-xs text-accent-orange hover:underline font-medium">
-              Configure
+              {t("configure")}
             </button>
           )}
         </div>
@@ -577,54 +581,50 @@ function IntegrationStatus() {
 }
 
 export default function AdminPage() {
+  const t = useTranslations("Admin");
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-2xl font-bold text-foreground">Administration</h1>
-        <p className="text-sm text-muted-foreground mt-1">System management and configuration</p>
+        <h1 className="text-2xl font-bold text-foreground">{t("title")}</h1>
+        <p className="text-sm text-muted-foreground mt-1">{t("subtitle")}</p>
       </div>
 
-      {/* System health */}
       <section>
         <div className="flex items-center gap-2 mb-4">
           <Shield className="h-5 w-5 text-muted-foreground" />
-          <h2 className="text-lg font-semibold text-foreground">System Health</h2>
+          <h2 className="text-lg font-semibold text-foreground">{t("systemHealth")}</h2>
         </div>
         <SystemHealth />
       </section>
 
-      {/* User management */}
       <section>
         <div className="flex items-center gap-2 mb-4">
           <Users className="h-5 w-5 text-muted-foreground" />
-          <h2 className="text-lg font-semibold text-foreground">User Management</h2>
+          <h2 className="text-lg font-semibold text-foreground">{t("userManagement")}</h2>
         </div>
         <UserManagement />
       </section>
 
-      {/* Dead-letter queue */}
       <section>
         <div className="flex items-center gap-2 mb-4">
           <AlertTriangle className="h-5 w-5 text-muted-foreground" />
-          <h2 className="text-lg font-semibold text-foreground">Dead-letter queue</h2>
+          <h2 className="text-lg font-semibold text-foreground">{t("deadLetter")}</h2>
         </div>
         <DeadLetterQueue />
       </section>
 
-      {/* AI usage */}
       <section>
         <div className="flex items-center gap-2 mb-4">
           <Sparkles className="h-5 w-5 text-muted-foreground" />
-          <h2 className="text-lg font-semibold text-foreground">AI usage</h2>
+          <h2 className="text-lg font-semibold text-foreground">{t("aiUsage")}</h2>
         </div>
         <AiUsage />
       </section>
 
-      {/* Integration status */}
       <section>
         <div className="flex items-center gap-2 mb-4">
           <Link2 className="h-5 w-5 text-muted-foreground" />
-          <h2 className="text-lg font-semibold text-foreground">Integrations</h2>
+          <h2 className="text-lg font-semibold text-foreground">{t("integrations")}</h2>
         </div>
         <IntegrationStatus />
       </section>

@@ -10,12 +10,21 @@ const apiURL = process.env.PLAYWRIGHT_API_URL ?? "http://localhost:5249";
 test.describe("admin page — dead-letter queue", () => {
   test("admin sees the DLQ section and its list area (empty or populated)", async ({ page }) => {
     await page.goto("/admin");
-    await expect(page.getByRole("heading", { name: /dead-letter queue/i, level: 2 })).toBeVisible();
+    await expect(
+      page.getByRole("heading", {
+        name: /dead-letter queue|dead-letter fronta/i,
+        level: 2,
+      })
+    ).toBeVisible();
 
     const section = page.locator("section", {
-      has: page.getByRole("heading", { name: /dead-letter queue/i }),
+      has: page.getByRole("heading", {
+        name: /dead-letter queue|dead-letter fronta/i,
+      }),
     });
-    const emptyTitle = section.getByText(/no pending failures|no dead-letter entries/i);
+    const emptyTitle = section.getByText(
+      /no pending failures|no dead-letter entries|žádné nevyřízené chyby|žádné dead-letter záznamy/i
+    );
     const table = section.locator("table");
     await expect(emptyTitle.or(table)).toBeVisible();
   });

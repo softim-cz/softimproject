@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useCreateTicket, type CreateTicketPayload } from "@/queries/tickets";
 import { useTicketPriorities } from "@/queries/lookups";
 import { toast } from "sonner";
+import { useTranslations } from "next-intl";
 import { X } from "lucide-react";
 
 interface CreateTicketDialogProps {
@@ -21,6 +22,8 @@ export function CreateTicketDialog({
   defaultColumnId,
   projectTemplateId,
 }: CreateTicketDialogProps) {
+  const t = useTranslations("CreateTicket");
+  const tCommon = useTranslations("Common");
   const createTicket = useCreateTicket();
   const { data: priorities } = useTicketPriorities(projectTemplateId);
   const [title, setTitle] = useState("");
@@ -50,10 +53,10 @@ export function CreateTicketDialog({
 
     try {
       await createTicket.mutateAsync(payload);
-      toast.success("Task created");
+      toast.success(t("created"));
       resetAndClose();
     } catch {
-      toast.error("Failed to create task");
+      toast.error(t("createFailed"));
     }
   };
 
@@ -74,7 +77,7 @@ export function CreateTicketDialog({
       <div className="absolute inset-0 bg-black/50" onClick={resetAndClose} />
       <div className="relative bg-card border border-border rounded-xl shadow-xl w-full max-w-lg mx-4 p-6">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold text-card-foreground">New Task</h2>
+          <h2 className="text-lg font-semibold text-card-foreground">{t("title")}</h2>
           <button onClick={resetAndClose} className="text-muted-foreground hover:text-foreground">
             <X className="h-5 w-5" />
           </button>
@@ -83,34 +86,34 @@ export function CreateTicketDialog({
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-card-foreground mb-1">
-              Title <span className="text-destructive">*</span>
+              {t("ticketTitle")} <span className="text-destructive">*</span>
             </label>
             <input
               autoFocus
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               className={inputClass}
-              placeholder="Task title..."
+              placeholder={t("ticketTitlePlaceholder")}
               required
             />
           </div>
 
           <div>
             <label className="block text-sm font-medium text-card-foreground mb-1">
-              Description
+              {t("description")}
             </label>
             <textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               className={`${inputClass} min-h-[80px] resize-y`}
-              placeholder="Optional description..."
+              placeholder={t("descriptionPlaceholder")}
             />
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-card-foreground mb-1">
-                Priority
+                {t("priority")}
               </label>
               <select
                 value={effectivePriorityId}
@@ -128,7 +131,7 @@ export function CreateTicketDialog({
             </div>
             <div>
               <label className="block text-sm font-medium text-card-foreground mb-1">
-                Due Date
+                {t("dueDate")}
               </label>
               <input
                 type="date"
@@ -141,7 +144,7 @@ export function CreateTicketDialog({
 
           <div>
             <label className="block text-sm font-medium text-card-foreground mb-1">
-              Estimated Hours
+              {t("estimatedHours")}
             </label>
             <input
               type="number"
@@ -160,14 +163,14 @@ export function CreateTicketDialog({
               onClick={resetAndClose}
               className="px-4 py-2 rounded-lg border border-border text-sm text-muted-foreground hover:text-foreground transition-colors"
             >
-              Cancel
+              {tCommon("cancel")}
             </button>
             <button
               type="submit"
               disabled={createTicket.isPending || !title.trim()}
               className="px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:opacity-90 transition-opacity disabled:opacity-50"
             >
-              {createTicket.isPending ? "Creating..." : "Create Task"}
+              {createTicket.isPending ? t("creating") : t("create")}
             </button>
           </div>
         </form>
