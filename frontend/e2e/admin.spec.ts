@@ -59,20 +59,26 @@ test.describe("admin page — /admin", () => {
 
     await page.goto("/admin");
 
-    await expect(page.getByText(/failed to load users/i)).toBeVisible();
+    await expect(
+      page.getByText(/failed to load users|načtení uživatelů se nezdařilo/i)
+    ).toBeVisible();
     await expect(page.getByText("admin@softim.cz")).toHaveCount(0);
   });
 
   test("admin sees user table with self row protected", async ({ page }) => {
     await page.goto("/admin");
 
-    await expect(page.getByRole("heading", { name: /user management/i })).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: /user management|správa uživatelů/i })
+    ).toBeVisible();
     const adminRow = userRowByEmail(page, "admin@softim.cz");
     await expect(adminRow).toBeVisible();
 
     // Self-protection: dropdown + active toggle disabled on own row.
     await expect(adminRow.locator("select")).toBeDisabled();
-    await expect(adminRow.getByRole("button", { name: /active|inactive/i })).toBeDisabled();
+    await expect(
+      adminRow.getByRole("button", { name: /active|inactive|aktivní|neaktivní/i })
+    ).toBeDisabled();
 
     // Other users stay editable.
     const userRow = userRowByEmail(page, "user@softim.cz");
@@ -98,12 +104,14 @@ test.describe("admin page — /admin", () => {
   test("admin can toggle Active status on dev:user", async ({ page, request }) => {
     await page.goto("/admin");
     const userRow = userRowByEmail(page, "user@softim.cz");
-    const statusButton = userRow.getByRole("button", { name: /active|inactive/i });
-    await expect(statusButton).toHaveText(/active/i);
+    const statusButton = userRow.getByRole("button", {
+      name: /active|inactive|aktivní|neaktivní/i,
+    });
+    await expect(statusButton).toHaveText(/active|aktivní/i);
 
     await statusButton.click();
 
-    await expect(statusButton).toHaveText(/inactive/i, { timeout: 5000 });
+    await expect(statusButton).toHaveText(/inactive|neaktivní/i, { timeout: 5000 });
 
     const res = await request.get(`${apiURL}/api/v1/admin/users`, { headers: adminHeaders });
     const users = (await res.json()) as { id: string; isActive: boolean }[];
@@ -130,7 +138,9 @@ test.describe("admin page — /admin", () => {
 
       await adminRow.locator("select").selectOption("User");
 
-      await expect(page.getByText(/last active admin/i)).toBeVisible({ timeout: 5000 });
+      await expect(page.getByText(/last active admin|poslední aktivní admin/i)).toBeVisible({
+        timeout: 5000,
+      });
     } finally {
       // Restore the baseline from a session that's still allowed to call the admin API.
       await setActive(request, DEV_USER_ID, true, "dev:admin");

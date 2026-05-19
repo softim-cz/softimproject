@@ -107,7 +107,9 @@ test.describe("client portal — token rotation", () => {
     // Also verify the Settings UI surfaces the regeneration / revoke buttons
     // (smoke — we don't click them, API path covers the behaviour).
     await page.goto("/projects/DEMO/settings");
-    await expect(page.getByRole("button", { name: /regenerate token/i })).toBeVisible();
-    await expect(page.getByRole("button", { name: /revoke access/i })).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: /regenerate token|vygenerovat nový token/i })
+    ).toBeVisible();
+    await expect(page.getByRole("button", { name: /revoke access|zrušit přístup/i })).toBeVisible();
   });
 });
