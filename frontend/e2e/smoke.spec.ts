@@ -4,7 +4,7 @@ test.describe("dev-stack smoke", () => {
   test("root redirects to /dashboard without login prompt", async ({ page }) => {
     await page.goto("/");
     await expect(page).toHaveURL(/\/dashboard$/);
-    await expect(page.getByRole("heading", { level: 1, name: /dashboard/i })).toBeVisible();
+    await expect(page.getByRole("heading", { level: 1, name: /dashboard|přehled/i })).toBeVisible();
   });
 
   test("dashboard shows seeded Demo Project card", async ({ page }) => {
