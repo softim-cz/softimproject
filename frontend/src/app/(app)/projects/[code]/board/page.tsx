@@ -487,7 +487,7 @@ export default function BoardPage({ params }: { params: Promise<{ code: string }
     } catch {
       return defaultConfig;
     }
-  }, [viewConfig?.configurationJson]);
+  }, [viewConfig]);
 
   const [groupBy, setGroupBy] = useState<GroupBy>(savedConfig.groupBy);
   const [cardFields, setCardFields] = useState<CardField[]>(savedConfig.cardFields);
