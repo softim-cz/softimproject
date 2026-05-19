@@ -1,6 +1,7 @@
 "use client";
 
 import { usePathname } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { Bell, Search, LogOut, User, Settings, Wifi, WifiOff, ChevronRight } from "lucide-react";
 import { useAuth } from "@/lib/auth/use-auth";
 import { useNotifications } from "@/queries/notifications";
@@ -8,6 +9,7 @@ import { useSignalR } from "@/lib/signalr/signalr-provider";
 import { HubConnectionState } from "@microsoft/signalr";
 import { useState, useRef, useEffect } from "react";
 import { cn } from "@/lib/utils";
+import { LocaleSwitcher } from "./locale-switcher";
 
 function getBreadcrumbs(pathname: string) {
   const segments = pathname.split("/").filter(Boolean);
@@ -27,10 +29,11 @@ function getBreadcrumbs(pathname: string) {
 
 function ConnectionIndicator() {
   const { connectionState } = useSignalR();
+  const t = useTranslations("Topbar");
 
   if (connectionState === HubConnectionState.Connected) {
     return (
-      <div className="flex items-center gap-1 text-green-600" title="Connected">
+      <div className="flex items-center gap-1 text-green-600" title={t("connected")}>
         <Wifi className="h-4 w-4" />
       </div>
     );
@@ -40,7 +43,7 @@ function ConnectionIndicator() {
     return (
       <div
         className="flex items-center gap-1 text-yellow-600 animate-pulse"
-        title="Reconnecting..."
+        title={t("reconnecting")}
       >
         <Wifi className="h-4 w-4" />
       </div>
@@ -48,7 +51,7 @@ function ConnectionIndicator() {
   }
 
   return (
-    <div className="flex items-center gap-1 text-muted-foreground" title="Disconnected">
+    <div className="flex items-center gap-1 text-muted-foreground" title={t("disconnected")}>
       <WifiOff className="h-4 w-4" />
     </div>
   );
@@ -56,12 +59,13 @@ function ConnectionIndicator() {
 
 function NotificationBell() {
   const { data: notifications } = useNotifications();
+  const t = useTranslations("Topbar");
   const unreadCount = notifications?.filter((n) => !n.isRead).length ?? 0;
 
   return (
     <button
       className="relative p-2 rounded-lg hover:bg-muted transition-colors"
-      aria-label="Notifications"
+      aria-label={t("notifications")}
     >
       <Bell className="h-5 w-5 text-muted-foreground" />
       {unreadCount > 0 && (
@@ -75,6 +79,7 @@ function NotificationBell() {
 
 function UserMenu() {
   const { user, logout } = useAuth();
+  const t = useTranslations("Topbar");
   const [open, setOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -116,18 +121,18 @@ function UserMenu() {
           <div className="py-1">
             <button className="flex items-center gap-2 w-full px-3 py-2 text-sm text-popover-foreground hover:bg-muted transition-colors">
               <User className="h-4 w-4" />
-              Profile
+              {t("profile")}
             </button>
             <button className="flex items-center gap-2 w-full px-3 py-2 text-sm text-popover-foreground hover:bg-muted transition-colors">
               <Settings className="h-4 w-4" />
-              Settings
+              {t("settings")}
             </button>
             <button
               onClick={() => logout()}
               className="flex items-center gap-2 w-full px-3 py-2 text-sm text-red-600 hover:bg-muted transition-colors"
             >
               <LogOut className="h-4 w-4" />
-              Sign out
+              {t("signOut")}
             </button>
           </div>
         </div>
@@ -138,6 +143,7 @@ function UserMenu() {
 
 export function Topbar() {
   const pathname = usePathname();
+  const t = useTranslations("Topbar");
   const breadcrumbs = getBreadcrumbs(pathname);
 
   return (
@@ -165,13 +171,14 @@ export function Topbar() {
         {/* Command palette trigger */}
         <button className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-border text-sm text-muted-foreground hover:bg-muted transition-colors">
           <Search className="h-4 w-4" />
-          <span className="hidden md:inline">Search...</span>
+          <span className="hidden md:inline">{t("search")}</span>
           <kbd className="hidden md:inline-flex items-center gap-0.5 rounded border border-border bg-muted px-1.5 py-0.5 text-[10px] font-mono text-muted-foreground">
             Ctrl+K
           </kbd>
         </button>
 
         <ConnectionIndicator />
+        <LocaleSwitcher />
         <NotificationBell />
         <UserMenu />
       </div>

@@ -198,6 +198,26 @@ dotnet ef database update \
 - **AI vrstva** – sumarizace tiketů, weekly reporty, deadline notifikace (background services v `Infrastructure/BackgroundServices`).
 - **Klientský portál** – token-based auth, maskovaný pohled na projekty zákazníka (`/portal/[token]`).
 - **MCP server** – samostatná služba s nástroji pro čtení projektů/tiketů a zápis worklogů. Auth přes Entra/JWT.
+- **Vícejazyčné prostředí (CZ/EN)** – `next-intl` s defaultem `cs`, výběr jazyka v topbaru (perzistence v cookie `NEXT_LOCALE`). Bez prefixu v URL – přepnutí jazyka jen re-renderuje stránku.
+
+## i18n — přidávání nových textů
+
+Lokalizační vrstva žije ve `frontend/src/i18n/` + `frontend/messages/{cs,en}.json`. Klíče jsou organizované do namespace bloků (`Common`, `Nav`, `Topbar`, `Dashboard`, …).
+
+1. **Přidej klíč do obou souborů** `messages/cs.json` a `messages/en.json` se stejnou cestou. Chybějící klíč v EN spadne na CZ fallback, ale chceme oba.
+2. **V komponentě**:
+
+   ```tsx
+   import { useTranslations } from "next-intl";
+   const t = useTranslations("Dashboard");
+   return <h1>{t("title")}</h1>;
+   ```
+
+3. **Server komponenty / async funkce** používají `getTranslations` z `next-intl/server`.
+4. **Interpolace** přes objekt: `t("ticketsCount", { count: 5 })` → klíč `"{count} úkolů"`.
+5. **Přepnutí jazyka programaticky** – server action `setLocale(locale)` z `src/i18n/actions.ts`, následně `router.refresh()`.
+
+Defaultní jazyk je `cs` (viz `src/i18n/config.ts`). Pro přidání dalšího jazyka rozšiř `locales` v configu a vytvoř `messages/<kód>.json`.
 
 ## Klientský portál — co klient uvidí a co ne
 

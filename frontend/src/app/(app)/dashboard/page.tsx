@@ -16,6 +16,7 @@ import {
   ListTodo,
 } from "lucide-react";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { format, startOfWeek, endOfWeek, isPast, isToday } from "date-fns";
 import {
   BarChart,
@@ -34,6 +35,7 @@ import type { Project } from "@/types";
 
 function ProjectHealthCards() {
   const { data: projects, isLoading, error } = useProjects();
+  const t = useTranslations("Dashboard");
 
   if (isLoading) {
     return (
@@ -48,7 +50,7 @@ function ProjectHealthCards() {
   if (error) {
     return (
       <div className="rounded-lg border border-destructive/50 bg-destructive/5 p-4 text-sm text-destructive">
-        Failed to load projects. Please try again.
+        {t("loadProjectsFailed")}
       </div>
     );
   }
@@ -57,15 +59,15 @@ function ProjectHealthCards() {
     return (
       <EmptyState
         icon={<FolderKanban className="h-12 w-12" />}
-        title="No projects yet"
-        description="Create your first project to get started."
+        title={t("noProjectsYet")}
+        description={t("createFirstProject")}
         action={
           <Link
             href="/projects"
             className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:opacity-90 transition-opacity"
           >
             <Plus className="h-4 w-4" />
-            New Project
+            {t("newProject")}
           </Link>
         }
       />
@@ -90,7 +92,7 @@ function ProjectHealthCards() {
           <div className="space-y-2">
             {project.budgetHours && (
               <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Hours</span>
+                <span className="text-muted-foreground">{t("hoursLabel")}</span>
                 <span className="text-card-foreground">
                   {project.spentHours.toFixed(1)} / {project.budgetHours}h
                 </span>
@@ -100,19 +102,19 @@ function ProjectHealthCards() {
               {project.isOverBudget && (
                 <span className="flex items-center gap-1 text-xs text-red-600">
                   <AlertTriangle className="h-3 w-3" />
-                  Over budget
+                  {t("overBudget")}
                 </span>
               )}
               {project.isOverDeadline && (
                 <span className="flex items-center gap-1 text-xs text-orange-600">
                   <Clock className="h-3 w-3" />
-                  Overdue
+                  {t("overdue")}
                 </span>
               )}
               {!project.isOverBudget && !project.isOverDeadline && (
                 <span className="flex items-center gap-1 text-xs text-green-600">
                   <CheckCircle2 className="h-3 w-3" />
-                  On track
+                  {t("onTrack")}
                 </span>
               )}
             </div>
@@ -167,6 +169,7 @@ function WeeklyHoursChart() {
 }
 
 function QuickActions() {
+  const t = useTranslations("Dashboard");
   return (
     <div className="flex flex-wrap gap-3">
       <Link
@@ -174,20 +177,21 @@ function QuickActions() {
         className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:opacity-90 transition-opacity"
       >
         <Plus className="h-4 w-4" />
-        New Project
+        {t("newProject")}
       </Link>
       <Link
         href="/worklogs"
         className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-border text-sm font-medium hover:bg-muted transition-colors"
       >
         <Clock className="h-4 w-4" />
-        Log Time
+        {t("logTime")}
       </Link>
     </div>
   );
 }
 
 function DashboardStats() {
+  const t = useTranslations("Dashboard");
   const now = new Date();
   const weekStart = startOfWeek(now, { weekStartsOn: 1 });
   const weekEnd = endOfWeek(now, { weekStartsOn: 1 });
@@ -211,7 +215,7 @@ function DashboardStats() {
           </div>
           <div>
             <p className="text-2xl font-bold text-card-foreground">{activeProjects}</p>
-            <p className="text-sm text-muted-foreground">Active Projects</p>
+            <p className="text-sm text-muted-foreground">{t("activeProjects")}</p>
           </div>
         </div>
       </div>
@@ -222,7 +226,7 @@ function DashboardStats() {
           </div>
           <div>
             <p className="text-2xl font-bold text-card-foreground">{visibleTickets}</p>
-            <p className="text-sm text-muted-foreground">Visible Tickets</p>
+            <p className="text-sm text-muted-foreground">{t("visibleTickets")}</p>
           </div>
         </div>
       </div>
@@ -233,7 +237,7 @@ function DashboardStats() {
           </div>
           <div>
             <p className="text-2xl font-bold text-card-foreground">{weeklyHours.toFixed(1)}</p>
-            <p className="text-sm text-muted-foreground">Hours This Week</p>
+            <p className="text-sm text-muted-foreground">{t("hoursThisWeek")}</p>
           </div>
         </div>
       </div>
@@ -243,12 +247,13 @@ function DashboardStats() {
 
 function TicketsByStateChart() {
   const { data: stats, isLoading } = useDashboardStats();
+  const t = useTranslations("Dashboard");
 
   if (isLoading) return <div className="h-64 animate-pulse rounded-lg bg-muted" />;
 
   const items = stats?.ticketsByState ?? [];
   if (items.length === 0)
-    return <p className="text-sm text-muted-foreground text-center py-8">No tickets yet.</p>;
+    return <p className="text-sm text-muted-foreground text-center py-8">{t("noTicketsYet")}</p>;
 
   return (
     <ResponsiveContainer width="100%" height={250}>
@@ -268,7 +273,7 @@ function TicketsByStateChart() {
           ))}
         </Pie>
         <Tooltip
-          formatter={(value) => [`${value ?? 0} tickets`, ""]}
+          formatter={(value) => [t("ticketsCount", { count: Number(value) || 0 }), ""]}
           contentStyle={{
             background: "var(--card)",
             border: "1px solid var(--border)",
@@ -286,6 +291,7 @@ function TicketsByStateChart() {
 
 function MyOpenTickets() {
   const { data: stats, isLoading } = useDashboardStats();
+  const t = useTranslations("Dashboard");
 
   if (isLoading)
     return (
@@ -302,7 +308,7 @@ function MyOpenTickets() {
     return (
       <div className="flex items-center gap-3 py-6 text-muted-foreground">
         <CheckCircle2 className="h-5 w-5 text-green-500 shrink-0" />
-        <span className="text-sm">No open tickets assigned to you.</span>
+        <span className="text-sm">{t("noOpenTicketsAssigned")}</span>
       </div>
     );
 
@@ -347,14 +353,13 @@ function MyOpenTickets() {
 }
 
 export default function DashboardPage() {
+  const t = useTranslations("Dashboard");
   return (
     <div className="space-y-8">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Dashboard</h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            Overview of your projects and activity
-          </p>
+          <h1 className="text-2xl font-bold text-foreground">{t("title")}</h1>
+          <p className="text-sm text-muted-foreground mt-1">{t("subtitle")}</p>
         </div>
         <QuickActions />
       </div>
@@ -362,20 +367,20 @@ export default function DashboardPage() {
       <DashboardStats />
 
       <section>
-        <h2 className="text-lg font-semibold text-foreground mb-4">Project Health</h2>
+        <h2 className="text-lg font-semibold text-foreground mb-4">{t("projectHealth")}</h2>
         <ProjectHealthCards />
       </section>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <section>
-          <h2 className="text-lg font-semibold text-foreground mb-4">Hours Logged This Week</h2>
+          <h2 className="text-lg font-semibold text-foreground mb-4">{t("hoursLoggedThisWeek")}</h2>
           <div className="rounded-lg border border-border bg-card p-5">
             <WeeklyHoursChart />
           </div>
         </section>
 
         <section>
-          <h2 className="text-lg font-semibold text-foreground mb-4">Tickets by State</h2>
+          <h2 className="text-lg font-semibold text-foreground mb-4">{t("ticketsByState")}</h2>
           <div className="rounded-lg border border-border bg-card p-5">
             <TicketsByStateChart />
           </div>
@@ -385,7 +390,7 @@ export default function DashboardPage() {
       <section>
         <h2 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
           <ListTodo className="h-5 w-5" />
-          My Open Tickets
+          {t("myOpenTickets")}
         </h2>
         <MyOpenTickets />
       </section>

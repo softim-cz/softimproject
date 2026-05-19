@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { NextIntlClientProvider } from "next-intl";
+import { getLocale, getMessages } from "next-intl/server";
 import "./globals.css";
 import { AuthProvider } from "@/lib/auth/auth-provider";
 import { QueryProvider } from "@/lib/query-provider";
@@ -21,22 +23,27 @@ export const metadata: Metadata = {
   description: "Internal project management tool for Softim.cz",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const locale = await getLocale();
+  const messages = await getMessages();
+
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang={locale} suppressHydrationWarning>
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
-        <ThemeProvider attribute="class" defaultTheme="light" enableSystem>
-          <AuthProvider>
-            <QueryProvider>
-              {children}
-              <Toaster position="bottom-right" />
-            </QueryProvider>
-          </AuthProvider>
-        </ThemeProvider>
+        <NextIntlClientProvider locale={locale} messages={messages}>
+          <ThemeProvider attribute="class" defaultTheme="light" enableSystem>
+            <AuthProvider>
+              <QueryProvider>
+                {children}
+                <Toaster position="bottom-right" />
+              </QueryProvider>
+            </AuthProvider>
+          </ThemeProvider>
+        </NextIntlClientProvider>
       </body>
     </html>
   );

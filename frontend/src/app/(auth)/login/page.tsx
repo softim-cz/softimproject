@@ -3,10 +3,12 @@
 import { useAuth } from "@/lib/auth/use-auth";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
+import { useTranslations } from "next-intl";
 
 export default function LoginPage() {
   const { isAuthenticated, login } = useAuth();
   const router = useRouter();
+  const t = useTranslations("Auth");
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -23,7 +25,7 @@ export default function LoginPage() {
             <span className="text-2xl font-bold tracking-tight text-white">PM</span>
           </div>
           <h1 className="text-2xl font-bold text-card-foreground">ProjectMan</h1>
-          <p className="text-muted-foreground text-sm mt-1">Internal project management tool</p>
+          <p className="text-muted-foreground text-sm mt-1">{t("appTagline")}</p>
         </div>
 
         {/* Login button */}
@@ -42,17 +44,15 @@ export default function LoginPage() {
             <rect x="1" y="11" width="9" height="9" fill="#00A4EF" />
             <rect x="11" y="11" width="9" height="9" fill="#FFB900" />
           </svg>
-          Sign in with Microsoft
+          {t("signInWithMicrosoft")}
         </button>
 
-        <p className="text-center text-xs text-muted-foreground">
-          Use your organization account to sign in.
-        </p>
+        <p className="text-center text-xs text-muted-foreground">{t("useOrganizationAccount")}</p>
       </div>
 
       {/* Footer */}
       <p className="text-center text-xs text-white/40 mt-8">
-        &copy; {new Date().getFullYear()} Softim.cz s.r.o. All rights reserved.
+        {t("copyright", { year: new Date().getFullYear() })}
       </p>
     </div>
   );
