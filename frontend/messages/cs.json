@@ -878,8 +878,11 @@
     "tabAppRoles": "Aplikační role",
     "tabCustomFields": "Vlastní pole",
     "tabTemplates": "Šablony",
+    "tabTaskStatesGlobal": "Stavy úkolů",
     "common": {
       "name": "Název",
+      "nameCs": "Název (CZ)",
+      "nameEn": "Název (EN)",
       "namePlaceholder": "Zadejte název",
       "description": "Popis",
       "descriptionPlaceholder": "Volitelný popis",
@@ -979,6 +982,11 @@
     "priority": {
       "title": "Priority",
       "newPriority": "Nová priorita"
+    },
+    "taskStatesGlobal": {
+      "title": "Stavy úkolů",
+      "subtitle": "Spravuje stavy napříč všemi šablonami projektů",
+      "templateColumn": "Šablona"
     }
   },
   "Errors": {

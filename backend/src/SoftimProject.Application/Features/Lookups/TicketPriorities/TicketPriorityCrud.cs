@@ -8,7 +8,7 @@ using SoftimProject.Domain.Entities;
 namespace SoftimProject.Application.Features.Lookups.TicketPriorities;
 
 // DTO
-public sealed record TicketPriorityDto(Guid Id, string Name, string Color, int SortOrder, bool IsActive, bool IsDefault, Guid ProjectTemplateId);
+public sealed record TicketPriorityDto(Guid Id, string Name, string? NameCs, string? NameEn, string Color, int SortOrder, bool IsActive, bool IsDefault, Guid ProjectTemplateId);
 
 // GET ALL
 public sealed record GetTicketPrioritiesQuery(Guid? ProjectTemplateId = null) : IRequest<List<TicketPriorityDto>>;
@@ -25,13 +25,13 @@ public sealed class GetTicketPrioritiesQueryHandler(IApplicationDbContext dbCont
 
         return await query
             .OrderBy(tp => tp.SortOrder).ThenBy(tp => tp.Name)
-            .Select(tp => new TicketPriorityDto(tp.Id, tp.Name, tp.Color, tp.SortOrder, tp.IsActive, tp.IsDefault, tp.ProjectTemplateId))
+            .Select(tp => new TicketPriorityDto(tp.Id, tp.Name, tp.NameCs, tp.NameEn, tp.Color, tp.SortOrder, tp.IsActive, tp.IsDefault, tp.ProjectTemplateId))
             .ToListAsync(cancellationToken);
     }
 }
 
 // CREATE
-public sealed record CreateTicketPriorityCommand(string Name, string Color, int SortOrder, bool IsDefault, Guid ProjectTemplateId) : IRequest<Guid>, IRequireRole
+public sealed record CreateTicketPriorityCommand(string Name, string? NameCs, string? NameEn, string Color, int SortOrder, bool IsDefault, Guid ProjectTemplateId) : IRequest<Guid>, IRequireRole
 {
     public string RequiredRole => "Admin";
 }
@@ -55,6 +55,8 @@ public sealed class CreateTicketPriorityCommandHandler(IApplicationDbContext dbC
         {
             Id = Guid.NewGuid(),
             Name = request.Name,
+            NameCs = request.NameCs,
+            NameEn = request.NameEn,
             Color = request.Color,
             SortOrder = request.SortOrder,
             IsActive = true,
@@ -70,7 +72,7 @@ public sealed class CreateTicketPriorityCommandHandler(IApplicationDbContext dbC
 }
 
 // UPDATE
-public sealed record UpdateTicketPriorityCommand(Guid Id, string Name, string Color, int SortOrder, bool IsActive, bool IsDefault) : IRequest, IRequireRole
+public sealed record UpdateTicketPriorityCommand(Guid Id, string Name, string? NameCs, string? NameEn, string Color, int SortOrder, bool IsActive, bool IsDefault) : IRequest, IRequireRole
 {
     public string RequiredRole => "Admin";
 }
@@ -94,6 +96,8 @@ public sealed class UpdateTicketPriorityCommandHandler(IApplicationDbContext dbC
             ?? throw new NotFoundException(nameof(TicketPriority), request.Id);
 
         entity.Name = request.Name;
+        entity.NameCs = request.NameCs;
+        entity.NameEn = request.NameEn;
         entity.Color = request.Color;
         entity.SortOrder = request.SortOrder;
         entity.IsActive = request.IsActive;

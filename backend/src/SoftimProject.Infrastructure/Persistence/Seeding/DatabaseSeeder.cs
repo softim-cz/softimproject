@@ -97,13 +97,17 @@ public sealed class DatabaseSeeder(ApplicationDbContext dbContext, ILogger<Datab
             .Select(r => r.Id)
             .ToListAsync(ct);
 
-        void Add(Guid id, string name, int order, bool full, bool write)
+        // Bilingual names (CZ + EN) backfilled by AddBilingualLookupNames migration.
+        // We pass them here so in-memory test contexts (which skip migrations) still get them.
+        void Add(Guid id, string name, string nameCs, string nameEn, int order, bool full, bool write)
         {
             if (existing.Contains(id)) return;
             dbContext.ApplicationRoles.Add(new ApplicationRole
             {
                 Id = id,
                 Name = name,
+                NameCs = nameCs,
+                NameEn = nameEn,
                 SortOrder = order,
                 ProjectsCreate = full,
                 ProjectsRead = true,
@@ -121,10 +125,10 @@ public sealed class DatabaseSeeder(ApplicationDbContext dbContext, ILogger<Datab
             });
         }
 
-        Add(Ids.AdminRole, "Admin", 1, full: true, write: true);
-        Add(Ids.ManagerRole, "Manager", 2, full: false, write: true);
-        Add(Ids.UserRole, "User", 3, full: false, write: true);
-        Add(Ids.ExternalRole, "External", 4, full: false, write: false);
+        Add(Ids.AdminRole, "Admin", "Administrátor", "Admin", 1, full: true, write: true);
+        Add(Ids.ManagerRole, "Manager", "Manažer", "Manager", 2, full: false, write: true);
+        Add(Ids.UserRole, "User", "Uživatel", "User", 3, full: false, write: true);
+        Add(Ids.ExternalRole, "External", "Externí", "External", 4, full: false, write: false);
     }
 
     private async Task SeedUsersAsync(CancellationToken ct)
@@ -167,6 +171,8 @@ public sealed class DatabaseSeeder(ApplicationDbContext dbContext, ILogger<Datab
             {
                 Id = Ids.DevelopmentType,
                 Name = "Development",
+                NameCs = "Vývoj",
+                NameEn = "Development",
                 SortOrder = 1,
                 IsActive = true,
                 CreatedAt = DateTime.UtcNow
@@ -179,6 +185,8 @@ public sealed class DatabaseSeeder(ApplicationDbContext dbContext, ILogger<Datab
             {
                 Id = Ids.ActiveProjectState,
                 Name = "Active",
+                NameCs = "Aktivní",
+                NameEn = "Active",
                 Color = "#22c55e",
                 SortOrder = 1,
                 IsActive = true,
@@ -193,6 +201,8 @@ public sealed class DatabaseSeeder(ApplicationDbContext dbContext, ILogger<Datab
             {
                 Id = Ids.FeatureTaskType,
                 Name = "Feature",
+                NameCs = "Funkce",
+                NameEn = "Feature",
                 SortOrder = 1,
                 IsActive = true,
                 CreatedAt = DateTime.UtcNow

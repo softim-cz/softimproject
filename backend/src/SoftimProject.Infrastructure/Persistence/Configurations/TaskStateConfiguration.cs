@@ -12,6 +12,8 @@ public sealed class TaskStateConfiguration : IEntityTypeConfiguration<TaskState>
         builder.HasKey(ts => ts.Id);
 
         builder.Property(ts => ts.Name).HasMaxLength(200).IsRequired();
+        builder.Property(ts => ts.NameCs).HasMaxLength(200);
+        builder.Property(ts => ts.NameEn).HasMaxLength(200);
         builder.Property(ts => ts.Color).HasMaxLength(50).IsRequired();
 
         builder.HasOne(ts => ts.ProjectTemplate)

@@ -878,8 +878,11 @@
     "tabAppRoles": "App Roles",
     "tabCustomFields": "Custom Fields",
     "tabTemplates": "Templates",
+    "tabTaskStatesGlobal": "Task States",
     "common": {
       "name": "Name",
+      "nameCs": "Name (CS)",
+      "nameEn": "Name (EN)",
       "namePlaceholder": "Enter name",
       "description": "Description",
       "descriptionPlaceholder": "Optional description",
@@ -979,6 +982,11 @@
     "priority": {
       "title": "Priorities",
       "newPriority": "New priority"
+    },
+    "taskStatesGlobal": {
+      "title": "Task States",
+      "subtitle": "Manage task states across all project templates",
+      "templateColumn": "Template"
     }
   },
   "Errors": {

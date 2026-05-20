@@ -8,7 +8,7 @@ using SoftimProject.Domain.Entities;
 namespace SoftimProject.Application.Features.Lookups.TaskStates;
 
 // DTO
-public sealed record TaskStateDto(Guid Id, string Name, string Color, int SortOrder, bool IsActive, bool IsDefault, bool IsClosedState, Guid ProjectTemplateId);
+public sealed record TaskStateDto(Guid Id, string Name, string? NameCs, string? NameEn, string Color, int SortOrder, bool IsActive, bool IsDefault, bool IsClosedState, Guid ProjectTemplateId);
 
 // GET ALL
 public sealed record GetTaskStatesQuery(Guid? ProjectTemplateId = null) : IRequest<List<TaskStateDto>>;
@@ -25,13 +25,13 @@ public sealed class GetTaskStatesQueryHandler(IApplicationDbContext dbContext)
 
         return await query
             .OrderBy(ts => ts.SortOrder).ThenBy(ts => ts.Name)
-            .Select(ts => new TaskStateDto(ts.Id, ts.Name, ts.Color, ts.SortOrder, ts.IsActive, ts.IsDefault, ts.IsClosedState, ts.ProjectTemplateId))
+            .Select(ts => new TaskStateDto(ts.Id, ts.Name, ts.NameCs, ts.NameEn, ts.Color, ts.SortOrder, ts.IsActive, ts.IsDefault, ts.IsClosedState, ts.ProjectTemplateId))
             .ToListAsync(cancellationToken);
     }
 }
 
 // CREATE
-public sealed record CreateTaskStateCommand(string Name, string Color, int SortOrder, bool IsDefault, bool IsClosedState, Guid ProjectTemplateId) : IRequest<Guid>, IRequireRole
+public sealed record CreateTaskStateCommand(string Name, string? NameCs, string? NameEn, string Color, int SortOrder, bool IsDefault, bool IsClosedState, Guid ProjectTemplateId) : IRequest<Guid>, IRequireRole
 {
     public string RequiredRole => "Admin";
 }
@@ -55,6 +55,8 @@ public sealed class CreateTaskStateCommandHandler(IApplicationDbContext dbContex
         {
             Id = Guid.NewGuid(),
             Name = request.Name,
+            NameCs = request.NameCs,
+            NameEn = request.NameEn,
             Color = request.Color,
             SortOrder = request.SortOrder,
             IsActive = true,
@@ -71,7 +73,7 @@ public sealed class CreateTaskStateCommandHandler(IApplicationDbContext dbContex
 }
 
 // UPDATE
-public sealed record UpdateTaskStateCommand(Guid Id, string Name, string Color, int SortOrder, bool IsActive, bool IsDefault, bool IsClosedState) : IRequest, IRequireRole
+public sealed record UpdateTaskStateCommand(Guid Id, string Name, string? NameCs, string? NameEn, string Color, int SortOrder, bool IsActive, bool IsDefault, bool IsClosedState) : IRequest, IRequireRole
 {
     public string RequiredRole => "Admin";
 }
@@ -95,6 +97,8 @@ public sealed class UpdateTaskStateCommandHandler(IApplicationDbContext dbContex
             ?? throw new NotFoundException(nameof(TaskState), request.Id);
 
         entity.Name = request.Name;
+        entity.NameCs = request.NameCs;
+        entity.NameEn = request.NameEn;
         entity.Color = request.Color;
         entity.SortOrder = request.SortOrder;
         entity.IsActive = request.IsActive;

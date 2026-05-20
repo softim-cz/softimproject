@@ -1,8 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { useTranslations } from "next-intl";
+import { useTranslations, useLocale } from "next-intl";
 import { cn } from "@/lib/utils";
+import { localizedName } from "@/lib/localized-name";
+import type { Locale } from "@/i18n/config";
 import {
   Building2,
   FolderTree,
@@ -18,6 +20,7 @@ import {
   Check,
   ChevronDown,
   ChevronRight,
+  ListTodo,
 } from "lucide-react";
 import { TableSkeleton } from "@/components/shared/loading-skeleton";
 import { EmptyState } from "@/components/shared/empty-state";
@@ -38,6 +41,7 @@ import {
   useCreateTaskType,
   useUpdateTaskType,
   useDeleteTaskType,
+  useTaskStates,
   useCreateTaskState,
   useUpdateTaskState,
   useDeleteTaskState,
@@ -76,6 +80,7 @@ const tabConfig = [
   { key: "project-types", labelKey: "tabProjectTypes", icon: FolderTree },
   { key: "project-states", labelKey: "tabProjectStates", icon: CircleDot },
   { key: "task-types", labelKey: "tabTaskTypes", icon: Tag },
+  { key: "task-states", labelKey: "tabTaskStatesGlobal", icon: ListTodo },
   { key: "application-roles", labelKey: "tabAppRoles", icon: Shield },
   { key: "custom-fields", labelKey: "tabCustomFields", icon: SlidersHorizontal },
   { key: "templates", labelKey: "tabTemplates", icon: Copy },
@@ -277,13 +282,20 @@ function CompaniesTab() {
 function ProjectTypesTab() {
   const t = useTranslations("Lookups");
   const tCommon = useTranslations("Common");
+  const locale = useLocale() as Locale;
   const { data, isLoading } = useProjectTypes();
   const createMutation = useCreateProjectType();
   const updateMutation = useUpdateProjectType();
   const deleteMutation = useDeleteProjectType();
   const [adding, setAdding] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
-  const [form, setForm] = useState({ name: "", description: "", sortOrder: 0 });
+  const [form, setForm] = useState({
+    name: "",
+    nameCs: "",
+    nameEn: "",
+    description: "",
+    sortOrder: 0,
+  });
 
   if (isLoading) return <TableSkeleton rows={4} />;
   if (!data)
@@ -292,12 +304,24 @@ function ProjectTypesTab() {
   const startAdd = () => {
     setAdding(true);
     setEditId(null);
-    setForm({ name: "", description: "", sortOrder: (data.length + 1) * 10 });
+    setForm({
+      name: "",
+      nameCs: "",
+      nameEn: "",
+      description: "",
+      sortOrder: (data.length + 1) * 10,
+    });
   };
   const startEdit = (item: ProjectType) => {
     setEditId(item.id);
     setAdding(false);
-    setForm({ name: item.name, description: item.description || "", sortOrder: item.sortOrder });
+    setForm({
+      name: item.name,
+      nameCs: item.nameCs || "",
+      nameEn: item.nameEn || "",
+      description: item.description || "",
+      sortOrder: item.sortOrder,
+    });
   };
 
   const save = async () => {
@@ -306,6 +330,8 @@ function ProjectTypesTab() {
       await updateMutation.mutateAsync({
         ...existing,
         name: form.name,
+        nameCs: form.nameCs || undefined,
+        nameEn: form.nameEn || undefined,
         description: form.description || undefined,
         sortOrder: form.sortOrder,
       });
@@ -313,6 +339,8 @@ function ProjectTypesTab() {
     } else {
       await createMutation.mutateAsync({
         name: form.name,
+        nameCs: form.nameCs || undefined,
+        nameEn: form.nameEn || undefined,
         description: form.description || undefined,
         sortOrder: form.sortOrder,
       });
@@ -360,13 +388,27 @@ function ProjectTypesTab() {
             {adding && (
               <tr className="bg-accent-orange/5">
                 <td className="px-4 py-2">
-                  <input
-                    value={form.name}
-                    onChange={(e) => setForm({ ...form, name: e.target.value })}
-                    className="w-full px-2 py-1 text-sm border rounded"
-                    placeholder={t("common.name")}
-                    autoFocus
-                  />
+                  <div className="flex gap-1.5">
+                    <input
+                      value={form.name}
+                      onChange={(e) => setForm({ ...form, name: e.target.value })}
+                      className="w-full px-2 py-1 text-sm border rounded"
+                      placeholder={t("common.name")}
+                      autoFocus
+                    />
+                    <input
+                      value={form.nameCs}
+                      onChange={(e) => setForm({ ...form, nameCs: e.target.value })}
+                      className="w-full px-2 py-1 text-sm border rounded"
+                      placeholder={t("common.nameCs")}
+                    />
+                    <input
+                      value={form.nameEn}
+                      onChange={(e) => setForm({ ...form, nameEn: e.target.value })}
+                      className="w-full px-2 py-1 text-sm border rounded"
+                      placeholder={t("common.nameEn")}
+                    />
+                  </div>
                 </td>
                 <td className="px-4 py-2">
                   <input
@@ -406,11 +448,26 @@ function ProjectTypesTab() {
               editId === item.id ? (
                 <tr key={item.id} className="bg-accent-orange/5">
                   <td className="px-4 py-2">
-                    <input
-                      value={form.name}
-                      onChange={(e) => setForm({ ...form, name: e.target.value })}
-                      className="w-full px-2 py-1 text-sm border rounded"
-                    />
+                    <div className="flex gap-1.5">
+                      <input
+                        value={form.name}
+                        onChange={(e) => setForm({ ...form, name: e.target.value })}
+                        className="w-full px-2 py-1 text-sm border rounded"
+                        placeholder={t("common.name")}
+                      />
+                      <input
+                        value={form.nameCs}
+                        onChange={(e) => setForm({ ...form, nameCs: e.target.value })}
+                        className="w-full px-2 py-1 text-sm border rounded"
+                        placeholder={t("common.nameCs")}
+                      />
+                      <input
+                        value={form.nameEn}
+                        onChange={(e) => setForm({ ...form, nameEn: e.target.value })}
+                        className="w-full px-2 py-1 text-sm border rounded"
+                        placeholder={t("common.nameEn")}
+                      />
+                    </div>
                   </td>
                   <td className="px-4 py-2">
                     <input
@@ -448,7 +505,7 @@ function ProjectTypesTab() {
                 </tr>
               ) : (
                 <tr key={item.id} className="hover:bg-muted/30">
-                  <td className="px-4 py-3 text-sm font-medium">{item.name}</td>
+                  <td className="px-4 py-3 text-sm font-medium">{localizedName(item, locale)}</td>
                   <td className="px-4 py-3 text-sm text-muted-foreground">
                     {item.description || "—"}
                   </td>
@@ -487,6 +544,7 @@ function ProjectTypesTab() {
 function StateTable() {
   const t = useTranslations("Lookups");
   const tCommon = useTranslations("Common");
+  const locale = useLocale() as Locale;
   const { data, isLoading } = useProjectStates();
   const createPS = useCreateProjectState();
   const updatePS = useUpdateProjectState();
@@ -494,7 +552,14 @@ function StateTable() {
 
   const [adding, setAdding] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
-  const [form, setForm] = useState({ name: "", color: "#3b82f6", sortOrder: 0, isDefault: false });
+  const [form, setForm] = useState({
+    name: "",
+    nameCs: "",
+    nameEn: "",
+    color: "#3b82f6",
+    sortOrder: 0,
+    isDefault: false,
+  });
 
   if (isLoading) return <TableSkeleton rows={4} />;
   if (!data)
@@ -503,13 +568,22 @@ function StateTable() {
   const startAdd = () => {
     setAdding(true);
     setEditId(null);
-    setForm({ name: "", color: "#3b82f6", sortOrder: (data.length + 1) * 10, isDefault: false });
+    setForm({
+      name: "",
+      nameCs: "",
+      nameEn: "",
+      color: "#3b82f6",
+      sortOrder: (data.length + 1) * 10,
+      isDefault: false,
+    });
   };
   const startEdit = (item: ProjectState) => {
     setEditId(item.id);
     setAdding(false);
     setForm({
       name: item.name,
+      nameCs: item.nameCs || "",
+      nameEn: item.nameEn || "",
       color: item.color,
       sortOrder: item.sortOrder,
       isDefault: item.isDefault,
@@ -522,6 +596,8 @@ function StateTable() {
       await updatePS.mutateAsync({
         ...existing,
         name: form.name,
+        nameCs: form.nameCs || undefined,
+        nameEn: form.nameEn || undefined,
         color: form.color,
         sortOrder: form.sortOrder,
         isDefault: form.isDefault,
@@ -530,6 +606,8 @@ function StateTable() {
     } else {
       await createPS.mutateAsync({
         name: form.name,
+        nameCs: form.nameCs || undefined,
+        nameEn: form.nameEn || undefined,
         color: form.color,
         sortOrder: form.sortOrder,
         isDefault: form.isDefault,
@@ -592,13 +670,27 @@ function StateTable() {
                   />
                 </td>
                 <td className="px-4 py-2">
-                  <input
-                    value={form.name}
-                    onChange={(e) => setForm({ ...form, name: e.target.value })}
-                    className="w-full px-2 py-1 text-sm border rounded"
-                    placeholder={t("common.name")}
-                    autoFocus
-                  />
+                  <div className="flex gap-1.5">
+                    <input
+                      value={form.name}
+                      onChange={(e) => setForm({ ...form, name: e.target.value })}
+                      className="w-full px-2 py-1 text-sm border rounded"
+                      placeholder={t("common.name")}
+                      autoFocus
+                    />
+                    <input
+                      value={form.nameCs}
+                      onChange={(e) => setForm({ ...form, nameCs: e.target.value })}
+                      className="w-full px-2 py-1 text-sm border rounded"
+                      placeholder={t("common.nameCs")}
+                    />
+                    <input
+                      value={form.nameEn}
+                      onChange={(e) => setForm({ ...form, nameEn: e.target.value })}
+                      className="w-full px-2 py-1 text-sm border rounded"
+                      placeholder={t("common.nameEn")}
+                    />
+                  </div>
                 </td>
                 <td className="px-4 py-2">
                   <input
@@ -645,11 +737,26 @@ function StateTable() {
                     />
                   </td>
                   <td className="px-4 py-2">
-                    <input
-                      value={form.name}
-                      onChange={(e) => setForm({ ...form, name: e.target.value })}
-                      className="w-full px-2 py-1 text-sm border rounded"
-                    />
+                    <div className="flex gap-1.5">
+                      <input
+                        value={form.name}
+                        onChange={(e) => setForm({ ...form, name: e.target.value })}
+                        className="w-full px-2 py-1 text-sm border rounded"
+                        placeholder={t("common.name")}
+                      />
+                      <input
+                        value={form.nameCs}
+                        onChange={(e) => setForm({ ...form, nameCs: e.target.value })}
+                        className="w-full px-2 py-1 text-sm border rounded"
+                        placeholder={t("common.nameCs")}
+                      />
+                      <input
+                        value={form.nameEn}
+                        onChange={(e) => setForm({ ...form, nameEn: e.target.value })}
+                        className="w-full px-2 py-1 text-sm border rounded"
+                        placeholder={t("common.nameEn")}
+                      />
+                    </div>
                   </td>
                   <td className="px-4 py-2">
                     <input
@@ -693,7 +800,7 @@ function StateTable() {
                       style={{ backgroundColor: item.color }}
                     />
                   </td>
-                  <td className="px-4 py-3 text-sm font-medium">{item.name}</td>
+                  <td className="px-4 py-3 text-sm font-medium">{localizedName(item, locale)}</td>
                   <td className="px-4 py-3 text-sm">{item.sortOrder}</td>
                   <td className="px-4 py-3 text-sm">
                     {item.isDefault ? <Check className="h-4 w-4 text-green-600" /> : null}
@@ -732,13 +839,20 @@ function StateTable() {
 function TaskTypesTab() {
   const t = useTranslations("Lookups");
   const tCommon = useTranslations("Common");
+  const locale = useLocale() as Locale;
   const { data, isLoading } = useTaskTypes();
   const createMutation = useCreateTaskType();
   const updateMutation = useUpdateTaskType();
   const deleteMutation = useDeleteTaskType();
   const [adding, setAdding] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
-  const [form, setForm] = useState({ name: "", icon: "", sortOrder: 0 });
+  const [form, setForm] = useState({
+    name: "",
+    nameCs: "",
+    nameEn: "",
+    icon: "",
+    sortOrder: 0,
+  });
 
   if (isLoading) return <TableSkeleton rows={4} />;
   if (!data) return <EmptyState icon={<Tag className="h-10 w-10" />} title={t("common.empty")} />;
@@ -746,12 +860,18 @@ function TaskTypesTab() {
   const startAdd = () => {
     setAdding(true);
     setEditId(null);
-    setForm({ name: "", icon: "", sortOrder: (data.length + 1) * 10 });
+    setForm({ name: "", nameCs: "", nameEn: "", icon: "", sortOrder: (data.length + 1) * 10 });
   };
   const startEdit = (item: TaskType) => {
     setEditId(item.id);
     setAdding(false);
-    setForm({ name: item.name, icon: item.icon || "", sortOrder: item.sortOrder });
+    setForm({
+      name: item.name,
+      nameCs: item.nameCs || "",
+      nameEn: item.nameEn || "",
+      icon: item.icon || "",
+      sortOrder: item.sortOrder,
+    });
   };
 
   const save = async () => {
@@ -760,6 +880,8 @@ function TaskTypesTab() {
       await updateMutation.mutateAsync({
         ...existing,
         name: form.name,
+        nameCs: form.nameCs || undefined,
+        nameEn: form.nameEn || undefined,
         icon: form.icon || undefined,
         sortOrder: form.sortOrder,
       });
@@ -767,6 +889,8 @@ function TaskTypesTab() {
     } else {
       await createMutation.mutateAsync({
         name: form.name,
+        nameCs: form.nameCs || undefined,
+        nameEn: form.nameEn || undefined,
         icon: form.icon || undefined,
         sortOrder: form.sortOrder,
       });
@@ -814,13 +938,27 @@ function TaskTypesTab() {
             {adding && (
               <tr className="bg-accent-orange/5">
                 <td className="px-4 py-2">
-                  <input
-                    value={form.name}
-                    onChange={(e) => setForm({ ...form, name: e.target.value })}
-                    className="w-full px-2 py-1 text-sm border rounded"
-                    placeholder={t("common.name")}
-                    autoFocus
-                  />
+                  <div className="flex gap-1.5">
+                    <input
+                      value={form.name}
+                      onChange={(e) => setForm({ ...form, name: e.target.value })}
+                      className="w-full px-2 py-1 text-sm border rounded"
+                      placeholder={t("common.name")}
+                      autoFocus
+                    />
+                    <input
+                      value={form.nameCs}
+                      onChange={(e) => setForm({ ...form, nameCs: e.target.value })}
+                      className="w-full px-2 py-1 text-sm border rounded"
+                      placeholder={t("common.nameCs")}
+                    />
+                    <input
+                      value={form.nameEn}
+                      onChange={(e) => setForm({ ...form, nameEn: e.target.value })}
+                      className="w-full px-2 py-1 text-sm border rounded"
+                      placeholder={t("common.nameEn")}
+                    />
+                  </div>
                 </td>
                 <td className="px-4 py-2">
                   <input
@@ -860,11 +998,26 @@ function TaskTypesTab() {
               editId === item.id ? (
                 <tr key={item.id} className="bg-accent-orange/5">
                   <td className="px-4 py-2">
-                    <input
-                      value={form.name}
-                      onChange={(e) => setForm({ ...form, name: e.target.value })}
-                      className="w-full px-2 py-1 text-sm border rounded"
-                    />
+                    <div className="flex gap-1.5">
+                      <input
+                        value={form.name}
+                        onChange={(e) => setForm({ ...form, name: e.target.value })}
+                        className="w-full px-2 py-1 text-sm border rounded"
+                        placeholder={t("common.name")}
+                      />
+                      <input
+                        value={form.nameCs}
+                        onChange={(e) => setForm({ ...form, nameCs: e.target.value })}
+                        className="w-full px-2 py-1 text-sm border rounded"
+                        placeholder={t("common.nameCs")}
+                      />
+                      <input
+                        value={form.nameEn}
+                        onChange={(e) => setForm({ ...form, nameEn: e.target.value })}
+                        className="w-full px-2 py-1 text-sm border rounded"
+                        placeholder={t("common.nameEn")}
+                      />
+                    </div>
                   </td>
                   <td className="px-4 py-2">
                     <input
@@ -902,7 +1055,7 @@ function TaskTypesTab() {
                 </tr>
               ) : (
                 <tr key={item.id} className="hover:bg-muted/30">
-                  <td className="px-4 py-3 text-sm font-medium">{item.name}</td>
+                  <td className="px-4 py-3 text-sm font-medium">{localizedName(item, locale)}</td>
                   <td className="px-4 py-3 text-sm text-muted-foreground">{item.icon || "—"}</td>
                   <td className="px-4 py-3 text-sm">{item.sortOrder}</td>
                   <td className="px-4 py-3 text-sm">
@@ -938,6 +1091,7 @@ function TaskTypesTab() {
 
 function ApplicationRolesTab() {
   const t = useTranslations("Lookups");
+  const locale = useLocale() as Locale;
   const { data, isLoading } = useApplicationRoles();
   const createMutation = useCreateApplicationRole();
   const updateMutation = useUpdateApplicationRole();
@@ -959,8 +1113,14 @@ function ApplicationRolesTab() {
     reportsDelete: false,
   };
   const [form, setForm] = useState<
-    { name: string; description: string; sortOrder: number } & typeof emptyPerms
-  >({ name: "", description: "", sortOrder: 0, ...emptyPerms });
+    {
+      name: string;
+      nameCs: string;
+      nameEn: string;
+      description: string;
+      sortOrder: number;
+    } & typeof emptyPerms
+  >({ name: "", nameCs: "", nameEn: "", description: "", sortOrder: 0, ...emptyPerms });
 
   if (isLoading) return <TableSkeleton rows={4} />;
   if (!data)
@@ -983,13 +1143,22 @@ function ApplicationRolesTab() {
   const startAdd = () => {
     setAdding(true);
     setEditId(null);
-    setForm({ name: "", description: "", sortOrder: (data.length + 1) * 10, ...emptyPerms });
+    setForm({
+      name: "",
+      nameCs: "",
+      nameEn: "",
+      description: "",
+      sortOrder: (data.length + 1) * 10,
+      ...emptyPerms,
+    });
   };
   const startEdit = (item: ApplicationRoleEntity) => {
     setEditId(item.id);
     setAdding(false);
     setForm({
       name: item.name,
+      nameCs: item.nameCs || "",
+      nameEn: item.nameEn || "",
       description: item.description || "",
       sortOrder: item.sortOrder,
       projectsCreate: item.projectsCreate,
@@ -1010,6 +1179,8 @@ function ApplicationRolesTab() {
   const save = async () => {
     const body = {
       name: form.name,
+      nameCs: form.nameCs || undefined,
+      nameEn: form.nameEn || undefined,
       description: form.description || undefined,
       sortOrder: form.sortOrder,
       projectsCreate: form.projectsCreate,
@@ -1063,6 +1234,26 @@ function ApplicationRolesTab() {
                 onChange={(e) => setForm({ ...form, name: e.target.value })}
                 className="w-full px-3 py-1.5 text-sm border rounded-lg"
                 autoFocus
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-muted-foreground mb-1">
+                {t("common.nameCs")}
+              </label>
+              <input
+                value={form.nameCs}
+                onChange={(e) => setForm({ ...form, nameCs: e.target.value })}
+                className="w-full px-3 py-1.5 text-sm border rounded-lg"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-muted-foreground mb-1">
+                {t("common.nameEn")}
+              </label>
+              <input
+                value={form.nameEn}
+                onChange={(e) => setForm({ ...form, nameEn: e.target.value })}
+                className="w-full px-3 py-1.5 text-sm border rounded-lg"
               />
             </div>
             <div>
@@ -1177,7 +1368,7 @@ function ApplicationRolesTab() {
           <tbody className="divide-y divide-border">
             {data.map((item) => (
               <tr key={item.id} className="hover:bg-muted/30">
-                <td className="px-4 py-3 text-sm font-medium">{item.name}</td>
+                <td className="px-4 py-3 text-sm font-medium">{localizedName(item, locale)}</td>
                 <td className="px-4 py-3 text-sm text-muted-foreground">
                   {item.description || "—"}
                 </td>
@@ -1560,6 +1751,7 @@ function TemplateTaskStatesSection({
   taskStates: TaskState[];
 }) {
   const t = useTranslations("Lookups");
+  const locale = useLocale() as Locale;
   const createTS = useCreateTaskState();
   const updateTS = useUpdateTaskState();
   const deleteTS = useDeleteTaskState();
@@ -1567,6 +1759,8 @@ function TemplateTaskStatesSection({
   const [editId, setEditId] = useState<string | null>(null);
   const [form, setForm] = useState({
     name: "",
+    nameCs: "",
+    nameEn: "",
     color: "#3b82f6",
     sortOrder: 0,
     isDefault: false,
@@ -1578,6 +1772,8 @@ function TemplateTaskStatesSection({
     setEditId(null);
     setForm({
       name: "",
+      nameCs: "",
+      nameEn: "",
       color: "#3b82f6",
       sortOrder: (taskStates.length + 1) * 10,
       isDefault: false,
@@ -1589,6 +1785,8 @@ function TemplateTaskStatesSection({
     setAdding(false);
     setForm({
       name: item.name,
+      nameCs: item.nameCs || "",
+      nameEn: item.nameEn || "",
       color: item.color,
       sortOrder: item.sortOrder,
       isDefault: item.isDefault,
@@ -1602,6 +1800,8 @@ function TemplateTaskStatesSection({
       await updateTS.mutateAsync({
         ...existing,
         name: form.name,
+        nameCs: form.nameCs || undefined,
+        nameEn: form.nameEn || undefined,
         color: form.color,
         sortOrder: form.sortOrder,
         isDefault: form.isDefault,
@@ -1611,6 +1811,8 @@ function TemplateTaskStatesSection({
     } else {
       await createTS.mutateAsync({
         name: form.name,
+        nameCs: form.nameCs || undefined,
+        nameEn: form.nameEn || undefined,
         color: form.color,
         sortOrder: form.sortOrder,
         isDefault: form.isDefault,
@@ -1675,13 +1877,27 @@ function TemplateTaskStatesSection({
                   />
                 </td>
                 <td className="px-3 py-1.5">
-                  <input
-                    value={form.name}
-                    onChange={(e) => setForm({ ...form, name: e.target.value })}
-                    className="w-full px-2 py-1 text-xs border rounded"
-                    placeholder={t("common.name")}
-                    autoFocus
-                  />
+                  <div className="flex gap-1.5">
+                    <input
+                      value={form.name}
+                      onChange={(e) => setForm({ ...form, name: e.target.value })}
+                      className="w-full px-2 py-1 text-xs border rounded"
+                      placeholder={t("common.name")}
+                      autoFocus
+                    />
+                    <input
+                      value={form.nameCs}
+                      onChange={(e) => setForm({ ...form, nameCs: e.target.value })}
+                      className="w-full px-2 py-1 text-xs border rounded"
+                      placeholder={t("common.nameCs")}
+                    />
+                    <input
+                      value={form.nameEn}
+                      onChange={(e) => setForm({ ...form, nameEn: e.target.value })}
+                      className="w-full px-2 py-1 text-xs border rounded"
+                      placeholder={t("common.nameEn")}
+                    />
+                  </div>
                 </td>
                 <td className="px-3 py-1.5">
                   <input
@@ -1741,11 +1957,26 @@ function TemplateTaskStatesSection({
                     />
                   </td>
                   <td className="px-3 py-1.5">
-                    <input
-                      value={form.name}
-                      onChange={(e) => setForm({ ...form, name: e.target.value })}
-                      className="w-full px-2 py-1 text-xs border rounded"
-                    />
+                    <div className="flex gap-1.5">
+                      <input
+                        value={form.name}
+                        onChange={(e) => setForm({ ...form, name: e.target.value })}
+                        className="w-full px-2 py-1 text-xs border rounded"
+                        placeholder={t("common.name")}
+                      />
+                      <input
+                        value={form.nameCs}
+                        onChange={(e) => setForm({ ...form, nameCs: e.target.value })}
+                        className="w-full px-2 py-1 text-xs border rounded"
+                        placeholder={t("common.nameCs")}
+                      />
+                      <input
+                        value={form.nameEn}
+                        onChange={(e) => setForm({ ...form, nameEn: e.target.value })}
+                        className="w-full px-2 py-1 text-xs border rounded"
+                        placeholder={t("common.nameEn")}
+                      />
+                    </div>
                   </td>
                   <td className="px-3 py-1.5">
                     <input
@@ -1793,7 +2024,7 @@ function TemplateTaskStatesSection({
                       style={{ backgroundColor: item.color }}
                     />
                   </td>
-                  <td className="px-3 py-2 text-xs font-medium">{item.name}</td>
+                  <td className="px-3 py-2 text-xs font-medium">{localizedName(item, locale)}</td>
                   <td className="px-3 py-2 text-xs">{item.sortOrder}</td>
                   <td className="px-3 py-2 text-xs">
                     {item.isDefault ? <Check className="h-3.5 w-3.5 text-green-600" /> : null}
@@ -1833,18 +2064,28 @@ function TemplateTicketPrioritiesSection({
   ticketPriorities: TicketPriorityLookup[];
 }) {
   const t = useTranslations("Lookups");
+  const locale = useLocale() as Locale;
   const createTP = useCreateTicketPriority();
   const updateTP = useUpdateTicketPriority();
   const deleteTP = useDeleteTicketPriority();
   const [adding, setAdding] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
-  const [form, setForm] = useState({ name: "", color: "#f59e0b", sortOrder: 0, isDefault: false });
+  const [form, setForm] = useState({
+    name: "",
+    nameCs: "",
+    nameEn: "",
+    color: "#f59e0b",
+    sortOrder: 0,
+    isDefault: false,
+  });
 
   const startAdd = () => {
     setAdding(true);
     setEditId(null);
     setForm({
       name: "",
+      nameCs: "",
+      nameEn: "",
       color: "#f59e0b",
       sortOrder: (ticketPriorities.length + 1) * 10,
       isDefault: false,
@@ -1855,6 +2096,8 @@ function TemplateTicketPrioritiesSection({
     setAdding(false);
     setForm({
       name: item.name,
+      nameCs: item.nameCs || "",
+      nameEn: item.nameEn || "",
       color: item.color,
       sortOrder: item.sortOrder,
       isDefault: item.isDefault,
@@ -1867,6 +2110,8 @@ function TemplateTicketPrioritiesSection({
       await updateTP.mutateAsync({
         ...existing,
         name: form.name,
+        nameCs: form.nameCs || undefined,
+        nameEn: form.nameEn || undefined,
         color: form.color,
         sortOrder: form.sortOrder,
         isDefault: form.isDefault,
@@ -1875,6 +2120,8 @@ function TemplateTicketPrioritiesSection({
     } else {
       await createTP.mutateAsync({
         name: form.name,
+        nameCs: form.nameCs || undefined,
+        nameEn: form.nameEn || undefined,
         color: form.color,
         sortOrder: form.sortOrder,
         isDefault: form.isDefault,
@@ -1935,13 +2182,27 @@ function TemplateTicketPrioritiesSection({
                   />
                 </td>
                 <td className="px-3 py-1.5">
-                  <input
-                    value={form.name}
-                    onChange={(e) => setForm({ ...form, name: e.target.value })}
-                    className="w-full px-2 py-1 text-xs border rounded"
-                    placeholder={t("common.name")}
-                    autoFocus
-                  />
+                  <div className="flex gap-1.5">
+                    <input
+                      value={form.name}
+                      onChange={(e) => setForm({ ...form, name: e.target.value })}
+                      className="w-full px-2 py-1 text-xs border rounded"
+                      placeholder={t("common.name")}
+                      autoFocus
+                    />
+                    <input
+                      value={form.nameCs}
+                      onChange={(e) => setForm({ ...form, nameCs: e.target.value })}
+                      className="w-full px-2 py-1 text-xs border rounded"
+                      placeholder={t("common.nameCs")}
+                    />
+                    <input
+                      value={form.nameEn}
+                      onChange={(e) => setForm({ ...form, nameEn: e.target.value })}
+                      className="w-full px-2 py-1 text-xs border rounded"
+                      placeholder={t("common.nameEn")}
+                    />
+                  </div>
                 </td>
                 <td className="px-3 py-1.5">
                   <input
@@ -1994,11 +2255,26 @@ function TemplateTicketPrioritiesSection({
                     />
                   </td>
                   <td className="px-3 py-1.5">
-                    <input
-                      value={form.name}
-                      onChange={(e) => setForm({ ...form, name: e.target.value })}
-                      className="w-full px-2 py-1 text-xs border rounded"
-                    />
+                    <div className="flex gap-1.5">
+                      <input
+                        value={form.name}
+                        onChange={(e) => setForm({ ...form, name: e.target.value })}
+                        className="w-full px-2 py-1 text-xs border rounded"
+                        placeholder={t("common.name")}
+                      />
+                      <input
+                        value={form.nameCs}
+                        onChange={(e) => setForm({ ...form, nameCs: e.target.value })}
+                        className="w-full px-2 py-1 text-xs border rounded"
+                        placeholder={t("common.nameCs")}
+                      />
+                      <input
+                        value={form.nameEn}
+                        onChange={(e) => setForm({ ...form, nameEn: e.target.value })}
+                        className="w-full px-2 py-1 text-xs border rounded"
+                        placeholder={t("common.nameEn")}
+                      />
+                    </div>
                   </td>
                   <td className="px-3 py-1.5">
                     <input
@@ -2039,7 +2315,7 @@ function TemplateTicketPrioritiesSection({
                       style={{ backgroundColor: item.color }}
                     />
                   </td>
-                  <td className="px-3 py-2 text-xs font-medium">{item.name}</td>
+                  <td className="px-3 py-2 text-xs font-medium">{localizedName(item, locale)}</td>
                   <td className="px-3 py-2 text-xs">{item.sortOrder}</td>
                   <td className="px-3 py-2 text-xs">
                     {item.isDefault ? <Check className="h-3.5 w-3.5 text-green-600" /> : null}
@@ -2053,6 +2329,261 @@ function TemplateTicketPrioritiesSection({
                     </button>
                     <button
                       onClick={() => deleteTP.mutate(item.id)}
+                      className="p-0.5 text-muted-foreground hover:text-red-600 hover:bg-red-50 rounded"
+                    >
+                      <Trash2 className="h-3 w-3" />
+                    </button>
+                  </td>
+                </tr>
+              )
+            )}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+function TaskStatesGlobalTab() {
+  const t = useTranslations("Lookups");
+  const tCommon = useTranslations("Common");
+  const locale = useLocale() as Locale;
+  const { data, isLoading } = useTaskStates();
+  const { data: templates } = useProjectTemplates();
+  const updateTS = useUpdateTaskState();
+  const deleteTS = useDeleteTaskState();
+  const [editId, setEditId] = useState<string | null>(null);
+  const [templateFilter, setTemplateFilter] = useState<string>("");
+  const [form, setForm] = useState({
+    name: "",
+    nameCs: "",
+    nameEn: "",
+    color: "#3b82f6",
+    sortOrder: 0,
+    isActive: true,
+    isDefault: false,
+    isClosedState: false,
+  });
+
+  if (isLoading) return <TableSkeleton rows={4} />;
+  if (!data)
+    return <EmptyState icon={<ListTodo className="h-10 w-10" />} title={t("common.empty")} />;
+
+  const templateNameById = (id: string) => templates?.find((tpl) => tpl.id === id)?.name || "—";
+
+  const filtered = templateFilter
+    ? data.filter((ts) => ts.projectTemplateId === templateFilter)
+    : data;
+
+  const startEdit = (item: TaskState) => {
+    setEditId(item.id);
+    setForm({
+      name: item.name,
+      nameCs: item.nameCs || "",
+      nameEn: item.nameEn || "",
+      color: item.color,
+      sortOrder: item.sortOrder,
+      isActive: item.isActive,
+      isDefault: item.isDefault,
+      isClosedState: item.isClosedState,
+    });
+  };
+
+  const save = async () => {
+    if (!editId) return;
+    const existing = data.find((c) => c.id === editId)!;
+    await updateTS.mutateAsync({
+      ...existing,
+      name: form.name,
+      nameCs: form.nameCs || undefined,
+      nameEn: form.nameEn || undefined,
+      color: form.color,
+      sortOrder: form.sortOrder,
+      isActive: form.isActive,
+      isDefault: form.isDefault,
+      isClosedState: form.isClosedState,
+    });
+    setEditId(null);
+  };
+
+  const cancel = () => setEditId(null);
+
+  return (
+    <div>
+      <div className="mb-3">
+        <p className="text-sm text-muted-foreground">{t("taskStatesGlobal.subtitle")}</p>
+      </div>
+      <div className="flex items-center gap-2 mb-3">
+        <label className="text-xs font-medium text-muted-foreground">
+          {t("taskStatesGlobal.templateColumn")}:
+        </label>
+        <select
+          value={templateFilter}
+          onChange={(e) => setTemplateFilter(e.target.value)}
+          className="px-2 py-1 text-sm border rounded"
+        >
+          <option value="">{tCommon("all")}</option>
+          {templates?.map((tpl) => (
+            <option key={tpl.id} value={tpl.id}>
+              {tpl.name}
+            </option>
+          ))}
+        </select>
+      </div>
+      <div className="rounded-lg border border-border overflow-hidden">
+        <table className="w-full">
+          <thead>
+            <tr className="bg-muted/50">
+              <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground uppercase">
+                {t("taskStatesGlobal.templateColumn")}
+              </th>
+              <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground uppercase">
+                {t("common.color")}
+              </th>
+              <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground uppercase">
+                {t("common.name")}
+              </th>
+              <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground uppercase w-16">
+                {t("common.sortOrder")}
+              </th>
+              <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground uppercase w-16">
+                {t("common.isActive")}
+              </th>
+              <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground uppercase w-16">
+                {t("common.isDefault")}
+              </th>
+              <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground uppercase w-16">
+                {t("common.isClosed")}
+              </th>
+              <th className="px-3 py-2 text-right text-xs font-medium text-muted-foreground uppercase w-20">
+                {t("common.actions")}
+              </th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-border">
+            {filtered.length === 0 && (
+              <tr>
+                <td colSpan={8} className="px-3 py-3 text-xs text-center text-muted-foreground">
+                  {t("common.empty")}
+                </td>
+              </tr>
+            )}
+            {filtered.map((item) =>
+              editId === item.id ? (
+                <tr key={item.id} className="bg-accent-orange/5">
+                  <td className="px-3 py-1.5 text-xs text-muted-foreground">
+                    {templateNameById(item.projectTemplateId)}
+                  </td>
+                  <td className="px-3 py-1.5">
+                    <input
+                      type="color"
+                      value={form.color}
+                      onChange={(e) => setForm({ ...form, color: e.target.value })}
+                      className="w-7 h-7 rounded cursor-pointer"
+                    />
+                  </td>
+                  <td className="px-3 py-1.5">
+                    <div className="flex gap-1.5">
+                      <input
+                        value={form.name}
+                        onChange={(e) => setForm({ ...form, name: e.target.value })}
+                        className="w-full px-2 py-1 text-xs border rounded"
+                        placeholder={t("common.name")}
+                      />
+                      <input
+                        value={form.nameCs}
+                        onChange={(e) => setForm({ ...form, nameCs: e.target.value })}
+                        className="w-full px-2 py-1 text-xs border rounded"
+                        placeholder={t("common.nameCs")}
+                      />
+                      <input
+                        value={form.nameEn}
+                        onChange={(e) => setForm({ ...form, nameEn: e.target.value })}
+                        className="w-full px-2 py-1 text-xs border rounded"
+                        placeholder={t("common.nameEn")}
+                      />
+                    </div>
+                  </td>
+                  <td className="px-3 py-1.5">
+                    <input
+                      type="number"
+                      value={form.sortOrder}
+                      onChange={(e) => setForm({ ...form, sortOrder: +e.target.value })}
+                      className="w-full px-2 py-1 text-xs border rounded"
+                    />
+                  </td>
+                  <td className="px-3 py-1.5">
+                    <input
+                      type="checkbox"
+                      checked={form.isActive}
+                      onChange={(e) => setForm({ ...form, isActive: e.target.checked })}
+                    />
+                  </td>
+                  <td className="px-3 py-1.5">
+                    <input
+                      type="checkbox"
+                      checked={form.isDefault}
+                      onChange={(e) => setForm({ ...form, isDefault: e.target.checked })}
+                    />
+                  </td>
+                  <td className="px-3 py-1.5">
+                    <input
+                      type="checkbox"
+                      checked={form.isClosedState}
+                      onChange={(e) => setForm({ ...form, isClosedState: e.target.checked })}
+                    />
+                  </td>
+                  <td className="px-3 py-1.5 text-right">
+                    <button
+                      onClick={save}
+                      disabled={!form.name}
+                      className="p-1 text-green-600 hover:bg-green-50 rounded disabled:opacity-30"
+                    >
+                      <Check className="h-3.5 w-3.5" />
+                    </button>
+                    <button
+                      onClick={cancel}
+                      className="p-1 text-muted-foreground hover:bg-muted/50 rounded"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  </td>
+                </tr>
+              ) : (
+                <tr key={item.id} className="hover:bg-muted/30">
+                  <td className="px-3 py-2 text-xs text-muted-foreground">
+                    {templateNameById(item.projectTemplateId)}
+                  </td>
+                  <td className="px-3 py-2">
+                    <div
+                      className="w-5 h-5 rounded-full border"
+                      style={{ backgroundColor: item.color }}
+                    />
+                  </td>
+                  <td className="px-3 py-2 text-xs font-medium">{localizedName(item, locale)}</td>
+                  <td className="px-3 py-2 text-xs">{item.sortOrder}</td>
+                  <td className="px-3 py-2 text-xs">
+                    {item.isActive ? (
+                      <Check className="h-3.5 w-3.5 text-green-600" />
+                    ) : (
+                      <span className="text-muted-foreground">—</span>
+                    )}
+                  </td>
+                  <td className="px-3 py-2 text-xs">
+                    {item.isDefault ? <Check className="h-3.5 w-3.5 text-green-600" /> : null}
+                  </td>
+                  <td className="px-3 py-2 text-xs">
+                    {item.isClosedState ? <Check className="h-3.5 w-3.5 text-red-500" /> : null}
+                  </td>
+                  <td className="px-3 py-2 text-right">
+                    <button
+                      onClick={() => startEdit(item)}
+                      className="p-0.5 text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded"
+                    >
+                      <Pencil className="h-3 w-3" />
+                    </button>
+                    <button
+                      onClick={() => deleteTS.mutate(item.id)}
                       className="p-0.5 text-muted-foreground hover:text-red-600 hover:bg-red-50 rounded"
                     >
                       <Trash2 className="h-3 w-3" />
@@ -2389,6 +2920,7 @@ export default function LookupsPage() {
       {activeTab === "project-types" && <ProjectTypesTab />}
       {activeTab === "project-states" && <StateTable />}
       {activeTab === "task-types" && <TaskTypesTab />}
+      {activeTab === "task-states" && <TaskStatesGlobalTab />}
       {activeTab === "application-roles" && <ApplicationRolesTab />}
       {activeTab === "custom-fields" && <CustomFieldDefinitionsTab />}
       {activeTab === "templates" && <ProjectTemplatesTab />}

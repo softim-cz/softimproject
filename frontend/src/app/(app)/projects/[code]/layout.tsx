@@ -3,16 +3,17 @@
 import { use } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { useProjectByCode } from "@/queries/projects";
 import { cn } from "@/lib/utils";
 import { LayoutGrid, List, Clock, Settings } from "lucide-react";
 
 const tabs = [
-  { name: "Board", href: "board", icon: LayoutGrid },
-  { name: "Tasks", href: "tasks", icon: List },
-  { name: "Worklogs", href: "worklogs", icon: Clock },
-  { name: "Settings", href: "settings", icon: Settings },
-];
+  { key: "board", icon: LayoutGrid },
+  { key: "tasks", icon: List },
+  { key: "worklogs", icon: Clock },
+  { key: "settings", icon: Settings },
+] as const;
 
 export default function ProjectLayout({
   children,
@@ -24,19 +25,22 @@ export default function ProjectLayout({
   const { code } = use(params);
   const pathname = usePathname();
   const { data: project } = useProjectByCode(code);
+  const t = useTranslations("Projects.views");
+  const tProjects = useTranslations("Projects");
 
   return (
     <div className="flex flex-col h-full">
-      {/* Project header + tabs */}
       <div className="border-b border-border bg-card px-6 pt-4">
-        <h1 className="text-xl font-bold text-foreground mb-3">{project?.name ?? "Project"}</h1>
+        <h1 className="text-xl font-bold text-foreground mb-3">
+          {project?.name ?? tProjects("title")}
+        </h1>
         <nav className="flex gap-1 -mb-px">
           {tabs.map((tab) => {
-            const href = `/projects/${code}/${tab.href}`;
+            const href = `/projects/${code}/${tab.key}`;
             const isActive = pathname === href || pathname.startsWith(href + "/");
             return (
               <Link
-                key={tab.href}
+                key={tab.key}
                 href={href}
                 className={cn(
                   "flex items-center gap-1.5 px-3 py-2 text-sm font-medium border-b-2 transition-colors",
@@ -46,14 +50,13 @@ export default function ProjectLayout({
                 )}
               >
                 <tab.icon className="h-4 w-4" />
-                {tab.name}
+                {t(tab.key as "board")}
               </Link>
             );
           })}
         </nav>
       </div>
 
-      {/* Page content */}
       <div className="flex-1 overflow-auto p-6">{children}</div>
     </div>
   );

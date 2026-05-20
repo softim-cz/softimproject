@@ -8,7 +8,7 @@ using SoftimProject.Domain.Entities;
 namespace SoftimProject.Application.Features.Lookups.ProjectStates;
 
 // DTO
-public sealed record ProjectStateDto(Guid Id, string Name, string Color, int SortOrder, bool IsActive, bool IsDefault);
+public sealed record ProjectStateDto(Guid Id, string Name, string? NameCs, string? NameEn, string Color, int SortOrder, bool IsActive, bool IsDefault);
 
 // GET ALL
 public sealed record GetProjectStatesQuery : IRequest<List<ProjectStateDto>>;
@@ -20,13 +20,13 @@ public sealed class GetProjectStatesQueryHandler(IApplicationDbContext dbContext
     {
         return await dbContext.ProjectStates
             .OrderBy(ps => ps.SortOrder).ThenBy(ps => ps.Name)
-            .Select(ps => new ProjectStateDto(ps.Id, ps.Name, ps.Color, ps.SortOrder, ps.IsActive, ps.IsDefault))
+            .Select(ps => new ProjectStateDto(ps.Id, ps.Name, ps.NameCs, ps.NameEn, ps.Color, ps.SortOrder, ps.IsActive, ps.IsDefault))
             .ToListAsync(cancellationToken);
     }
 }
 
 // CREATE
-public sealed record CreateProjectStateCommand(string Name, string Color, int SortOrder, bool IsDefault) : IRequest<Guid>, IRequireRole
+public sealed record CreateProjectStateCommand(string Name, string? NameCs, string? NameEn, string Color, int SortOrder, bool IsDefault) : IRequest<Guid>, IRequireRole
 {
     public string RequiredRole => "Admin";
 }
@@ -49,6 +49,8 @@ public sealed class CreateProjectStateCommandHandler(IApplicationDbContext dbCon
         {
             Id = Guid.NewGuid(),
             Name = request.Name,
+            NameCs = request.NameCs,
+            NameEn = request.NameEn,
             Color = request.Color,
             SortOrder = request.SortOrder,
             IsActive = true,
@@ -63,7 +65,7 @@ public sealed class CreateProjectStateCommandHandler(IApplicationDbContext dbCon
 }
 
 // UPDATE
-public sealed record UpdateProjectStateCommand(Guid Id, string Name, string Color, int SortOrder, bool IsActive, bool IsDefault) : IRequest, IRequireRole
+public sealed record UpdateProjectStateCommand(Guid Id, string Name, string? NameCs, string? NameEn, string Color, int SortOrder, bool IsActive, bool IsDefault) : IRequest, IRequireRole
 {
     public string RequiredRole => "Admin";
 }
@@ -87,6 +89,8 @@ public sealed class UpdateProjectStateCommandHandler(IApplicationDbContext dbCon
             ?? throw new NotFoundException(nameof(ProjectState), request.Id);
 
         entity.Name = request.Name;
+        entity.NameCs = request.NameCs;
+        entity.NameEn = request.NameEn;
         entity.Color = request.Color;
         entity.SortOrder = request.SortOrder;
         entity.IsActive = request.IsActive;
