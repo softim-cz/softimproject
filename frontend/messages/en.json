@@ -756,6 +756,118 @@
       "ticketPriorities": "Priorities"
     }
   },
+  "Migration": {
+    "pageTitle": "Easy Project migration",
+    "pageSubtitle": "Wizard to migrate projects, lookups, users and tickets.",
+    "backToAdmin": "Back to Admin",
+    "steps": {
+      "Connection": "Connection",
+      "Projects": "Projects",
+      "Lookups": "Lookups",
+      "Users": "Users",
+      "Review": "Review",
+      "Progress": "Progress"
+    },
+    "connection": {
+      "title": "Connect to Easy Project",
+      "subtitle": "Enter your Easy Project instance URL and API key.",
+      "urlLabel": "Easy Project URL",
+      "urlPlaceholder": "https://your-company.easyproject.com",
+      "apiKeyLabel": "API key",
+      "apiKeyPlaceholder": "Your Easy Project API key",
+      "testConnection": "Test connection",
+      "connected": "Connected",
+      "connectionFailed": "Connection failed"
+    },
+    "common": {
+      "next": "Next",
+      "back": "Back",
+      "loading": "Loading...",
+      "loadFailed": "Failed to load",
+      "search": "Search...",
+      "selectAll": "Select all",
+      "deselectAll": "Deselect all",
+      "selected": "{count} selected",
+      "ofTotal": "of {total}"
+    },
+    "projects": {
+      "title": "Select projects to migrate",
+      "subtitle": "Pick the projects to transfer. Each row shows the ticket count.",
+      "fetchProjects": "Fetch projects",
+      "fetchingProjects": "Fetching projects...",
+      "name": "Name",
+      "identifier": "Identifier",
+      "ticketCount": "Tickets",
+      "noProjects": "No projects found",
+      "fetchCountsFailed": "Failed to fetch ticket counts"
+    },
+    "lookups": {
+      "title": "Lookup mappings",
+      "subtitle": "Map task types, states and priorities from Easy Project to local values.",
+      "fetchLookups": "Fetch lookups",
+      "fetchingLookups": "Fetching lookups...",
+      "taskTypes": "Task types",
+      "taskStates": "Task states",
+      "priorities": "Priorities",
+      "epValue": "Easy Project value",
+      "localValue": "Local value",
+      "selectPlaceholder": "-- Select --",
+      "noMatch": "(unmapped)"
+    },
+    "users": {
+      "title": "User mappings",
+      "subtitle": "Map Easy Project users to local users.",
+      "fetchUsers": "Fetch users",
+      "fetchingUsers": "Fetching users...",
+      "epUser": "Easy Project user",
+      "localUser": "Local user",
+      "selectUser": "-- Select user --",
+      "skipUser": "Skip"
+    },
+    "review": {
+      "title": "Review",
+      "subtitle": "Check your selection before running the migration.",
+      "selectedProjects": "Selected projects",
+      "selectedTicketCount": "Total tickets",
+      "lookupMappings": "Lookup mappings",
+      "userMappings": "User mappings",
+      "startMigration": "Start migration",
+      "starting": "Starting..."
+    },
+    "progress": {
+      "title": "Migration progress",
+      "running": "Migration in progress",
+      "succeeded": "Migration completed successfully",
+      "failed": "Migration failed",
+      "cancelled": "Migration cancelled",
+      "partial": "Migration completed with errors",
+      "currentItem": "Current item",
+      "itemsTotal": "Items total",
+      "itemsDone": "Done",
+      "itemsFailed": "Failed",
+      "cancel": "Cancel",
+      "cancelling": "Cancelling...",
+      "downloadReport": "Download report",
+      "newMigration": "New migration",
+      "errors": "Errors",
+      "showErrors": "Show errors ({count})",
+      "hideErrors": "Hide errors"
+    },
+    "history": {
+      "title": "Migration history",
+      "noHistory": "No previous migrations",
+      "started": "Started",
+      "finished": "Finished",
+      "status": "Status",
+      "totalItems": "Total",
+      "succeeded": "Succeeded",
+      "failed": "Failed",
+      "resume": "Resume",
+      "resuming": "Resuming...",
+      "resumeFailed": "Failed to resume migration",
+      "report": "Report"
+    }
+  },
   "Lookups": {
     "pageTitle": "Lookups",
     "pageSubtitle": "Manage configurable lookup tables used across the application",

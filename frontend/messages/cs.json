@@ -756,6 +756,118 @@
       "ticketPriorities": "Priority"
     }
   },
+  "Migration": {
+    "pageTitle": "Migrace z Easy Projectu",
+    "pageSubtitle": "Průvodce migrací projektů, číselníků, uživatelů a úkolů.",
+    "backToAdmin": "Zpět do Administrace",
+    "steps": {
+      "Connection": "Připojení",
+      "Projects": "Projekty",
+      "Lookups": "Číselníky",
+      "Users": "Uživatelé",
+      "Review": "Shrnutí",
+      "Progress": "Průběh"
+    },
+    "connection": {
+      "title": "Připojení k Easy Projectu",
+      "subtitle": "Zadejte URL své instance Easy Projectu a API klíč.",
+      "urlLabel": "URL Easy Projectu",
+      "urlPlaceholder": "https://vase-firma.easyproject.com",
+      "apiKeyLabel": "API klíč",
+      "apiKeyPlaceholder": "Váš API klíč z Easy Projectu",
+      "testConnection": "Otestovat připojení",
+      "connected": "Připojeno",
+      "connectionFailed": "Připojení se nezdařilo"
+    },
+    "common": {
+      "next": "Další",
+      "back": "Zpět",
+      "loading": "Načítám...",
+      "loadFailed": "Načtení se nezdařilo",
+      "search": "Hledat...",
+      "selectAll": "Vybrat vše",
+      "deselectAll": "Zrušit výběr",
+      "selected": "{count} vybráno",
+      "ofTotal": "z {total}"
+    },
+    "projects": {
+      "title": "Vyberte projekty k migraci",
+      "subtitle": "Označte projekty, které se mají přenést. U každého vidíte počet úkolů.",
+      "fetchProjects": "Načíst projekty",
+      "fetchingProjects": "Načítám projekty...",
+      "name": "Název",
+      "identifier": "Identifikátor",
+      "ticketCount": "Úkoly",
+      "noProjects": "Žádné projekty nenalezeny",
+      "fetchCountsFailed": "Načtení počtu úkolů se nezdařilo"
+    },
+    "lookups": {
+      "title": "Mapování číselníků",
+      "subtitle": "Namapujte typy úkolů, stavy a priority z Easy Projectu na lokální hodnoty.",
+      "fetchLookups": "Načíst číselníky",
+      "fetchingLookups": "Načítám číselníky...",
+      "taskTypes": "Typy úkolů",
+      "taskStates": "Stavy úkolů",
+      "priorities": "Priority",
+      "epValue": "Hodnota v Easy Projectu",
+      "localValue": "Lokální hodnota",
+      "selectPlaceholder": "-- Vyberte --",
+      "noMatch": "(nemapováno)"
+    },
+    "users": {
+      "title": "Mapování uživatelů",
+      "subtitle": "Namapujte uživatele z Easy Projectu na lokální uživatele.",
+      "fetchUsers": "Načíst uživatele",
+      "fetchingUsers": "Načítám uživatele...",
+      "epUser": "Uživatel v Easy Projectu",
+      "localUser": "Lokální uživatel",
+      "selectUser": "-- Vyberte uživatele --",
+      "skipUser": "Přeskočit"
+    },
+    "review": {
+      "title": "Shrnutí",
+      "subtitle": "Zkontrolujte výběr před spuštěním migrace.",
+      "selectedProjects": "Vybrané projekty",
+      "selectedTicketCount": "Celkem úkolů",
+      "lookupMappings": "Mapování číselníků",
+      "userMappings": "Mapování uživatelů",
+      "startMigration": "Spustit migraci",
+      "starting": "Spouštím..."
+    },
+    "progress": {
+      "title": "Průběh migrace",
+      "running": "Probíhá migrace",
+      "succeeded": "Migrace úspěšně dokončena",
+      "failed": "Migrace selhala",
+      "cancelled": "Migrace zrušena",
+      "partial": "Migrace dokončena s chybami",
+      "currentItem": "Aktuální položka",
+      "itemsTotal": "Celkem položek",
+      "itemsDone": "Hotovo",
+      "itemsFailed": "Selhalo",
+      "cancel": "Zrušit",
+      "cancelling": "Ruším...",
+      "downloadReport": "Stáhnout report",
+      "newMigration": "Nová migrace",
+      "errors": "Chyby",
+      "showErrors": "Zobrazit chyby ({count})",
+      "hideErrors": "Skrýt chyby"
+    },
+    "history": {
+      "title": "Historie migrací",
+      "noHistory": "Žádné předchozí migrace",
+      "started": "Spuštěno",
+      "finished": "Dokončeno",
+      "status": "Stav",
+      "totalItems": "Celkem",
+      "succeeded": "Úspěšné",
+      "failed": "Selhalé",
+      "resume": "Pokračovat",
+      "resuming": "Pokračuje...",
+      "resumeFailed": "Obnovení migrace se nezdařilo",
+      "report": "Report"
+    }
+  },
   "Lookups": {
     "pageTitle": "Číselníky",
     "pageSubtitle": "Správa konfigurovatelných číselníků používaných v celé aplikaci",

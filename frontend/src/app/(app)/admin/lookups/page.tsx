@@ -218,7 +218,9 @@ function CompaniesTab() {
                       className="w-full px-2 py-1 text-sm border rounded"
                     />
                   </td>
-                  <td className="px-4 py-2 text-sm">{item.isActive ? tCommon("yes") : tCommon("no")}</td>
+                  <td className="px-4 py-2 text-sm">
+                    {item.isActive ? tCommon("yes") : tCommon("no")}
+                  </td>
                   <td className="px-4 py-2 text-right">
                     <button
                       onClick={save}
@@ -425,7 +427,9 @@ function ProjectTypesTab() {
                       className="w-full px-2 py-1 text-sm border rounded"
                     />
                   </td>
-                  <td className="px-4 py-2 text-sm">{item.isActive ? tCommon("yes") : tCommon("no")}</td>
+                  <td className="px-4 py-2 text-sm">
+                    {item.isActive ? tCommon("yes") : tCommon("no")}
+                  </td>
                   <td className="px-4 py-2 text-right">
                     <button
                       onClick={save}
@@ -662,7 +666,9 @@ function StateTable() {
                       onChange={(e) => setForm({ ...form, isDefault: e.target.checked })}
                     />
                   </td>
-                  <td className="px-4 py-2 text-sm">{item.isActive ? tCommon("yes") : tCommon("no")}</td>
+                  <td className="px-4 py-2 text-sm">
+                    {item.isActive ? tCommon("yes") : tCommon("no")}
+                  </td>
                   <td className="px-4 py-2 text-right">
                     <button
                       onClick={save}
@@ -875,7 +881,9 @@ function TaskTypesTab() {
                       className="w-full px-2 py-1 text-sm border rounded"
                     />
                   </td>
-                  <td className="px-4 py-2 text-sm">{item.isActive ? tCommon("yes") : tCommon("no")}</td>
+                  <td className="px-4 py-2 text-sm">
+                    {item.isActive ? tCommon("yes") : tCommon("no")}
+                  </td>
                   <td className="px-4 py-2 text-right">
                     <button
                       onClick={save}
@@ -1047,7 +1055,9 @@ function ApplicationRolesTab() {
         <div className="mb-4 p-4 rounded-lg border border-border bg-card space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             <div>
-              <label className="block text-xs font-medium text-muted-foreground mb-1">{t("common.name")}</label>
+              <label className="block text-xs font-medium text-muted-foreground mb-1">
+                {t("common.name")}
+              </label>
               <input
                 value={form.name}
                 onChange={(e) => setForm({ ...form, name: e.target.value })}
@@ -1079,7 +1089,9 @@ function ApplicationRolesTab() {
           </div>
 
           <div>
-            <p className="text-xs font-medium text-muted-foreground mb-2">{t("appRole.permissions")}</p>
+            <p className="text-xs font-medium text-muted-foreground mb-2">
+              {t("appRole.permissions")}
+            </p>
             <div className="rounded-lg border border-border overflow-hidden">
               <table className="w-full">
                 <thead>
@@ -1100,9 +1112,7 @@ function ApplicationRolesTab() {
                 <tbody className="divide-y divide-border">
                   {areas.map((area) => (
                     <tr key={area}>
-                      <td className="px-3 py-2 text-sm font-medium">
-                        {t(areaLabelKey[area])}
-                      </td>
+                      <td className="px-3 py-2 text-sm font-medium">{t(areaLabelKey[area])}</td>
                       {ops.map((op) => {
                         const key = `${area}${op}` as keyof typeof emptyPerms;
                         return (
@@ -1474,7 +1484,9 @@ function CustomFieldDefinitionsTab() {
                       className="w-full px-2 py-1 text-sm border rounded"
                     />
                   </td>
-                  <td className="px-4 py-2 text-sm">{item.isActive ? tCommon("yes") : tCommon("no")}</td>
+                  <td className="px-4 py-2 text-sm">
+                    {item.isActive ? tCommon("yes") : tCommon("no")}
+                  </td>
                   <td className="px-4 py-2 text-right">
                     <button
                       onClick={save}
@@ -1617,7 +1629,9 @@ function TemplateTaskStatesSection({
   return (
     <div>
       <div className="flex items-center justify-between mb-2">
-        <p className="text-xs font-medium text-muted-foreground uppercase">{t("template.taskStates")}</p>
+        <p className="text-xs font-medium text-muted-foreground uppercase">
+          {t("template.taskStates")}
+        </p>
         <button
           onClick={startAdd}
           className="flex items-center gap-1 px-2 py-1 text-xs font-medium text-accent-orange hover:bg-accent-orange/10 rounded"
@@ -1878,7 +1892,9 @@ function TemplateTicketPrioritiesSection({
   return (
     <div>
       <div className="flex items-center justify-between mb-2">
-        <p className="text-xs font-medium text-muted-foreground uppercase">{t("template.ticketPriorities")}</p>
+        <p className="text-xs font-medium text-muted-foreground uppercase">
+          {t("template.ticketPriorities")}
+        </p>
         <button
           onClick={startAdd}
           className="flex items-center gap-1 px-2 py-1 text-xs font-medium text-accent-orange hover:bg-accent-orange/10 rounded"
@@ -2150,7 +2166,9 @@ function ProjectTemplatesTab() {
         <div className="mb-4 p-4 rounded-lg border border-border bg-card space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-medium text-muted-foreground mb-1">{t("common.name")}</label>
+              <label className="block text-xs font-medium text-muted-foreground mb-1">
+                {t("common.name")}
+              </label>
               <input
                 value={form.name}
                 onChange={(e) => setForm({ ...form, name: e.target.value })}
@@ -2172,7 +2190,9 @@ function ProjectTemplatesTab() {
 
           {activeFields.length > 0 && (
             <div>
-              <p className="text-xs font-medium text-muted-foreground mb-2">{t("customField.title")}</p>
+              <p className="text-xs font-medium text-muted-foreground mb-2">
+                {t("customField.title")}
+              </p>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                 {activeFields.map((field) => (
                   <label
