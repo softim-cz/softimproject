@@ -277,6 +277,8 @@ export interface Company {
 export interface ApplicationRoleEntity {
   id: string;
   name: string;
+  nameCs?: string;
+  nameEn?: string;
   description?: string;
   sortOrder: number;
   projectsCreate: boolean;
@@ -296,6 +298,8 @@ export interface ApplicationRoleEntity {
 export interface ProjectType {
   id: string;
   name: string;
+  nameCs?: string;
+  nameEn?: string;
   description?: string;
   sortOrder: number;
   isActive: boolean;
@@ -304,6 +308,8 @@ export interface ProjectType {
 export interface ProjectState {
   id: string;
   name: string;
+  nameCs?: string;
+  nameEn?: string;
   color: string;
   sortOrder: number;
   isActive: boolean;
@@ -313,6 +319,8 @@ export interface ProjectState {
 export interface TaskType {
   id: string;
   name: string;
+  nameCs?: string;
+  nameEn?: string;
   icon?: string;
   sortOrder: number;
   isActive: boolean;
@@ -321,6 +329,8 @@ export interface TaskType {
 export interface TaskState {
   id: string;
   name: string;
+  nameCs?: string;
+  nameEn?: string;
   color: string;
   sortOrder: number;
   isActive: boolean;
@@ -332,6 +342,8 @@ export interface TaskState {
 export interface TicketPriorityLookup {
   id: string;
   name: string;
+  nameCs?: string;
+  nameEn?: string;
   color: string;
   sortOrder: number;
   isActive: boolean;

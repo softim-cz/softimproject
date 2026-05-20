@@ -12,6 +12,8 @@ public sealed class ProjectStateConfiguration : IEntityTypeConfiguration<Project
         builder.HasKey(ps => ps.Id);
 
         builder.Property(ps => ps.Name).HasMaxLength(200).IsRequired();
+        builder.Property(ps => ps.NameCs).HasMaxLength(200);
+        builder.Property(ps => ps.NameEn).HasMaxLength(200);
         builder.Property(ps => ps.Color).HasMaxLength(50).IsRequired();
 
         builder.HasIndex(ps => ps.Name).IsUnique();

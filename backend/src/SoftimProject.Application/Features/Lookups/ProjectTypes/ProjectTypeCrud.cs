@@ -8,7 +8,7 @@ using SoftimProject.Domain.Entities;
 namespace SoftimProject.Application.Features.Lookups.ProjectTypes;
 
 // DTO
-public sealed record ProjectTypeDto(Guid Id, string Name, string? Description, int SortOrder, bool IsActive);
+public sealed record ProjectTypeDto(Guid Id, string Name, string? NameCs, string? NameEn, string? Description, int SortOrder, bool IsActive);
 
 // GET ALL
 public sealed record GetProjectTypesQuery : IRequest<List<ProjectTypeDto>>;
@@ -20,13 +20,13 @@ public sealed class GetProjectTypesQueryHandler(IApplicationDbContext dbContext)
     {
         return await dbContext.ProjectTypes
             .OrderBy(pt => pt.SortOrder).ThenBy(pt => pt.Name)
-            .Select(pt => new ProjectTypeDto(pt.Id, pt.Name, pt.Description, pt.SortOrder, pt.IsActive))
+            .Select(pt => new ProjectTypeDto(pt.Id, pt.Name, pt.NameCs, pt.NameEn, pt.Description, pt.SortOrder, pt.IsActive))
             .ToListAsync(cancellationToken);
     }
 }
 
 // CREATE
-public sealed record CreateProjectTypeCommand(string Name, string? Description, int SortOrder) : IRequest<Guid>, IRequireRole
+public sealed record CreateProjectTypeCommand(string Name, string? NameCs, string? NameEn, string? Description, int SortOrder) : IRequest<Guid>, IRequireRole
 {
     public string RequiredRole => "Admin";
 }
@@ -49,6 +49,8 @@ public sealed class CreateProjectTypeCommandHandler(IApplicationDbContext dbCont
         {
             Id = Guid.NewGuid(),
             Name = request.Name,
+            NameCs = request.NameCs,
+            NameEn = request.NameEn,
             Description = request.Description,
             SortOrder = request.SortOrder,
             IsActive = true,
@@ -62,7 +64,7 @@ public sealed class CreateProjectTypeCommandHandler(IApplicationDbContext dbCont
 }
 
 // UPDATE
-public sealed record UpdateProjectTypeCommand(Guid Id, string Name, string? Description, int SortOrder, bool IsActive) : IRequest, IRequireRole
+public sealed record UpdateProjectTypeCommand(Guid Id, string Name, string? NameCs, string? NameEn, string? Description, int SortOrder, bool IsActive) : IRequest, IRequireRole
 {
     public string RequiredRole => "Admin";
 }
@@ -86,6 +88,8 @@ public sealed class UpdateProjectTypeCommandHandler(IApplicationDbContext dbCont
             ?? throw new NotFoundException(nameof(ProjectType), request.Id);
 
         entity.Name = request.Name;
+        entity.NameCs = request.NameCs;
+        entity.NameEn = request.NameEn;
         entity.Description = request.Description;
         entity.SortOrder = request.SortOrder;
         entity.IsActive = request.IsActive;

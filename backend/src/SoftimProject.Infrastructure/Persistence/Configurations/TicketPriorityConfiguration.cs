@@ -12,6 +12,8 @@ public sealed class TicketPriorityConfiguration : IEntityTypeConfiguration<Ticke
         builder.HasKey(tp => tp.Id);
 
         builder.Property(tp => tp.Name).HasMaxLength(200).IsRequired();
+        builder.Property(tp => tp.NameCs).HasMaxLength(200);
+        builder.Property(tp => tp.NameEn).HasMaxLength(200);
         builder.Property(tp => tp.Color).HasMaxLength(50).IsRequired();
 
         builder.HasOne(tp => tp.ProjectTemplate)

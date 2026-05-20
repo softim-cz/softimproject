@@ -12,6 +12,8 @@ public sealed class ProjectTypeConfiguration : IEntityTypeConfiguration<ProjectT
         builder.HasKey(pt => pt.Id);
 
         builder.Property(pt => pt.Name).HasMaxLength(200).IsRequired();
+        builder.Property(pt => pt.NameCs).HasMaxLength(200);
+        builder.Property(pt => pt.NameEn).HasMaxLength(200);
         builder.Property(pt => pt.Description).HasMaxLength(2000);
 
         builder.HasIndex(pt => pt.Name).IsUnique();

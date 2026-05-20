@@ -11,6 +11,8 @@ namespace SoftimProject.Application.Features.Lookups.ApplicationRoles;
 public sealed record ApplicationRoleDto(
     Guid Id,
     string Name,
+    string? NameCs,
+    string? NameEn,
     string? Description,
     int SortOrder,
     bool ProjectsCreate,
@@ -37,7 +39,7 @@ public sealed class GetApplicationRolesQueryHandler(IApplicationDbContext dbCont
         return await dbContext.ApplicationRoles
             .OrderBy(r => r.SortOrder).ThenBy(r => r.Name)
             .Select(r => new ApplicationRoleDto(
-                r.Id, r.Name, r.Description, r.SortOrder,
+                r.Id, r.Name, r.NameCs, r.NameEn, r.Description, r.SortOrder,
                 r.ProjectsCreate, r.ProjectsRead, r.ProjectsUpdate, r.ProjectsDelete,
                 r.TimeTrackingCreate, r.TimeTrackingRead, r.TimeTrackingUpdate, r.TimeTrackingDelete,
                 r.ReportsCreate, r.ReportsRead, r.ReportsUpdate, r.ReportsDelete))
@@ -48,6 +50,8 @@ public sealed class GetApplicationRolesQueryHandler(IApplicationDbContext dbCont
 // CREATE
 public sealed record CreateApplicationRoleCommand(
     string Name,
+    string? NameCs,
+    string? NameEn,
     string? Description,
     int SortOrder,
     bool ProjectsCreate,
@@ -84,6 +88,8 @@ public sealed class CreateApplicationRoleCommandHandler(IApplicationDbContext db
         {
             Id = Guid.NewGuid(),
             Name = request.Name,
+            NameCs = request.NameCs,
+            NameEn = request.NameEn,
             Description = request.Description,
             SortOrder = request.SortOrder,
             ProjectsCreate = request.ProjectsCreate,
@@ -111,6 +117,8 @@ public sealed class CreateApplicationRoleCommandHandler(IApplicationDbContext db
 public sealed record UpdateApplicationRoleCommand(
     Guid Id,
     string Name,
+    string? NameCs,
+    string? NameEn,
     string? Description,
     int SortOrder,
     bool ProjectsCreate,
@@ -148,6 +156,8 @@ public sealed class UpdateApplicationRoleCommandHandler(IApplicationDbContext db
             ?? throw new NotFoundException(nameof(ApplicationRole), request.Id);
 
         entity.Name = request.Name;
+        entity.NameCs = request.NameCs;
+        entity.NameEn = request.NameEn;
         entity.Description = request.Description;
         entity.SortOrder = request.SortOrder;
         entity.ProjectsCreate = request.ProjectsCreate;

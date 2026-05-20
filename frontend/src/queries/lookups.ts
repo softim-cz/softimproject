@@ -70,7 +70,13 @@ export function useProjectTypes() {
 export function useCreateProjectType() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (body: { name: string; description?: string; sortOrder: number }) => {
+    mutationFn: async (body: {
+      name: string;
+      nameCs?: string;
+      nameEn?: string;
+      description?: string;
+      sortOrder: number;
+    }) => {
       const { data } = await apiClient.post<string>("/api/v1/lookups/project-types", body);
       return data;
     },
@@ -115,6 +121,8 @@ export function useCreateProjectState() {
   return useMutation({
     mutationFn: async (body: {
       name: string;
+      nameCs?: string;
+      nameEn?: string;
       color: string;
       sortOrder: number;
       isDefault: boolean;
@@ -161,7 +169,13 @@ export function useTaskTypes() {
 export function useCreateTaskType() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (body: { name: string; icon?: string; sortOrder: number }) => {
+    mutationFn: async (body: {
+      name: string;
+      nameCs?: string;
+      nameEn?: string;
+      icon?: string;
+      sortOrder: number;
+    }) => {
       const { data } = await apiClient.post<string>("/api/v1/lookups/task-types", body);
       return data;
     },
@@ -207,6 +221,8 @@ export function useCreateTaskState() {
   return useMutation({
     mutationFn: async (body: {
       name: string;
+      nameCs?: string;
+      nameEn?: string;
       color: string;
       sortOrder: number;
       isDefault: boolean;
@@ -427,6 +443,8 @@ export function useCreateTicketPriority() {
   return useMutation({
     mutationFn: async (body: {
       name: string;
+      nameCs?: string;
+      nameEn?: string;
       color: string;
       sortOrder: number;
       isDefault: boolean;

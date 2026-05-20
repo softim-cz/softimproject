@@ -12,6 +12,8 @@ public sealed class TaskTypeConfiguration : IEntityTypeConfiguration<TaskType>
         builder.HasKey(tt => tt.Id);
 
         builder.Property(tt => tt.Name).HasMaxLength(200).IsRequired();
+        builder.Property(tt => tt.NameCs).HasMaxLength(200);
+        builder.Property(tt => tt.NameEn).HasMaxLength(200);
         builder.Property(tt => tt.Icon).HasMaxLength(100);
 
         builder.HasIndex(tt => tt.Name).IsUnique();

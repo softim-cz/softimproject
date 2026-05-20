@@ -8,7 +8,7 @@ using SoftimProject.Domain.Entities;
 namespace SoftimProject.Application.Features.Lookups.TaskTypes;
 
 // DTO
-public sealed record TaskTypeDto(Guid Id, string Name, string? Icon, int SortOrder, bool IsActive);
+public sealed record TaskTypeDto(Guid Id, string Name, string? NameCs, string? NameEn, string? Icon, int SortOrder, bool IsActive);
 
 // GET ALL
 public sealed record GetTaskTypesQuery : IRequest<List<TaskTypeDto>>;
@@ -20,13 +20,13 @@ public sealed class GetTaskTypesQueryHandler(IApplicationDbContext dbContext)
     {
         return await dbContext.TaskTypes
             .OrderBy(tt => tt.SortOrder).ThenBy(tt => tt.Name)
-            .Select(tt => new TaskTypeDto(tt.Id, tt.Name, tt.Icon, tt.SortOrder, tt.IsActive))
+            .Select(tt => new TaskTypeDto(tt.Id, tt.Name, tt.NameCs, tt.NameEn, tt.Icon, tt.SortOrder, tt.IsActive))
             .ToListAsync(cancellationToken);
     }
 }
 
 // CREATE
-public sealed record CreateTaskTypeCommand(string Name, string? Icon, int SortOrder) : IRequest<Guid>, IRequireRole
+public sealed record CreateTaskTypeCommand(string Name, string? NameCs, string? NameEn, string? Icon, int SortOrder) : IRequest<Guid>, IRequireRole
 {
     public string RequiredRole => "Admin";
 }
@@ -49,6 +49,8 @@ public sealed class CreateTaskTypeCommandHandler(IApplicationDbContext dbContext
         {
             Id = Guid.NewGuid(),
             Name = request.Name,
+            NameCs = request.NameCs,
+            NameEn = request.NameEn,
             Icon = request.Icon,
             SortOrder = request.SortOrder,
             IsActive = true,
@@ -62,7 +64,7 @@ public sealed class CreateTaskTypeCommandHandler(IApplicationDbContext dbContext
 }
 
 // UPDATE
-public sealed record UpdateTaskTypeCommand(Guid Id, string Name, string? Icon, int SortOrder, bool IsActive) : IRequest, IRequireRole
+public sealed record UpdateTaskTypeCommand(Guid Id, string Name, string? NameCs, string? NameEn, string? Icon, int SortOrder, bool IsActive) : IRequest, IRequireRole
 {
     public string RequiredRole => "Admin";
 }
@@ -86,6 +88,8 @@ public sealed class UpdateTaskTypeCommandHandler(IApplicationDbContext dbContext
             ?? throw new NotFoundException(nameof(TaskType), request.Id);
 
         entity.Name = request.Name;
+        entity.NameCs = request.NameCs;
+        entity.NameEn = request.NameEn;
         entity.Icon = request.Icon;
         entity.SortOrder = request.SortOrder;
         entity.IsActive = request.IsActive;

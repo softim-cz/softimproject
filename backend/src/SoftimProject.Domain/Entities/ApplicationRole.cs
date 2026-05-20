@@ -5,6 +5,8 @@ namespace SoftimProject.Domain.Entities;
 public class ApplicationRole : BaseEntity
 {
     public string Name { get; set; } = string.Empty;
+    public string? NameCs { get; set; }
+    public string? NameEn { get; set; }
     public string? Description { get; set; }
     public int SortOrder { get; set; }
 
