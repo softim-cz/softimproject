@@ -756,6 +756,119 @@
       "ticketPriorities": "Priorities"
     }
   },
+  "Lookups": {
+    "pageTitle": "Lookups",
+    "pageSubtitle": "Manage configurable lookup tables used across the application",
+    "tabCompanies": "Companies",
+    "tabProjectTypes": "Project Types",
+    "tabProjectStates": "Project States",
+    "tabTaskTypes": "Task Types",
+    "tabAppRoles": "App Roles",
+    "tabCustomFields": "Custom Fields",
+    "tabTemplates": "Templates",
+    "common": {
+      "name": "Name",
+      "namePlaceholder": "Enter name",
+      "description": "Description",
+      "descriptionPlaceholder": "Optional description",
+      "color": "Color",
+      "icon": "Icon",
+      "iconPlaceholder": "e.g. 🔥",
+      "sortOrder": "Order",
+      "isActive": "Active",
+      "isClosed": "Closed state",
+      "isDefault": "Default",
+      "add": "Add",
+      "edit": "Edit",
+      "delete": "Delete",
+      "save": "Save",
+      "cancel": "Cancel",
+      "saving": "Saving...",
+      "creating": "Creating...",
+      "actions": "Actions",
+      "created": "Created",
+      "updated": "Updated",
+      "deleted": "Deleted",
+      "createFailed": "Failed to create",
+      "updateFailed": "Failed to update",
+      "deleteFailed": "Failed to delete",
+      "deleteConfirm": "Are you sure you want to delete this item?",
+      "empty": "No items",
+      "loadFailed": "Failed to load"
+    },
+    "company": {
+      "title": "Companies / Customers",
+      "newCompany": "New company",
+      "namePlaceholder": "Company name"
+    },
+    "projectType": {
+      "title": "Project Types",
+      "newType": "New project type"
+    },
+    "projectState": {
+      "title": "Project States",
+      "newState": "New project state",
+      "color": "Color"
+    },
+    "taskType": {
+      "title": "Task Types",
+      "newType": "New task type"
+    },
+    "taskState": {
+      "title": "Task States",
+      "newState": "New task state",
+      "isClosed": "Closed state (counts as done)"
+    },
+    "appRole": {
+      "title": "Application Roles",
+      "newRole": "New role",
+      "namePlaceholder": "Role name",
+      "permissions": "Permissions",
+      "projects": "Projects",
+      "timeTracking": "Time tracking",
+      "reports": "Reports",
+      "create": "Create",
+      "read": "Read",
+      "update": "Update",
+      "delete": "Delete"
+    },
+    "customField": {
+      "title": "Custom Fields",
+      "newField": "New field",
+      "fieldType": "Field type",
+      "fieldKey": "Field key",
+      "fieldLabel": "Label",
+      "required": "Required",
+      "options": "Options (JSON array)",
+      "optionsPlaceholder": "[\"a\", \"b\", \"c\"]",
+      "appliesTo": "Applies to",
+      "appliesToProject": "Projects",
+      "appliesToTicket": "Tickets",
+      "types": {
+        "Text": "Text",
+        "Number": "Number",
+        "Date": "Date",
+        "Select": "Select",
+        "Boolean": "Boolean"
+      }
+    },
+    "template": {
+      "title": "Project Templates",
+      "newTemplate": "New template",
+      "duplicate": "Duplicate",
+      "duplicated": "Template duplicated",
+      "duplicateFailed": "Duplication failed",
+      "expandTemplate": "Expand template detail",
+      "taskStates": "Task states",
+      "ticketPriorities": "Ticket priorities",
+      "addTaskState": "Add state",
+      "addPriority": "Add priority"
+    },
+    "priority": {
+      "title": "Priorities",
+      "newPriority": "New priority"
+    }
+  },
   "Errors": {
     "generic": "Something went wrong",
     "notFound": "Not found",

@@ -756,6 +756,119 @@
       "ticketPriorities": "Priority"
     }
   },
+  "Lookups": {
+    "pageTitle": "Číselníky",
+    "pageSubtitle": "Správa konfigurovatelných číselníků používaných v celé aplikaci",
+    "tabCompanies": "Firmy",
+    "tabProjectTypes": "Typy projektů",
+    "tabProjectStates": "Stavy projektů",
+    "tabTaskTypes": "Typy úkolů",
+    "tabAppRoles": "Aplikační role",
+    "tabCustomFields": "Vlastní pole",
+    "tabTemplates": "Šablony",
+    "common": {
+      "name": "Název",
+      "namePlaceholder": "Zadejte název",
+      "description": "Popis",
+      "descriptionPlaceholder": "Volitelný popis",
+      "color": "Barva",
+      "icon": "Ikona",
+      "iconPlaceholder": "např. 🔥",
+      "sortOrder": "Pořadí",
+      "isActive": "Aktivní",
+      "isClosed": "Uzavřený stav",
+      "isDefault": "Výchozí",
+      "add": "Přidat",
+      "edit": "Upravit",
+      "delete": "Smazat",
+      "save": "Uložit",
+      "cancel": "Zrušit",
+      "saving": "Ukládám...",
+      "creating": "Vytvářím...",
+      "actions": "Akce",
+      "created": "Vytvořeno",
+      "updated": "Aktualizováno",
+      "deleted": "Smazáno",
+      "createFailed": "Vytvoření se nezdařilo",
+      "updateFailed": "Aktualizace se nezdařila",
+      "deleteFailed": "Smazání se nezdařilo",
+      "deleteConfirm": "Opravdu chcete smazat tuto položku?",
+      "empty": "Žádné položky",
+      "loadFailed": "Načtení se nezdařilo"
+    },
+    "company": {
+      "title": "Firmy / Zákazníci",
+      "newCompany": "Nová firma",
+      "namePlaceholder": "Název firmy"
+    },
+    "projectType": {
+      "title": "Typy projektů",
+      "newType": "Nový typ projektu"
+    },
+    "projectState": {
+      "title": "Stavy projektů",
+      "newState": "Nový stav projektu",
+      "color": "Barva"
+    },
+    "taskType": {
+      "title": "Typy úkolů",
+      "newType": "Nový typ úkolu"
+    },
+    "taskState": {
+      "title": "Stavy úkolů",
+      "newState": "Nový stav úkolu",
+      "isClosed": "Uzavřený stav (počítá se jako dokončený)"
+    },
+    "appRole": {
+      "title": "Aplikační role",
+      "newRole": "Nová role",
+      "namePlaceholder": "Název role",
+      "permissions": "Oprávnění",
+      "projects": "Projekty",
+      "timeTracking": "Sledování času",
+      "reports": "Výkazy",
+      "create": "Vytvořit",
+      "read": "Číst",
+      "update": "Upravit",
+      "delete": "Smazat"
+    },
+    "customField": {
+      "title": "Vlastní pole",
+      "newField": "Nové pole",
+      "fieldType": "Typ pole",
+      "fieldKey": "Klíč pole",
+      "fieldLabel": "Popisek",
+      "required": "Povinné",
+      "options": "Možnosti (JSON pole)",
+      "optionsPlaceholder": "[\"a\", \"b\", \"c\"]",
+      "appliesTo": "Aplikuje se na",
+      "appliesToProject": "Projekty",
+      "appliesToTicket": "Úkoly",
+      "types": {
+        "Text": "Text",
+        "Number": "Číslo",
+        "Date": "Datum",
+        "Select": "Výběr",
+        "Boolean": "Ano/Ne"
+      }
+    },
+    "template": {
+      "title": "Šablony projektů",
+      "newTemplate": "Nová šablona",
+      "duplicate": "Duplikovat",
+      "duplicated": "Šablona duplikována",
+      "duplicateFailed": "Duplikace se nezdařila",
+      "expandTemplate": "Rozbalit detail šablony",
+      "taskStates": "Stavy úkolů",
+      "ticketPriorities": "Priority úkolů",
+      "addTaskState": "Přidat stav",
+      "addPriority": "Přidat prioritu"
+    },
+    "priority": {
+      "title": "Priority",
+      "newPriority": "Nová priorita"
+    }
+  },
   "Errors": {
     "generic": "Něco se pokazilo",
     "notFound": "Nenalezeno",
