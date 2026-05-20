@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import { cn } from "@/lib/utils";
 import {
   Building2,
@@ -70,21 +71,23 @@ import type {
 } from "@/types";
 import { CustomFieldType } from "@/types";
 
-const tabs = [
-  { key: "companies", label: "Companies", icon: Building2 },
-  { key: "project-types", label: "Project Types", icon: FolderTree },
-  { key: "project-states", label: "Project States", icon: CircleDot },
-  { key: "task-types", label: "Task Types", icon: Tag },
-  { key: "application-roles", label: "App Roles", icon: Shield },
-  { key: "custom-fields", label: "Custom Fields", icon: SlidersHorizontal },
-  { key: "templates", label: "Templates", icon: Copy },
+const tabConfig = [
+  { key: "companies", labelKey: "tabCompanies", icon: Building2 },
+  { key: "project-types", labelKey: "tabProjectTypes", icon: FolderTree },
+  { key: "project-states", labelKey: "tabProjectStates", icon: CircleDot },
+  { key: "task-types", labelKey: "tabTaskTypes", icon: Tag },
+  { key: "application-roles", labelKey: "tabAppRoles", icon: Shield },
+  { key: "custom-fields", labelKey: "tabCustomFields", icon: SlidersHorizontal },
+  { key: "templates", labelKey: "tabTemplates", icon: Copy },
 ] as const;
 
-type TabKey = (typeof tabs)[number]["key"];
+type TabKey = (typeof tabConfig)[number]["key"];
 
 // === Generic inline-edit table for simple lookups ===
 
 function CompaniesTab() {
+  const t = useTranslations("Lookups");
+  const tCommon = useTranslations("Common");
   const { data, isLoading } = useCompanies();
   const createMutation = useCreateCompany();
   const updateMutation = useUpdateCompany();
@@ -94,7 +97,8 @@ function CompaniesTab() {
   const [form, setForm] = useState({ name: "", description: "" });
 
   if (isLoading) return <TableSkeleton rows={4} />;
-  if (!data) return <EmptyState icon={<Building2 className="h-10 w-10" />} title="No companies" />;
+  if (!data)
+    return <EmptyState icon={<Building2 className="h-10 w-10" />} title={t("common.empty")} />;
 
   const startAdd = () => {
     setAdding(true);
@@ -138,7 +142,7 @@ function CompaniesTab() {
           onClick={startAdd}
           className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium bg-accent-orange text-white rounded-lg hover:bg-accent-orange/90"
         >
-          <Plus className="h-4 w-4" /> Add Company
+          <Plus className="h-4 w-4" /> {t("company.newCompany")}
         </button>
       </div>
       <div className="rounded-lg border border-border overflow-hidden">
@@ -146,16 +150,16 @@ function CompaniesTab() {
           <thead>
             <tr className="bg-muted/50">
               <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
-                Name
+                {t("common.name")}
               </th>
               <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
-                Description
+                {t("common.description")}
               </th>
               <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
-                Active
+                {t("common.isActive")}
               </th>
               <th className="px-4 py-3 text-right text-xs font-medium text-muted-foreground uppercase w-24">
-                Actions
+                {t("common.actions")}
               </th>
             </tr>
           </thead>
@@ -167,7 +171,7 @@ function CompaniesTab() {
                     value={form.name}
                     onChange={(e) => setForm({ ...form, name: e.target.value })}
                     className="w-full px-2 py-1 text-sm border rounded"
-                    placeholder="Name"
+                    placeholder={t("common.name")}
                     autoFocus
                   />
                 </td>
@@ -176,10 +180,10 @@ function CompaniesTab() {
                     value={form.description}
                     onChange={(e) => setForm({ ...form, description: e.target.value })}
                     className="w-full px-2 py-1 text-sm border rounded"
-                    placeholder="Description"
+                    placeholder={t("common.description")}
                   />
                 </td>
-                <td className="px-4 py-2 text-sm text-green-600">Yes</td>
+                <td className="px-4 py-2 text-sm text-green-600">{tCommon("yes")}</td>
                 <td className="px-4 py-2 text-right">
                   <button
                     onClick={save}
@@ -214,7 +218,9 @@ function CompaniesTab() {
                       className="w-full px-2 py-1 text-sm border rounded"
                     />
                   </td>
-                  <td className="px-4 py-2 text-sm">{item.isActive ? "Yes" : "No"}</td>
+                  <td className="px-4 py-2 text-sm">
+                    {item.isActive ? tCommon("yes") : tCommon("no")}
+                  </td>
                   <td className="px-4 py-2 text-right">
                     <button
                       onClick={save}
@@ -239,9 +245,9 @@ function CompaniesTab() {
                   </td>
                   <td className="px-4 py-3 text-sm">
                     {item.isActive ? (
-                      <span className="text-green-600">Yes</span>
+                      <span className="text-green-600">{tCommon("yes")}</span>
                     ) : (
-                      <span className="text-muted-foreground">No</span>
+                      <span className="text-muted-foreground">{tCommon("no")}</span>
                     )}
                   </td>
                   <td className="px-4 py-3 text-right">
@@ -269,6 +275,8 @@ function CompaniesTab() {
 }
 
 function ProjectTypesTab() {
+  const t = useTranslations("Lookups");
+  const tCommon = useTranslations("Common");
   const { data, isLoading } = useProjectTypes();
   const createMutation = useCreateProjectType();
   const updateMutation = useUpdateProjectType();
@@ -279,7 +287,7 @@ function ProjectTypesTab() {
 
   if (isLoading) return <TableSkeleton rows={4} />;
   if (!data)
-    return <EmptyState icon={<FolderTree className="h-10 w-10" />} title="No project types" />;
+    return <EmptyState icon={<FolderTree className="h-10 w-10" />} title={t("common.empty")} />;
 
   const startAdd = () => {
     setAdding(true);
@@ -324,7 +332,7 @@ function ProjectTypesTab() {
           onClick={startAdd}
           className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium bg-accent-orange text-white rounded-lg hover:bg-accent-orange/90"
         >
-          <Plus className="h-4 w-4" /> Add Project Type
+          <Plus className="h-4 w-4" /> {t("projectType.newType")}
         </button>
       </div>
       <div className="rounded-lg border border-border overflow-hidden">
@@ -332,19 +340,19 @@ function ProjectTypesTab() {
           <thead>
             <tr className="bg-muted/50">
               <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
-                Name
+                {t("common.name")}
               </th>
               <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
-                Description
+                {t("common.description")}
               </th>
               <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase w-20">
-                Order
+                {t("common.sortOrder")}
               </th>
               <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase w-20">
-                Active
+                {t("common.isActive")}
               </th>
               <th className="px-4 py-3 text-right text-xs font-medium text-muted-foreground uppercase w-24">
-                Actions
+                {t("common.actions")}
               </th>
             </tr>
           </thead>
@@ -356,7 +364,7 @@ function ProjectTypesTab() {
                     value={form.name}
                     onChange={(e) => setForm({ ...form, name: e.target.value })}
                     className="w-full px-2 py-1 text-sm border rounded"
-                    placeholder="Name"
+                    placeholder={t("common.name")}
                     autoFocus
                   />
                 </td>
@@ -365,7 +373,7 @@ function ProjectTypesTab() {
                     value={form.description}
                     onChange={(e) => setForm({ ...form, description: e.target.value })}
                     className="w-full px-2 py-1 text-sm border rounded"
-                    placeholder="Description"
+                    placeholder={t("common.description")}
                   />
                 </td>
                 <td className="px-4 py-2">
@@ -376,7 +384,7 @@ function ProjectTypesTab() {
                     className="w-full px-2 py-1 text-sm border rounded"
                   />
                 </td>
-                <td className="px-4 py-2 text-sm text-green-600">Yes</td>
+                <td className="px-4 py-2 text-sm text-green-600">{tCommon("yes")}</td>
                 <td className="px-4 py-2 text-right">
                   <button
                     onClick={save}
@@ -419,7 +427,9 @@ function ProjectTypesTab() {
                       className="w-full px-2 py-1 text-sm border rounded"
                     />
                   </td>
-                  <td className="px-4 py-2 text-sm">{item.isActive ? "Yes" : "No"}</td>
+                  <td className="px-4 py-2 text-sm">
+                    {item.isActive ? tCommon("yes") : tCommon("no")}
+                  </td>
                   <td className="px-4 py-2 text-right">
                     <button
                       onClick={save}
@@ -445,9 +455,9 @@ function ProjectTypesTab() {
                   <td className="px-4 py-3 text-sm">{item.sortOrder}</td>
                   <td className="px-4 py-3 text-sm">
                     {item.isActive ? (
-                      <span className="text-green-600">Yes</span>
+                      <span className="text-green-600">{tCommon("yes")}</span>
                     ) : (
-                      <span className="text-muted-foreground">No</span>
+                      <span className="text-muted-foreground">{tCommon("no")}</span>
                     )}
                   </td>
                   <td className="px-4 py-3 text-right">
@@ -475,6 +485,8 @@ function ProjectTypesTab() {
 }
 
 function StateTable() {
+  const t = useTranslations("Lookups");
+  const tCommon = useTranslations("Common");
   const { data, isLoading } = useProjectStates();
   const createPS = useCreateProjectState();
   const updatePS = useUpdateProjectState();
@@ -486,7 +498,7 @@ function StateTable() {
 
   if (isLoading) return <TableSkeleton rows={4} />;
   if (!data)
-    return <EmptyState icon={<CircleDot className="h-10 w-10" />} title="No project states" />;
+    return <EmptyState icon={<CircleDot className="h-10 w-10" />} title={t("common.empty")} />;
 
   const startAdd = () => {
     setAdding(true);
@@ -541,7 +553,7 @@ function StateTable() {
           onClick={startAdd}
           className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium bg-accent-orange text-white rounded-lg hover:bg-accent-orange/90"
         >
-          <Plus className="h-4 w-4" /> Add Project State
+          <Plus className="h-4 w-4" /> {t("projectState.newState")}
         </button>
       </div>
       <div className="rounded-lg border border-border overflow-hidden">
@@ -549,22 +561,22 @@ function StateTable() {
           <thead>
             <tr className="bg-muted/50">
               <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
-                Color
+                {t("common.color")}
               </th>
               <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
-                Name
+                {t("common.name")}
               </th>
               <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase w-20">
-                Order
+                {t("common.sortOrder")}
               </th>
               <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase w-20">
-                Default
+                {t("common.isDefault")}
               </th>
               <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase w-20">
-                Active
+                {t("common.isActive")}
               </th>
               <th className="px-4 py-3 text-right text-xs font-medium text-muted-foreground uppercase w-24">
-                Actions
+                {t("common.actions")}
               </th>
             </tr>
           </thead>
@@ -584,7 +596,7 @@ function StateTable() {
                     value={form.name}
                     onChange={(e) => setForm({ ...form, name: e.target.value })}
                     className="w-full px-2 py-1 text-sm border rounded"
-                    placeholder="Name"
+                    placeholder={t("common.name")}
                     autoFocus
                   />
                 </td>
@@ -603,7 +615,7 @@ function StateTable() {
                     onChange={(e) => setForm({ ...form, isDefault: e.target.checked })}
                   />
                 </td>
-                <td className="px-4 py-2 text-sm text-green-600">Yes</td>
+                <td className="px-4 py-2 text-sm text-green-600">{tCommon("yes")}</td>
                 <td className="px-4 py-2 text-right">
                   <button
                     onClick={save}
@@ -654,7 +666,9 @@ function StateTable() {
                       onChange={(e) => setForm({ ...form, isDefault: e.target.checked })}
                     />
                   </td>
-                  <td className="px-4 py-2 text-sm">{item.isActive ? "Yes" : "No"}</td>
+                  <td className="px-4 py-2 text-sm">
+                    {item.isActive ? tCommon("yes") : tCommon("no")}
+                  </td>
                   <td className="px-4 py-2 text-right">
                     <button
                       onClick={save}
@@ -686,9 +700,9 @@ function StateTable() {
                   </td>
                   <td className="px-4 py-3 text-sm">
                     {item.isActive ? (
-                      <span className="text-green-600">Yes</span>
+                      <span className="text-green-600">{tCommon("yes")}</span>
                     ) : (
-                      <span className="text-muted-foreground">No</span>
+                      <span className="text-muted-foreground">{tCommon("no")}</span>
                     )}
                   </td>
                   <td className="px-4 py-3 text-right">
@@ -716,6 +730,8 @@ function StateTable() {
 }
 
 function TaskTypesTab() {
+  const t = useTranslations("Lookups");
+  const tCommon = useTranslations("Common");
   const { data, isLoading } = useTaskTypes();
   const createMutation = useCreateTaskType();
   const updateMutation = useUpdateTaskType();
@@ -725,7 +741,7 @@ function TaskTypesTab() {
   const [form, setForm] = useState({ name: "", icon: "", sortOrder: 0 });
 
   if (isLoading) return <TableSkeleton rows={4} />;
-  if (!data) return <EmptyState icon={<Tag className="h-10 w-10" />} title="No task types" />;
+  if (!data) return <EmptyState icon={<Tag className="h-10 w-10" />} title={t("common.empty")} />;
 
   const startAdd = () => {
     setAdding(true);
@@ -770,7 +786,7 @@ function TaskTypesTab() {
           onClick={startAdd}
           className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium bg-accent-orange text-white rounded-lg hover:bg-accent-orange/90"
         >
-          <Plus className="h-4 w-4" /> Add Task Type
+          <Plus className="h-4 w-4" /> {t("taskType.newType")}
         </button>
       </div>
       <div className="rounded-lg border border-border overflow-hidden">
@@ -778,19 +794,19 @@ function TaskTypesTab() {
           <thead>
             <tr className="bg-muted/50">
               <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
-                Name
+                {t("common.name")}
               </th>
               <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
-                Icon
+                {t("common.icon")}
               </th>
               <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase w-20">
-                Order
+                {t("common.sortOrder")}
               </th>
               <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase w-20">
-                Active
+                {t("common.isActive")}
               </th>
               <th className="px-4 py-3 text-right text-xs font-medium text-muted-foreground uppercase w-24">
-                Actions
+                {t("common.actions")}
               </th>
             </tr>
           </thead>
@@ -802,7 +818,7 @@ function TaskTypesTab() {
                     value={form.name}
                     onChange={(e) => setForm({ ...form, name: e.target.value })}
                     className="w-full px-2 py-1 text-sm border rounded"
-                    placeholder="Name"
+                    placeholder={t("common.name")}
                     autoFocus
                   />
                 </td>
@@ -811,7 +827,7 @@ function TaskTypesTab() {
                     value={form.icon}
                     onChange={(e) => setForm({ ...form, icon: e.target.value })}
                     className="w-full px-2 py-1 text-sm border rounded"
-                    placeholder="e.g. Bug, Feature"
+                    placeholder={t("common.iconPlaceholder")}
                   />
                 </td>
                 <td className="px-4 py-2">
@@ -822,7 +838,7 @@ function TaskTypesTab() {
                     className="w-full px-2 py-1 text-sm border rounded"
                   />
                 </td>
-                <td className="px-4 py-2 text-sm text-green-600">Yes</td>
+                <td className="px-4 py-2 text-sm text-green-600">{tCommon("yes")}</td>
                 <td className="px-4 py-2 text-right">
                   <button
                     onClick={save}
@@ -865,7 +881,9 @@ function TaskTypesTab() {
                       className="w-full px-2 py-1 text-sm border rounded"
                     />
                   </td>
-                  <td className="px-4 py-2 text-sm">{item.isActive ? "Yes" : "No"}</td>
+                  <td className="px-4 py-2 text-sm">
+                    {item.isActive ? tCommon("yes") : tCommon("no")}
+                  </td>
                   <td className="px-4 py-2 text-right">
                     <button
                       onClick={save}
@@ -889,9 +907,9 @@ function TaskTypesTab() {
                   <td className="px-4 py-3 text-sm">{item.sortOrder}</td>
                   <td className="px-4 py-3 text-sm">
                     {item.isActive ? (
-                      <span className="text-green-600">Yes</span>
+                      <span className="text-green-600">{tCommon("yes")}</span>
                     ) : (
-                      <span className="text-muted-foreground">No</span>
+                      <span className="text-muted-foreground">{tCommon("no")}</span>
                     )}
                   </td>
                   <td className="px-4 py-3 text-right">
@@ -919,6 +937,7 @@ function TaskTypesTab() {
 }
 
 function ApplicationRolesTab() {
+  const t = useTranslations("Lookups");
   const { data, isLoading } = useApplicationRoles();
   const createMutation = useCreateApplicationRole();
   const updateMutation = useUpdateApplicationRole();
@@ -945,10 +964,21 @@ function ApplicationRolesTab() {
 
   if (isLoading) return <TableSkeleton rows={4} />;
   if (!data)
-    return <EmptyState icon={<Shield className="h-10 w-10" />} title="No application roles" />;
+    return <EmptyState icon={<Shield className="h-10 w-10" />} title={t("common.empty")} />;
 
   const areas = ["projects", "timeTracking", "reports"] as const;
   const ops = ["Create", "Read", "Update", "Delete"] as const;
+  const opLabelKey = {
+    Create: "appRole.create",
+    Read: "appRole.read",
+    Update: "appRole.update",
+    Delete: "appRole.delete",
+  } as const;
+  const areaLabelKey = {
+    projects: "appRole.projects",
+    timeTracking: "appRole.timeTracking",
+    reports: "appRole.reports",
+  } as const;
 
   const startAdd = () => {
     setAdding(true);
@@ -1017,7 +1047,7 @@ function ApplicationRolesTab() {
           onClick={startAdd}
           className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium bg-accent-orange text-white rounded-lg hover:bg-accent-orange/90"
         >
-          <Plus className="h-4 w-4" /> Add Role
+          <Plus className="h-4 w-4" /> {t("appRole.newRole")}
         </button>
       </div>
 
@@ -1025,7 +1055,9 @@ function ApplicationRolesTab() {
         <div className="mb-4 p-4 rounded-lg border border-border bg-card space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             <div>
-              <label className="block text-xs font-medium text-muted-foreground mb-1">Name</label>
+              <label className="block text-xs font-medium text-muted-foreground mb-1">
+                {t("common.name")}
+              </label>
               <input
                 value={form.name}
                 onChange={(e) => setForm({ ...form, name: e.target.value })}
@@ -1035,7 +1067,7 @@ function ApplicationRolesTab() {
             </div>
             <div>
               <label className="block text-xs font-medium text-muted-foreground mb-1">
-                Description
+                {t("common.description")}
               </label>
               <input
                 value={form.description}
@@ -1045,7 +1077,7 @@ function ApplicationRolesTab() {
             </div>
             <div>
               <label className="block text-xs font-medium text-muted-foreground mb-1">
-                Sort Order
+                {t("common.sortOrder")}
               </label>
               <input
                 type="number"
@@ -1057,20 +1089,22 @@ function ApplicationRolesTab() {
           </div>
 
           <div>
-            <p className="text-xs font-medium text-muted-foreground mb-2">Permissions</p>
+            <p className="text-xs font-medium text-muted-foreground mb-2">
+              {t("appRole.permissions")}
+            </p>
             <div className="rounded-lg border border-border overflow-hidden">
               <table className="w-full">
                 <thead>
                   <tr className="bg-muted/50">
                     <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground uppercase">
-                      Area
+                      {t("appRole.permissions")}
                     </th>
                     {ops.map((op) => (
                       <th
                         key={op}
                         className="px-3 py-2 text-center text-xs font-medium text-muted-foreground uppercase"
                       >
-                        {op}
+                        {t(opLabelKey[op])}
                       </th>
                     ))}
                   </tr>
@@ -1078,9 +1112,7 @@ function ApplicationRolesTab() {
                 <tbody className="divide-y divide-border">
                   {areas.map((area) => (
                     <tr key={area}>
-                      <td className="px-3 py-2 text-sm font-medium capitalize">
-                        {area === "timeTracking" ? "Time Tracking" : area}
-                      </td>
+                      <td className="px-3 py-2 text-sm font-medium">{t(areaLabelKey[area])}</td>
                       {ops.map((op) => {
                         const key = `${area}${op}` as keyof typeof emptyPerms;
                         return (
@@ -1105,14 +1137,14 @@ function ApplicationRolesTab() {
               onClick={cancel}
               className="px-3 py-1.5 text-sm font-medium text-muted-foreground hover:bg-muted/50 rounded-lg"
             >
-              Cancel
+              {t("common.cancel")}
             </button>
             <button
               onClick={save}
               disabled={!form.name}
               className="px-3 py-1.5 text-sm font-medium bg-accent-orange text-white rounded-lg hover:bg-accent-orange/90 disabled:opacity-30"
             >
-              Save
+              {t("common.save")}
             </button>
           </div>
         </div>
@@ -1123,22 +1155,22 @@ function ApplicationRolesTab() {
           <thead>
             <tr className="bg-muted/50">
               <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
-                Name
+                {t("common.name")}
               </th>
               <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
-                Description
+                {t("common.description")}
               </th>
               <th className="px-4 py-3 text-center text-xs font-medium text-muted-foreground uppercase">
-                Projects
+                {t("appRole.projects")}
               </th>
               <th className="px-4 py-3 text-center text-xs font-medium text-muted-foreground uppercase">
-                Time
+                {t("appRole.timeTracking")}
               </th>
               <th className="px-4 py-3 text-center text-xs font-medium text-muted-foreground uppercase">
-                Reports
+                {t("appRole.reports")}
               </th>
               <th className="px-4 py-3 text-right text-xs font-medium text-muted-foreground uppercase w-24">
-                Actions
+                {t("common.actions")}
               </th>
             </tr>
           </thead>
@@ -1203,6 +1235,8 @@ function ApplicationRolesTab() {
 }
 
 function CustomFieldDefinitionsTab() {
+  const t = useTranslations("Lookups");
+  const tCommon = useTranslations("Common");
   const { data, isLoading } = useCustomFieldDefinitions();
   const createMutation = useCreateCustomFieldDefinition();
   const updateMutation = useUpdateCustomFieldDefinition();
@@ -1221,7 +1255,7 @@ function CustomFieldDefinitionsTab() {
   if (isLoading) return <TableSkeleton rows={4} />;
   if (!data)
     return (
-      <EmptyState icon={<SlidersHorizontal className="h-10 w-10" />} title="No custom fields" />
+      <EmptyState icon={<SlidersHorizontal className="h-10 w-10" />} title={t("common.empty")} />
     );
 
   const startAdd = () => {
@@ -1289,7 +1323,7 @@ function CustomFieldDefinitionsTab() {
           onClick={startAdd}
           className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium bg-accent-orange text-white rounded-lg hover:bg-accent-orange/90"
         >
-          <Plus className="h-4 w-4" /> Add Custom Field
+          <Plus className="h-4 w-4" /> {t("customField.newField")}
         </button>
       </div>
       <div className="rounded-lg border border-border overflow-hidden">
@@ -1297,28 +1331,28 @@ function CustomFieldDefinitionsTab() {
           <thead>
             <tr className="bg-muted/50">
               <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
-                Name
+                {t("common.name")}
               </th>
               <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
-                Description
+                {t("common.description")}
               </th>
               <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase w-24">
-                Type
+                {t("customField.fieldType")}
               </th>
               <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase w-20">
-                Req.
+                {t("customField.required")}
               </th>
               <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
-                Options
+                {t("customField.options")}
               </th>
               <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase w-20">
-                Order
+                {t("common.sortOrder")}
               </th>
               <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase w-20">
-                Active
+                {t("common.isActive")}
               </th>
               <th className="px-4 py-3 text-right text-xs font-medium text-muted-foreground uppercase w-24">
-                Actions
+                {t("common.actions")}
               </th>
             </tr>
           </thead>
@@ -1330,7 +1364,7 @@ function CustomFieldDefinitionsTab() {
                     value={form.name}
                     onChange={(e) => setForm({ ...form, name: e.target.value })}
                     className="w-full px-2 py-1 text-sm border rounded"
-                    placeholder="Name"
+                    placeholder={t("common.name")}
                     autoFocus
                   />
                 </td>
@@ -1339,7 +1373,7 @@ function CustomFieldDefinitionsTab() {
                     value={form.description}
                     onChange={(e) => setForm({ ...form, description: e.target.value })}
                     className="w-full px-2 py-1 text-sm border rounded"
-                    placeholder="Description"
+                    placeholder={t("common.description")}
                   />
                 </td>
                 <td className="px-4 py-2">
@@ -1350,7 +1384,7 @@ function CustomFieldDefinitionsTab() {
                   >
                     {fieldTypeOptions.map((ft) => (
                       <option key={ft} value={ft}>
-                        {ft}
+                        {t(`customField.types.${ft}` as "customField.types.Text")}
                       </option>
                     ))}
                   </select>
@@ -1367,7 +1401,7 @@ function CustomFieldDefinitionsTab() {
                     value={form.options}
                     onChange={(e) => setForm({ ...form, options: e.target.value })}
                     className="w-full px-2 py-1 text-sm border rounded"
-                    placeholder='["A","B"]'
+                    placeholder={t("customField.optionsPlaceholder")}
                     disabled={form.fieldType !== "Select"}
                   />
                 </td>
@@ -1379,7 +1413,7 @@ function CustomFieldDefinitionsTab() {
                     className="w-full px-2 py-1 text-sm border rounded"
                   />
                 </td>
-                <td className="px-4 py-2 text-sm text-green-600">Yes</td>
+                <td className="px-4 py-2 text-sm text-green-600">{tCommon("yes")}</td>
                 <td className="px-4 py-2 text-right">
                   <button
                     onClick={save}
@@ -1422,7 +1456,7 @@ function CustomFieldDefinitionsTab() {
                     >
                       {fieldTypeOptions.map((ft) => (
                         <option key={ft} value={ft}>
-                          {ft}
+                          {t(`customField.types.${ft}` as "customField.types.Text")}
                         </option>
                       ))}
                     </select>
@@ -1450,7 +1484,9 @@ function CustomFieldDefinitionsTab() {
                       className="w-full px-2 py-1 text-sm border rounded"
                     />
                   </td>
-                  <td className="px-4 py-2 text-sm">{item.isActive ? "Yes" : "No"}</td>
+                  <td className="px-4 py-2 text-sm">
+                    {item.isActive ? tCommon("yes") : tCommon("no")}
+                  </td>
                   <td className="px-4 py-2 text-right">
                     <button
                       onClick={save}
@@ -1473,7 +1509,9 @@ function CustomFieldDefinitionsTab() {
                   <td className="px-4 py-3 text-sm text-muted-foreground">
                     {item.description || "—"}
                   </td>
-                  <td className="px-4 py-3 text-sm">{item.fieldType}</td>
+                  <td className="px-4 py-3 text-sm">
+                    {t(`customField.types.${item.fieldType}` as "customField.types.Text")}
+                  </td>
                   <td className="px-4 py-3 text-sm">
                     {item.isRequired ? <Check className="h-4 w-4 text-green-600" /> : null}
                   </td>
@@ -1483,9 +1521,9 @@ function CustomFieldDefinitionsTab() {
                   <td className="px-4 py-3 text-sm">{item.sortOrder}</td>
                   <td className="px-4 py-3 text-sm">
                     {item.isActive ? (
-                      <span className="text-green-600">Yes</span>
+                      <span className="text-green-600">{tCommon("yes")}</span>
                     ) : (
-                      <span className="text-muted-foreground">No</span>
+                      <span className="text-muted-foreground">{tCommon("no")}</span>
                     )}
                   </td>
                   <td className="px-4 py-3 text-right">
@@ -1521,6 +1559,7 @@ function TemplateTaskStatesSection({
   templateId: string;
   taskStates: TaskState[];
 }) {
+  const t = useTranslations("Lookups");
   const createTS = useCreateTaskState();
   const updateTS = useUpdateTaskState();
   const deleteTS = useDeleteTaskState();
@@ -1590,12 +1629,14 @@ function TemplateTaskStatesSection({
   return (
     <div>
       <div className="flex items-center justify-between mb-2">
-        <p className="text-xs font-medium text-muted-foreground uppercase">Task States</p>
+        <p className="text-xs font-medium text-muted-foreground uppercase">
+          {t("template.taskStates")}
+        </p>
         <button
           onClick={startAdd}
           className="flex items-center gap-1 px-2 py-1 text-xs font-medium text-accent-orange hover:bg-accent-orange/10 rounded"
         >
-          <Plus className="h-3 w-3" /> Add
+          <Plus className="h-3 w-3" /> {t("template.addTaskState")}
         </button>
       </div>
       <div className="rounded-lg border border-border overflow-hidden">
@@ -1603,22 +1644,22 @@ function TemplateTaskStatesSection({
           <thead>
             <tr className="bg-muted/50">
               <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground uppercase">
-                Color
+                {t("common.color")}
               </th>
               <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground uppercase">
-                Name
+                {t("common.name")}
               </th>
               <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground uppercase w-16">
-                Order
+                {t("common.sortOrder")}
               </th>
               <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground uppercase w-16">
-                Def.
+                {t("common.isDefault")}
               </th>
               <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground uppercase w-16">
-                Closed
+                {t("common.isClosed")}
               </th>
               <th className="px-3 py-2 text-right text-xs font-medium text-muted-foreground uppercase w-20">
-                Actions
+                {t("common.actions")}
               </th>
             </tr>
           </thead>
@@ -1638,7 +1679,7 @@ function TemplateTaskStatesSection({
                     value={form.name}
                     onChange={(e) => setForm({ ...form, name: e.target.value })}
                     className="w-full px-2 py-1 text-xs border rounded"
-                    placeholder="Name"
+                    placeholder={t("common.name")}
                     autoFocus
                   />
                 </td>
@@ -1684,7 +1725,7 @@ function TemplateTaskStatesSection({
             {taskStates.length === 0 && !adding && (
               <tr>
                 <td colSpan={6} className="px-3 py-3 text-xs text-center text-muted-foreground">
-                  No task states yet
+                  {t("common.empty")}
                 </td>
               </tr>
             )}
@@ -1791,6 +1832,7 @@ function TemplateTicketPrioritiesSection({
   templateId: string;
   ticketPriorities: TicketPriorityLookup[];
 }) {
+  const t = useTranslations("Lookups");
   const createTP = useCreateTicketPriority();
   const updateTP = useUpdateTicketPriority();
   const deleteTP = useDeleteTicketPriority();
@@ -1850,12 +1892,14 @@ function TemplateTicketPrioritiesSection({
   return (
     <div>
       <div className="flex items-center justify-between mb-2">
-        <p className="text-xs font-medium text-muted-foreground uppercase">Ticket Priorities</p>
+        <p className="text-xs font-medium text-muted-foreground uppercase">
+          {t("template.ticketPriorities")}
+        </p>
         <button
           onClick={startAdd}
           className="flex items-center gap-1 px-2 py-1 text-xs font-medium text-accent-orange hover:bg-accent-orange/10 rounded"
         >
-          <Plus className="h-3 w-3" /> Add
+          <Plus className="h-3 w-3" /> {t("template.addPriority")}
         </button>
       </div>
       <div className="rounded-lg border border-border overflow-hidden">
@@ -1863,19 +1907,19 @@ function TemplateTicketPrioritiesSection({
           <thead>
             <tr className="bg-muted/50">
               <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground uppercase">
-                Color
+                {t("common.color")}
               </th>
               <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground uppercase">
-                Name
+                {t("common.name")}
               </th>
               <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground uppercase w-16">
-                Order
+                {t("common.sortOrder")}
               </th>
               <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground uppercase w-16">
-                Def.
+                {t("common.isDefault")}
               </th>
               <th className="px-3 py-2 text-right text-xs font-medium text-muted-foreground uppercase w-20">
-                Actions
+                {t("common.actions")}
               </th>
             </tr>
           </thead>
@@ -1895,7 +1939,7 @@ function TemplateTicketPrioritiesSection({
                     value={form.name}
                     onChange={(e) => setForm({ ...form, name: e.target.value })}
                     className="w-full px-2 py-1 text-xs border rounded"
-                    placeholder="Name"
+                    placeholder={t("common.name")}
                     autoFocus
                   />
                 </td>
@@ -1934,7 +1978,7 @@ function TemplateTicketPrioritiesSection({
             {ticketPriorities.length === 0 && !adding && (
               <tr>
                 <td colSpan={5} className="px-3 py-3 text-xs text-center text-muted-foreground">
-                  No ticket priorities yet
+                  {t("common.empty")}
                 </td>
               </tr>
             )}
@@ -2025,6 +2069,7 @@ function TemplateTicketPrioritiesSection({
 }
 
 function ProjectTemplatesTab() {
+  const t = useTranslations("Lookups");
   const { data, isLoading } = useProjectTemplates();
   const { data: fieldDefs } = useCustomFieldDefinitions();
   const createMutation = useCreateProjectTemplate();
@@ -2044,7 +2089,7 @@ function ProjectTemplatesTab() {
   const [duplicatingId, setDuplicatingId] = useState<string | null>(null);
 
   if (isLoading) return <TableSkeleton rows={4} />;
-  if (!data) return <EmptyState icon={<Copy className="h-10 w-10" />} title="No templates" />;
+  if (!data) return <EmptyState icon={<Copy className="h-10 w-10" />} title={t("common.empty")} />;
 
   const activeFields = fieldDefs?.filter((f) => f.isActive) || [];
 
@@ -2113,7 +2158,7 @@ function ProjectTemplatesTab() {
           onClick={startAdd}
           className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium bg-accent-orange text-white rounded-lg hover:bg-accent-orange/90"
         >
-          <Plus className="h-4 w-4" /> Add Template
+          <Plus className="h-4 w-4" /> {t("template.newTemplate")}
         </button>
       </div>
 
@@ -2121,7 +2166,9 @@ function ProjectTemplatesTab() {
         <div className="mb-4 p-4 rounded-lg border border-border bg-card space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-medium text-muted-foreground mb-1">Name</label>
+              <label className="block text-xs font-medium text-muted-foreground mb-1">
+                {t("common.name")}
+              </label>
               <input
                 value={form.name}
                 onChange={(e) => setForm({ ...form, name: e.target.value })}
@@ -2131,7 +2178,7 @@ function ProjectTemplatesTab() {
             </div>
             <div>
               <label className="block text-xs font-medium text-muted-foreground mb-1">
-                Description
+                {t("common.description")}
               </label>
               <input
                 value={form.description}
@@ -2143,7 +2190,9 @@ function ProjectTemplatesTab() {
 
           {activeFields.length > 0 && (
             <div>
-              <p className="text-xs font-medium text-muted-foreground mb-2">Custom Fields</p>
+              <p className="text-xs font-medium text-muted-foreground mb-2">
+                {t("customField.title")}
+              </p>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                 {activeFields.map((field) => (
                   <label
@@ -2169,14 +2218,14 @@ function ProjectTemplatesTab() {
               onClick={cancel}
               className="px-3 py-1.5 text-sm font-medium text-muted-foreground hover:bg-muted/50 rounded-lg"
             >
-              Cancel
+              {t("common.cancel")}
             </button>
             <button
               onClick={save}
               disabled={!form.name}
               className="px-3 py-1.5 text-sm font-medium bg-accent-orange text-white rounded-lg hover:bg-accent-orange/90 disabled:opacity-30"
             >
-              Save
+              {t("common.save")}
             </button>
           </div>
         </div>
@@ -2190,6 +2239,7 @@ function ProjectTemplatesTab() {
               <button
                 onClick={() => setExpandedId(expandedId === item.id ? null : item.id)}
                 className="text-muted-foreground hover:text-foreground"
+                title={t("template.expandTemplate")}
               >
                 {expandedId === item.id ? (
                   <ChevronDown className="h-4 w-4" />
@@ -2200,25 +2250,25 @@ function ProjectTemplatesTab() {
               <span className="flex-1 text-sm font-medium">{item.name}</span>
               <span className="text-xs text-muted-foreground">{item.description || ""}</span>
               <span className="text-xs text-muted-foreground px-2">
-                {item.taskStates.length} states
+                {item.taskStates.length} {t("template.taskStates")}
               </span>
               <span className="text-xs text-muted-foreground px-2">
-                {item.ticketPriorities.length} priorities
+                {item.ticketPriorities.length} {t("template.ticketPriorities")}
               </span>
               <span className="text-xs text-muted-foreground px-2">
-                {item.fields.length} fields
+                {item.fields.length} {t("customField.title")}
               </span>
               <span className="text-xs px-2">
                 {item.isActive ? (
-                  <span className="text-green-600">Active</span>
+                  <span className="text-green-600">{t("common.isActive")}</span>
                 ) : (
-                  <span className="text-muted-foreground">Inactive</span>
+                  <span className="text-muted-foreground">—</span>
                 )}
               </span>
               <button
                 onClick={() => startEdit(item)}
                 className="p-1 text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded"
-                title="Edit"
+                title={t("common.edit")}
               >
                 <Pencil className="h-3.5 w-3.5" />
               </button>
@@ -2228,14 +2278,14 @@ function ProjectTemplatesTab() {
                   setDuplicateName(`${item.name} (Copy)`);
                 }}
                 className="p-1 text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded"
-                title="Duplicate"
+                title={t("template.duplicate")}
               >
                 <Copy className="h-3.5 w-3.5" />
               </button>
               <button
                 onClick={() => deleteMutation.mutate(item.id)}
                 className="p-1 text-muted-foreground hover:text-red-600 hover:bg-red-50 rounded"
-                title="Delete"
+                title={t("common.delete")}
               >
                 <Trash2 className="h-3.5 w-3.5" />
               </button>
@@ -2248,7 +2298,7 @@ function ProjectTemplatesTab() {
                   value={duplicateName}
                   onChange={(e) => setDuplicateName(e.target.value)}
                   className="flex-1 px-2 py-1 text-sm border rounded"
-                  placeholder="New template name"
+                  placeholder={t("template.newTemplate")}
                   autoFocus
                 />
                 <button
@@ -2256,7 +2306,7 @@ function ProjectTemplatesTab() {
                   disabled={!duplicateName.trim() || duplicateMutation.isPending}
                   className="px-3 py-1 text-sm font-medium bg-accent-orange text-white rounded hover:bg-accent-orange/90 disabled:opacity-30"
                 >
-                  {duplicateMutation.isPending ? "..." : "Duplicate"}
+                  {duplicateMutation.isPending ? "..." : t("template.duplicate")}
                 </button>
                 <button
                   onClick={() => {
@@ -2282,7 +2332,7 @@ function ProjectTemplatesTab() {
                 {item.fields.length > 0 && (
                   <div>
                     <p className="text-xs font-medium text-muted-foreground uppercase mb-2">
-                      Custom Fields
+                      {t("customField.title")}
                     </p>
                     <div className="flex flex-wrap gap-1.5">
                       {item.fields.map((f) => (
@@ -2306,20 +2356,18 @@ function ProjectTemplatesTab() {
 }
 
 export default function LookupsPage() {
+  const t = useTranslations("Lookups");
   const [activeTab, setActiveTab] = useState<TabKey>("companies");
 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-foreground">Lookups</h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          Manage configurable lookup tables used across the application
-        </p>
+        <h1 className="text-2xl font-bold text-foreground">{t("pageTitle")}</h1>
+        <p className="text-sm text-muted-foreground mt-1">{t("pageSubtitle")}</p>
       </div>
 
-      {/* Tabs */}
       <div className="flex gap-1 border-b border-border overflow-x-auto">
-        {tabs.map((tab) => (
+        {tabConfig.map((tab) => (
           <button
             key={tab.key}
             onClick={() => setActiveTab(tab.key)}
@@ -2331,7 +2379,7 @@ export default function LookupsPage() {
             )}
           >
             <tab.icon className="h-4 w-4" />
-            {tab.label}
+            {t(tab.labelKey as "tabCompanies")}
           </button>
         ))}
       </div>

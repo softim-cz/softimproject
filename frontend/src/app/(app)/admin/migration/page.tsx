@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import {
   ArrowLeft,
   ArrowRight,
@@ -34,9 +35,12 @@ import { HubConnectionBuilder } from "@microsoft/signalr";
 import { useAuth } from "@/lib/auth/use-auth";
 import type { MigrationProgress } from "@/types";
 
-const STEPS = ["Connection", "Projects", "Lookups", "Users", "Review", "Progress"];
+const STEPS = ["Connection", "Projects", "Lookups", "Users", "Review", "Progress"] as const;
+
+type StepName = (typeof STEPS)[number];
 
 function StepIndicator({ current }: { current: number }) {
+  const t = useTranslations("Migration");
   return (
     <div className="flex items-center gap-2 mb-8">
       {STEPS.map((name, i) => (
@@ -59,7 +63,7 @@ function StepIndicator({ current }: { current: number }) {
               i === current ? "text-foreground" : "text-muted-foreground"
             )}
           >
-            {name}
+            {t(`steps.${name as StepName}`)}
           </span>
           {i < STEPS.length - 1 && <div className="w-8 h-px bg-border hidden sm:block" />}
         </div>
@@ -69,6 +73,7 @@ function StepIndicator({ current }: { current: number }) {
 }
 
 function StepConnection() {
+  const t = useTranslations("Migration");
   const { baseUrl, apiKey, connectionTested, setBaseUrl, setApiKey, setConnectionTested, setStep } =
     useMigrationStore();
   const testConnection = useTestEpConnection();
@@ -87,31 +92,33 @@ function StepConnection() {
   return (
     <div className="max-w-lg space-y-6">
       <div>
-        <h2 className="text-xl font-semibold text-foreground">Connect to EasyProject</h2>
-        <p className="text-sm text-muted-foreground mt-1">
-          Enter your EasyProject instance URL and API key to begin.
-        </p>
+        <h2 className="text-xl font-semibold text-foreground">{t("connection.title")}</h2>
+        <p className="text-sm text-muted-foreground mt-1">{t("connection.subtitle")}</p>
       </div>
 
       <div className="space-y-4">
         <div>
-          <label className="block text-sm font-medium text-foreground mb-1">EasyProject URL</label>
+          <label className="block text-sm font-medium text-foreground mb-1">
+            {t("connection.urlLabel")}
+          </label>
           <input
             type="url"
             value={baseUrl}
             onChange={(e) => setBaseUrl(e.target.value)}
-            placeholder="https://your-company.easyproject.com"
+            placeholder={t("connection.urlPlaceholder")}
             className="w-full px-3 py-2 rounded-lg border border-border bg-card text-sm focus:outline-none focus:ring-2 focus:ring-accent-orange"
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-foreground mb-1">API Key</label>
+          <label className="block text-sm font-medium text-foreground mb-1">
+            {t("connection.apiKeyLabel")}
+          </label>
           <input
             type="password"
             value={apiKey}
             onChange={(e) => setApiKey(e.target.value)}
-            placeholder="Your EasyProject API key"
+            placeholder={t("connection.apiKeyPlaceholder")}
             className="w-full px-3 py-2 rounded-lg border border-border bg-card text-sm focus:outline-none focus:ring-2 focus:ring-accent-orange"
           />
         </div>
@@ -123,27 +130,27 @@ function StepConnection() {
             className="px-4 py-2 bg-accent-orange text-white rounded-lg text-sm font-medium hover:bg-accent-orange/90 disabled:opacity-50 flex items-center gap-2"
           >
             {testConnection.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
-            Test Connection
+            {t("connection.testConnection")}
           </button>
 
           {connectionTested && (
             <span className="flex items-center gap-1 text-sm text-green-600">
               <CheckCircle2 className="h-4 w-4" />
-              Connected
+              {t("connection.connected")}
             </span>
           )}
 
           {testConnection.isError && (
             <span className="flex items-center gap-1 text-sm text-destructive">
               <XCircle className="h-4 w-4" />
-              {testConnection.error?.message || "Connection failed"}
+              {testConnection.error?.message || t("connection.connectionFailed")}
             </span>
           )}
 
           {testConnection.data && !testConnection.data.success && (
             <span className="flex items-center gap-1 text-sm text-destructive">
               <XCircle className="h-4 w-4" />
-              {testConnection.data.error || "Connection failed"}
+              {testConnection.data.error || t("connection.connectionFailed")}
             </span>
           )}
         </div>
@@ -155,7 +162,7 @@ function StepConnection() {
           disabled={!connectionTested}
           className="px-4 py-2 bg-accent-orange text-white rounded-lg text-sm font-medium hover:bg-accent-orange/90 disabled:opacity-50 flex items-center gap-2"
         >
-          Next
+          {t("common.next")}
           <ArrowRight className="h-4 w-4" />
         </button>
       </div>
@@ -164,6 +171,7 @@ function StepConnection() {
 }
 
 function StepProjects() {
+  const t = useTranslations("Migration");
   const {
     baseUrl,
     apiKey,
@@ -239,7 +247,7 @@ function StepProjects() {
     return (
       <div className="flex flex-col items-center gap-4 py-12">
         <Loader2 className="h-6 w-6 animate-spin text-accent-orange" />
-        <p className="text-sm text-muted-foreground">Fetching project list...</p>
+        <p className="text-sm text-muted-foreground">{t("projects.fetchingProjects")}</p>
       </div>
     );
   }
@@ -251,11 +259,8 @@ function StepProjects() {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-xl font-semibold text-foreground">Select Projects to Import</h2>
-        <p className="text-sm text-muted-foreground mt-1">
-          Choose which EasyProject projects to migrate. Already imported projects can be re-imported
-          for incremental updates.
-        </p>
+        <h2 className="text-xl font-semibold text-foreground">{t("projects.title")}</h2>
+        <p className="text-sm text-muted-foreground mt-1">{t("projects.subtitle")}</p>
       </div>
 
       <div className="relative">
@@ -264,7 +269,7 @@ function StepProjects() {
           type="text"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          placeholder="Search projects..."
+          placeholder={t("common.search")}
           className="w-full pl-9 pr-3 py-2 rounded-lg border border-border bg-card text-sm focus:outline-none focus:ring-2 focus:ring-accent-orange"
         />
       </div>
@@ -274,13 +279,13 @@ function StepProjects() {
           onClick={selectAllProjects}
           className="px-3 py-1.5 text-xs font-medium rounded-lg border border-border hover:bg-muted"
         >
-          Select All
+          {t("common.selectAll")}
         </button>
         <button
           onClick={selectNoProjects}
           className="px-3 py-1.5 text-xs font-medium rounded-lg border border-border hover:bg-muted"
         >
-          Select None
+          {t("common.deselectAll")}
         </button>
       </div>
 
@@ -323,7 +328,7 @@ function StepProjects() {
               {p.issueCount === -1 ? (
                 <Loader2 className="h-3 w-3 animate-spin inline" />
               ) : (
-                `${p.issueCount} issues`
+                `${p.issueCount} ${t("projects.ticketCount").toLowerCase()}`
               )}
             </span>
           </label>
@@ -336,14 +341,14 @@ function StepProjects() {
           className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground flex items-center gap-2"
         >
           <ArrowLeft className="h-4 w-4" />
-          Back
+          {t("common.back")}
         </button>
         <button
           onClick={() => setStep(2)}
           disabled={selectedProjectIds.size === 0}
           className="px-4 py-2 bg-accent-orange text-white rounded-lg text-sm font-medium hover:bg-accent-orange/90 disabled:opacity-50 flex items-center gap-2"
         >
-          Next
+          {t("common.next")}
           <ArrowRight className="h-4 w-4" />
         </button>
       </div>
@@ -352,6 +357,7 @@ function StepProjects() {
 }
 
 function StepLookups() {
+  const t = useTranslations("Migration");
   const {
     baseUrl,
     apiKey,
@@ -388,7 +394,7 @@ function StepLookups() {
     return (
       <div className="flex items-center gap-3 text-muted-foreground py-12">
         <Loader2 className="h-5 w-5 animate-spin" />
-        Loading lookups...
+        {t("lookups.fetchingLookups")}
       </div>
     );
   }
@@ -396,31 +402,28 @@ function StepLookups() {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-xl font-semibold text-foreground">Map Lookups</h2>
-        <p className="text-sm text-muted-foreground mt-1">
-          Map EasyProject trackers, statuses, and priorities to ProjectMan equivalents.
-          Auto-suggested mappings are pre-filled.
-        </p>
+        <h2 className="text-xl font-semibold text-foreground">{t("lookups.title")}</h2>
+        <p className="text-sm text-muted-foreground mt-1">{t("lookups.subtitle")}</p>
       </div>
 
       {/* Trackers */}
       <div>
-        <h3 className="text-sm font-semibold text-foreground mb-2">Trackers → Task Types</h3>
+        <h3 className="text-sm font-semibold text-foreground mb-2">{t("lookups.taskTypes")}</h3>
         <div className="space-y-2">
-          {trackerMappings.map((t) => (
+          {trackerMappings.map((tr) => (
             <div
-              key={t.epId}
+              key={tr.epId}
               className="flex items-center gap-3 p-2 rounded-lg border border-border"
             >
-              <span className="text-sm font-medium w-40 shrink-0">{t.epName}</span>
+              <span className="text-sm font-medium w-40 shrink-0">{tr.epName}</span>
               <ArrowRight className="h-4 w-4 text-muted-foreground shrink-0" />
               <select
-                value={trackerSelections[t.epId] ?? ""}
-                onChange={(e) => setTrackerSelection(t.epId, e.target.value || null)}
+                value={trackerSelections[tr.epId] ?? ""}
+                onChange={(e) => setTrackerSelection(tr.epId, e.target.value || null)}
                 className="flex-1 px-2 py-1 rounded border border-border bg-card text-sm"
               >
-                <option value="">(Skip)</option>
-                <option value="__create__">Auto-create: &quot;{t.epName}&quot;</option>
+                <option value="">{t("lookups.selectPlaceholder")}</option>
+                <option value="__create__">Auto-create: &quot;{tr.epName}&quot;</option>
                 {taskTypes
                   ?.filter((tt) => tt.isActive)
                   .map((tt) => (
@@ -436,7 +439,7 @@ function StepLookups() {
 
       {/* Statuses */}
       <div>
-        <h3 className="text-sm font-semibold text-foreground mb-2">Statuses → Task State</h3>
+        <h3 className="text-sm font-semibold text-foreground mb-2">{t("lookups.taskStates")}</h3>
         <div className="space-y-2">
           {statusMappings.map((s) => (
             <div
@@ -455,7 +458,7 @@ function StepLookups() {
                 onChange={(e) => setStatusSelection(s.epId, e.target.value)}
                 className="flex-1 px-2 py-1 rounded border border-border bg-card text-sm"
               >
-                <option value="">(Use default)</option>
+                <option value="">{t("lookups.selectPlaceholder")}</option>
                 <option value="__create__">Auto-create: &quot;{s.epName}&quot;</option>
                 {taskStates
                   ?.filter((ts) => ts.isActive)
@@ -472,7 +475,7 @@ function StepLookups() {
 
       {/* Priorities */}
       <div>
-        <h3 className="text-sm font-semibold text-foreground mb-2">Priorities → Ticket Priority</h3>
+        <h3 className="text-sm font-semibold text-foreground mb-2">{t("lookups.priorities")}</h3>
         <div className="space-y-2">
           {priorityMappings.map((p) => (
             <div
@@ -486,7 +489,7 @@ function StepLookups() {
                 onChange={(e) => setPrioritySelection(p.epId, e.target.value)}
                 className="flex-1 px-2 py-1 rounded border border-border bg-card text-sm"
               >
-                <option value="">(Use default)</option>
+                <option value="">{t("lookups.selectPlaceholder")}</option>
                 <option value="__create__">Auto-create: &quot;{p.epName}&quot;</option>
                 {ticketPriorities
                   ?.filter((tp) => tp.isActive)
@@ -507,13 +510,13 @@ function StepLookups() {
           className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground flex items-center gap-2"
         >
           <ArrowLeft className="h-4 w-4" />
-          Back
+          {t("common.back")}
         </button>
         <button
           onClick={() => setStep(3)}
           className="px-4 py-2 bg-accent-orange text-white rounded-lg text-sm font-medium hover:bg-accent-orange/90 flex items-center gap-2"
         >
-          Next
+          {t("common.next")}
           <ArrowRight className="h-4 w-4" />
         </button>
       </div>
@@ -522,6 +525,7 @@ function StepLookups() {
 }
 
 function StepUsers() {
+  const t = useTranslations("Migration");
   const {
     baseUrl,
     apiKey,
@@ -544,7 +548,7 @@ function StepUsers() {
     return (
       <div className="flex items-center gap-3 text-muted-foreground py-12">
         <Loader2 className="h-5 w-5 animate-spin" />
-        Loading users...
+        {t("users.fetchingUsers")}
       </div>
     );
   }
@@ -552,11 +556,8 @@ function StepUsers() {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-xl font-semibold text-foreground">Map Users</h2>
-        <p className="text-sm text-muted-foreground mt-1">
-          Map EasyProject users to existing ProjectMan users. Users matched by email are shown with
-          a green check. Unmatched users will be created as inactive.
-        </p>
+        <h2 className="text-xl font-semibold text-foreground">{t("users.title")}</h2>
+        <p className="text-sm text-muted-foreground mt-1">{t("users.subtitle")}</p>
       </div>
 
       <div className="space-y-2 max-h-[400px] overflow-y-auto">
@@ -579,8 +580,8 @@ function StepUsers() {
                   onChange={(e) => setUserSelection(u.epId, e.target.value || null)}
                   className="px-2 py-1 rounded border border-border bg-card text-sm min-w-[200px]"
                 >
-                  <option value="">Create as inactive</option>
-                  <option value="skip">Skip (use admin)</option>
+                  <option value="">{t("users.selectUser")}</option>
+                  <option value="skip">{t("users.skipUser")}</option>
                 </select>
               )}
             </div>
@@ -594,13 +595,13 @@ function StepUsers() {
           className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground flex items-center gap-2"
         >
           <ArrowLeft className="h-4 w-4" />
-          Back
+          {t("common.back")}
         </button>
         <button
           onClick={() => setStep(4)}
           className="px-4 py-2 bg-accent-orange text-white rounded-lg text-sm font-medium hover:bg-accent-orange/90 flex items-center gap-2"
         >
-          Next
+          {t("common.next")}
           <ArrowRight className="h-4 w-4" />
         </button>
       </div>
@@ -609,6 +610,7 @@ function StepUsers() {
 }
 
 function StepReview() {
+  const t = useTranslations("Migration");
   const store = useMigrationStore();
   const startMigration = useStartMigration();
 
@@ -680,31 +682,29 @@ function StepReview() {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-xl font-semibold text-foreground">Review & Start</h2>
-        <p className="text-sm text-muted-foreground mt-1">
-          Review your migration settings before starting.
-        </p>
+        <h2 className="text-xl font-semibold text-foreground">{t("review.title")}</h2>
+        <p className="text-sm text-muted-foreground mt-1">{t("review.subtitle")}</p>
       </div>
 
       {/* Summary cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div className="rounded-lg border border-border p-4 text-center">
           <p className="text-2xl font-bold text-foreground">{selectedProjects.length}</p>
-          <p className="text-xs text-muted-foreground">Projects</p>
+          <p className="text-xs text-muted-foreground">{t("review.selectedProjects")}</p>
         </div>
         <div className="rounded-lg border border-border p-4 text-center">
           <p className="text-2xl font-bold text-foreground">{totalIssues}</p>
-          <p className="text-xs text-muted-foreground">Issues (approx)</p>
+          <p className="text-xs text-muted-foreground">{t("review.selectedTicketCount")}</p>
         </div>
         <div className="rounded-lg border border-border p-4 text-center">
           <p className="text-2xl font-bold text-foreground">{store.trackerMappings.length}</p>
-          <p className="text-xs text-muted-foreground">Tracker Mappings</p>
+          <p className="text-xs text-muted-foreground">{t("review.lookupMappings")}</p>
         </div>
         <div className="rounded-lg border border-border p-4 text-center">
           <p className="text-2xl font-bold text-foreground">
             {store.userMappings.filter((u) => u.matchedUserId).length}/{store.userMappings.length}
           </p>
-          <p className="text-xs text-muted-foreground">Users Matched</p>
+          <p className="text-xs text-muted-foreground">{t("review.userMappings")}</p>
         </div>
       </div>
 
@@ -737,7 +737,7 @@ function StepReview() {
           className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground flex items-center gap-2"
         >
           <ArrowLeft className="h-4 w-4" />
-          Back
+          {t("common.back")}
         </button>
         <button
           onClick={handleStart}
@@ -746,7 +746,7 @@ function StepReview() {
         >
           {startMigration.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
           <Download className="h-4 w-4" />
-          Start Migration
+          {startMigration.isPending ? t("review.starting") : t("review.startMigration")}
         </button>
       </div>
     </div>
@@ -754,6 +754,7 @@ function StepReview() {
 }
 
 function StepProgress() {
+  const t = useTranslations("Migration");
   const { activeJobId, reset, importComments, importWorklogs, skipAttachments } =
     useMigrationStore();
   const { data: progress } = useMigrationProgress(activeJobId);
@@ -814,13 +815,13 @@ function StepProgress() {
     { label: string; enabled: boolean; total: number; done: number }
   > = {
     projects: {
-      label: "Projects",
+      label: t("steps.Projects"),
       enabled: true,
       total: p?.projectsTotal ?? 0,
       done: p?.projectsMigrated ?? 0,
     },
     tickets: {
-      label: "Tickets",
+      label: t("projects.ticketCount"),
       enabled: true,
       total: p?.ticketsTotal ?? 0,
       done: p?.ticketsMigrated ?? 0,
@@ -872,19 +873,29 @@ function StepProgress() {
     return "pending";
   };
 
+  const titleText = isFinished
+    ? p?.status === "Failed"
+      ? t("progress.failed")
+      : p?.status === "Cancelled"
+        ? t("progress.cancelled")
+        : p?.status === "CompletedWithErrors"
+          ? t("progress.partial")
+          : t("progress.succeeded")
+    : t("progress.running");
+
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-xl font-semibold text-foreground">
-          Migration {isFinished ? "Complete" : "in Progress"}
-        </h2>
-        <p className="text-sm text-muted-foreground mt-1">{p?.currentPhase ?? "Initializing..."}</p>
+        <h2 className="text-xl font-semibold text-foreground">{titleText}</h2>
+        <p className="text-sm text-muted-foreground mt-1">
+          {p?.currentPhase ?? t("common.loading")}
+        </p>
       </div>
 
       {/* Overall progress */}
       <div>
         <div className="flex justify-between text-sm mb-1">
-          <span className="text-muted-foreground">Overall Progress</span>
+          <span className="text-muted-foreground">{t("progress.title")}</span>
           <span className="font-medium text-foreground">{p?.overallPercent ?? 0}%</span>
         </div>
         <div className="h-3 bg-muted rounded-full overflow-hidden">
@@ -919,9 +930,9 @@ function StepProgress() {
             >
               <p className="text-xs text-muted-foreground mb-1">{phase.label}</p>
               {status === "skipped" ? (
-                <p className="text-sm text-muted-foreground italic">Skipped</p>
+                <p className="text-sm text-muted-foreground italic">—</p>
               ) : status === "pending" && phase.total === 0 ? (
-                <p className="text-sm text-muted-foreground">Pending</p>
+                <p className="text-sm text-muted-foreground">{t("common.loading")}</p>
               ) : (
                 <>
                   <p className="text-lg font-semibold text-foreground">
@@ -953,19 +964,19 @@ function StepProgress() {
         <div className="grid grid-cols-4 gap-3">
           <div className="text-center p-3 rounded-lg bg-green-50 border border-green-200">
             <p className="text-lg font-bold text-green-700">{p.itemsCreated}</p>
-            <p className="text-xs text-green-600">Created</p>
+            <p className="text-xs text-green-600">{t("progress.itemsDone")}</p>
           </div>
           <div className="text-center p-3 rounded-lg bg-blue-50 border border-blue-200">
             <p className="text-lg font-bold text-blue-700">{p.itemsUpdated}</p>
-            <p className="text-xs text-blue-600">Updated</p>
+            <p className="text-xs text-blue-600">{t("progress.itemsTotal")}</p>
           </div>
           <div className="text-center p-3 rounded-lg bg-gray-50 border border-gray-200">
             <p className="text-lg font-bold text-gray-700">{p.itemsSkipped}</p>
-            <p className="text-xs text-gray-600">Skipped</p>
+            <p className="text-xs text-gray-600">{t("users.skipUser")}</p>
           </div>
           <div className="text-center p-3 rounded-lg bg-red-50 border border-red-200">
             <p className="text-lg font-bold text-red-700">{p.errorCount}</p>
-            <p className="text-xs text-red-600">Failed</p>
+            <p className="text-xs text-red-600">{t("progress.itemsFailed")}</p>
           </div>
         </div>
       )}
@@ -973,7 +984,9 @@ function StepProgress() {
       {/* Log */}
       <div className="rounded-lg border border-border">
         <div className="px-3 py-2 border-b border-border bg-muted/30">
-          <span className="text-xs font-medium text-muted-foreground">Log</span>
+          <span className="text-xs font-medium text-muted-foreground">
+            {t("progress.currentItem")}
+          </span>
         </div>
         <div className="h-48 overflow-y-auto p-3 font-mono text-xs text-muted-foreground space-y-0.5">
           {(p?.recentLog ?? []).map((line, i) => (
@@ -988,7 +1001,9 @@ function StepProgress() {
         <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-4">
           <div className="flex items-center gap-2 mb-2">
             <AlertTriangle className="h-4 w-4 text-destructive" />
-            <span className="text-sm font-medium text-destructive">{p?.errorCount} errors</span>
+            <span className="text-sm font-medium text-destructive">
+              {p?.errorCount} {t("progress.errors")}
+            </span>
           </div>
           <div className="space-y-1 max-h-32 overflow-y-auto">
             {(p?.recentErrors ?? []).map((err, i) => (
@@ -1011,13 +1026,13 @@ function StepProgress() {
               className="px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground flex items-center gap-2"
             >
               <RefreshCw className="h-4 w-4" />
-              New Migration
+              {t("progress.newMigration")}
             </button>
             <Link
               href="/projects"
               className="px-4 py-2 bg-accent-orange text-white rounded-lg text-sm font-medium hover:bg-accent-orange/90 flex items-center gap-2"
             >
-              View Projects
+              {t("steps.Projects")}
               <ArrowRight className="h-4 w-4" />
             </Link>
           </>
@@ -1029,7 +1044,7 @@ function StepProgress() {
             disabled={cancelMigration.isPending}
             className="px-4 py-2 bg-destructive text-destructive-foreground rounded-lg text-sm font-medium hover:bg-destructive/90 disabled:opacity-50"
           >
-            Cancel Migration
+            {cancelMigration.isPending ? t("progress.cancelling") : t("progress.cancel")}
           </button>
         )}
       </div>
@@ -1038,6 +1053,8 @@ function StepProgress() {
 }
 
 function MigrationHistorySection() {
+  const t = useTranslations("Migration");
+  const tCommon = useTranslations("Common");
   const { data: history, refetch } = useMigrationHistory();
   const resumeMigration = useResumeMigration();
   const [resumingJobId, setResumingJobId] = useState<string | null>(null);
@@ -1048,19 +1065,19 @@ function MigrationHistorySection() {
 
   const submitResume = async () => {
     if (!resumingJobId || !resumeApiKey.trim()) {
-      toast.error("API key is required.");
+      toast.error(t("connection.apiKeyLabel"));
       return;
     }
     try {
       await resumeMigration.mutateAsync({ jobId: resumingJobId, apiKey: resumeApiKey.trim() });
-      toast.success("Migration resume dispatched.");
+      toast.success(t("history.resuming"));
       setResumingJobId(null);
       setResumeApiKey("");
       refetch();
     } catch (err: unknown) {
       const data = (err as { response?: { data?: { message?: string; errors?: string[] } } })
         .response?.data;
-      toast.error(data?.errors?.[0] ?? data?.message ?? "Resume failed.");
+      toast.error(data?.errors?.[0] ?? data?.message ?? t("history.resumeFailed"));
     }
   };
 
@@ -1083,28 +1100,28 @@ function MigrationHistorySection() {
 
   return (
     <div className="mt-8">
-      <h3 className="text-sm font-semibold text-foreground mb-3">Migration History</h3>
+      <h3 className="text-sm font-semibold text-foreground mb-3">{t("history.title")}</h3>
       <div className="rounded-lg border border-border overflow-hidden">
         <table className="w-full">
           <thead>
             <tr className="bg-muted/50">
               <th className="px-4 py-2 text-left text-xs font-medium text-muted-foreground uppercase">
-                Date
+                {t("history.started")}
               </th>
               <th className="px-4 py-2 text-left text-xs font-medium text-muted-foreground uppercase">
-                Source
+                {t("connection.urlLabel")}
               </th>
               <th className="px-4 py-2 text-left text-xs font-medium text-muted-foreground uppercase">
-                Status
+                {t("history.status")}
               </th>
               <th className="px-4 py-2 text-right text-xs font-medium text-muted-foreground uppercase">
-                Projects
+                {t("steps.Projects")}
               </th>
               <th className="px-4 py-2 text-right text-xs font-medium text-muted-foreground uppercase">
-                Tickets
+                {t("projects.ticketCount")}
               </th>
               <th className="px-4 py-2 text-right text-xs font-medium text-muted-foreground uppercase">
-                Errors
+                {t("history.failed")}
               </th>
               <th className="px-4 py-2 w-24" />
             </tr>
@@ -1138,7 +1155,7 @@ function MigrationHistorySection() {
                       disabled={resumeMigration.isPending}
                       className="inline-flex items-center gap-1 px-2 py-1 rounded border border-border text-xs hover:bg-muted disabled:opacity-50"
                     >
-                      Resume
+                      {t("history.resume")}
                     </button>
                   )}
                 </td>
@@ -1152,16 +1169,17 @@ function MigrationHistorySection() {
         <div className="fixed inset-0 z-50 flex items-center justify-center">
           <div className="absolute inset-0 bg-black/50" onClick={() => setResumingJobId(null)} />
           <div className="relative bg-card rounded-xl shadow-xl border border-border w-full max-w-md mx-4 p-6">
-            <h3 className="text-base font-semibold text-card-foreground mb-2">Resume migration</h3>
+            <h3 className="text-base font-semibold text-card-foreground mb-2">
+              {t("history.resume")}
+            </h3>
             <p className="text-xs text-muted-foreground mb-3">
-              Re-enter the EasyProject API key. Already-imported records will be upserted; the job
-              continues from the last completed phase.
+              {t("connection.apiKeyPlaceholder")}
             </p>
             <input
               type="password"
               value={resumeApiKey}
               onChange={(e) => setResumeApiKey(e.target.value)}
-              placeholder="API key"
+              placeholder={t("connection.apiKeyLabel")}
               className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm"
             />
             <div className="flex justify-end gap-2 mt-4">
@@ -1174,7 +1192,7 @@ function MigrationHistorySection() {
                 disabled={resumeMigration.isPending}
                 className="px-3 py-1.5 rounded border border-border text-sm hover:bg-muted disabled:opacity-50"
               >
-                Cancel
+                {tCommon("cancel")}
               </button>
               <button
                 type="button"
@@ -1182,7 +1200,7 @@ function MigrationHistorySection() {
                 disabled={resumeMigration.isPending}
                 className="px-3 py-1.5 rounded bg-primary text-primary-foreground text-sm font-medium hover:opacity-90 disabled:opacity-50"
               >
-                {resumeMigration.isPending ? "Resuming..." : "Resume"}
+                {resumeMigration.isPending ? t("history.resuming") : t("history.resume")}
               </button>
             </div>
           </div>
@@ -1193,15 +1211,14 @@ function MigrationHistorySection() {
 }
 
 export default function MigrationPage() {
+  const t = useTranslations("Migration");
   const { step } = useMigrationStore();
 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-foreground">EasyProject Migration</h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          Import projects, tickets, worklogs, and more from EasyProject.
-        </p>
+        <h1 className="text-2xl font-bold text-foreground">{t("pageTitle")}</h1>
+        <p className="text-sm text-muted-foreground mt-1">{t("pageSubtitle")}</p>
       </div>
 
       <StepIndicator current={step} />
