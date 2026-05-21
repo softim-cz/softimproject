@@ -13,6 +13,8 @@ import { cn } from "@/lib/utils";
 import { LocaleSwitcher } from "./locale-switcher";
 
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+// Známé segmenty, které mají překlad v Topbar.breadcrumbs.*.
 const TRANSLATABLE_SEGMENTS = new Set([
   "dashboard",
   "projects",
@@ -27,7 +29,13 @@ const TRANSLATABLE_SEGMENTS = new Set([
   "tickets",
 ]);
 
-type Crumb = { label: string; href: string; translateKey?: string };
+// Segmenty, které sice mají překlad, ale neexistuje pro ně samostatná routa
+// (jsou jen mezistupněm dynamické cesty). Nesmí být klikatelné — vedly by na 404.
+// Příklady: /projects/[code] (sám projekt nemá page), /projects/[code]/tickets/[key]
+// (segment "tickets" existuje jen jako parent ticket detailu, ne jako list).
+const NON_LINKABLE_SEGMENTS = new Set(["tickets"]);
+
+type Crumb = { label: string; href: string; translateKey?: string; linkable: boolean };
 
 function buildBreadcrumbs(pathname: string): Crumb[] {
   const segments = pathname.split("/").filter(Boolean);
@@ -37,14 +45,20 @@ function buildBreadcrumbs(pathname: string): Crumb[] {
   for (const segment of segments) {
     path += `/${segment}`;
     if (UUID_REGEX.test(segment)) {
-      crumbs.push({ label: "...", href: path });
+      crumbs.push({ label: "...", href: path, linkable: false });
       continue;
     }
     if (TRANSLATABLE_SEGMENTS.has(segment)) {
-      crumbs.push({ label: segment, href: path, translateKey: segment });
+      crumbs.push({
+        label: segment,
+        href: path,
+        translateKey: segment,
+        linkable: !NON_LINKABLE_SEGMENTS.has(segment),
+      });
       continue;
     }
-    crumbs.push({ label: segment, href: path });
+    // Neznámý segment — typicky project code nebo ticket key. Nemá vlastní routu.
+    crumbs.push({ label: segment, href: path, linkable: false });
   }
 
   return crumbs;
@@ -179,18 +193,23 @@ export function Topbar() {
           const label = crumb.translateKey
             ? tCrumbs(crumb.translateKey as "dashboard")
             : crumb.label;
+          const asLink = !isLast && crumb.linkable;
           return (
             <span key={crumb.href} className="flex items-center gap-1">
               {index > 0 && <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />}
-              {isLast ? (
-                <span className="font-medium text-foreground">{label}</span>
-              ) : (
+              {asLink ? (
                 <Link
                   href={crumb.href}
                   className="text-muted-foreground hover:text-foreground transition-colors"
                 >
                   {label}
                 </Link>
+              ) : (
+                <span
+                  className={cn(isLast ? "font-medium text-foreground" : "text-muted-foreground")}
+                >
+                  {label}
+                </span>
               )}
             </span>
           );
