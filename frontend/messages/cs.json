@@ -66,7 +66,20 @@
     "signOut": "Odhlásit se",
     "switchLanguage": "Přepnout jazyk",
     "collapseSidebar": "Sbalit boční panel",
-    "expandSidebar": "Rozbalit boční panel"
+    "expandSidebar": "Rozbalit boční panel",
+    "breadcrumbs": {
+      "dashboard": "Přehled",
+      "projects": "Projekty",
+      "tasks": "Úkoly",
+      "worklogs": "Výkazy",
+      "resources": "Zdroje",
+      "admin": "Administrace",
+      "lookups": "Číselníky",
+      "migration": "Migrace",
+      "board": "Kanban",
+      "settings": "Nastavení",
+      "tickets": "Úkoly"
+    }
   },
   "Timer": {
     "running": "Měření běží",

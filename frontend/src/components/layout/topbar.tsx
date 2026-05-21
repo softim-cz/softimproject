@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { Bell, Search, LogOut, User, Settings, Wifi, WifiOff, ChevronRight } from "lucide-react";
@@ -11,20 +12,42 @@ import { useState, useRef, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { LocaleSwitcher } from "./locale-switcher";
 
-function getBreadcrumbs(pathname: string) {
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const TRANSLATABLE_SEGMENTS = new Set([
+  "dashboard",
+  "projects",
+  "tasks",
+  "worklogs",
+  "resources",
+  "admin",
+  "lookups",
+  "migration",
+  "board",
+  "settings",
+  "tickets",
+]);
+
+type Crumb = { label: string; href: string; translateKey?: string };
+
+function buildBreadcrumbs(pathname: string): Crumb[] {
   const segments = pathname.split("/").filter(Boolean);
-  const breadcrumbs: { label: string; href: string }[] = [];
+  const crumbs: Crumb[] = [];
   let path = "";
 
   for (const segment of segments) {
     path += `/${segment}`;
-    // Skip dynamic segments that look like UUIDs
-    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(segment);
-    const label = isUuid ? "..." : segment.charAt(0).toUpperCase() + segment.slice(1);
-    breadcrumbs.push({ label, href: path });
+    if (UUID_REGEX.test(segment)) {
+      crumbs.push({ label: "...", href: path });
+      continue;
+    }
+    if (TRANSLATABLE_SEGMENTS.has(segment)) {
+      crumbs.push({ label: segment, href: path, translateKey: segment });
+      continue;
+    }
+    crumbs.push({ label: segment, href: path });
   }
 
-  return breadcrumbs;
+  return crumbs;
 }
 
 function ConnectionIndicator() {
@@ -144,26 +167,34 @@ function UserMenu() {
 export function Topbar() {
   const pathname = usePathname();
   const t = useTranslations("Topbar");
-  const breadcrumbs = getBreadcrumbs(pathname);
+  const tCrumbs = useTranslations("Topbar.breadcrumbs");
+  const breadcrumbs = buildBreadcrumbs(pathname);
 
   return (
     <header className="h-14 border-b border-border bg-card flex items-center justify-between px-6 shrink-0">
       {/* Breadcrumbs */}
-      <nav className="flex items-center gap-1 text-sm">
-        {breadcrumbs.map((crumb, index) => (
-          <span key={crumb.href} className="flex items-center gap-1">
-            {index > 0 && <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />}
-            <span
-              className={cn(
-                index === breadcrumbs.length - 1
-                  ? "font-medium text-foreground"
-                  : "text-muted-foreground"
+      <nav className="flex items-center gap-1 text-sm" aria-label="Breadcrumb">
+        {breadcrumbs.map((crumb, index) => {
+          const isLast = index === breadcrumbs.length - 1;
+          const label = crumb.translateKey
+            ? tCrumbs(crumb.translateKey as "dashboard")
+            : crumb.label;
+          return (
+            <span key={crumb.href} className="flex items-center gap-1">
+              {index > 0 && <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />}
+              {isLast ? (
+                <span className="font-medium text-foreground">{label}</span>
+              ) : (
+                <Link
+                  href={crumb.href}
+                  className="text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  {label}
+                </Link>
               )}
-            >
-              {crumb.label}
             </span>
-          </span>
-        ))}
+          );
+        })}
       </nav>
 
       {/* Right section */}
