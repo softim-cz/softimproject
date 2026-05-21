@@ -45,7 +45,6 @@ public static partial class EmailSyncHelper
         }
 
         // Resolve a default TaskState + TicketPriority per template (cached).
-        // Key Guid.Empty represents "no template" (project.ProjectTemplateId is null).
         var stateCache = new Dictionary<Guid, Guid>();
         var priorityCache = new Dictionary<Guid, Guid>();
         var memberCache = new Dictionary<Guid, Guid>();
@@ -178,43 +177,37 @@ public static partial class EmailSyncHelper
 
     private static async Task<Guid> ResolveDefaultStateAsync(
         IApplicationDbContext db,
-        Guid? templateId,
+        Guid templateId,
         Dictionary<Guid, Guid> cache,
         CancellationToken ct)
     {
-        var key = templateId ?? Guid.Empty;
-        if (cache.TryGetValue(key, out var cached)) return cached;
+        if (cache.TryGetValue(templateId, out var cached)) return cached;
 
-        var query = db.TaskStates.Where(ts => ts.IsActive);
-        if (templateId.HasValue)
-            query = query.Where(ts => ts.ProjectTemplateId == templateId.Value);
+        var query = db.TaskStates.Where(ts => ts.IsActive && ts.ProjectTemplateId == templateId);
 
         var id = await query.Where(ts => ts.IsDefault).Select(ts => ts.Id).FirstOrDefaultAsync(ct);
         if (id == Guid.Empty)
             id = await query.OrderBy(ts => ts.SortOrder).Select(ts => ts.Id).FirstOrDefaultAsync(ct);
 
-        cache[key] = id;
+        cache[templateId] = id;
         return id;
     }
 
     private static async Task<Guid> ResolveDefaultPriorityAsync(
         IApplicationDbContext db,
-        Guid? templateId,
+        Guid templateId,
         Dictionary<Guid, Guid> cache,
         CancellationToken ct)
     {
-        var key = templateId ?? Guid.Empty;
-        if (cache.TryGetValue(key, out var cached)) return cached;
+        if (cache.TryGetValue(templateId, out var cached)) return cached;
 
-        var query = db.TicketPriorities.Where(p => p.IsActive);
-        if (templateId.HasValue)
-            query = query.Where(p => p.ProjectTemplateId == templateId.Value);
+        var query = db.TicketPriorities.Where(p => p.IsActive && p.ProjectTemplateId == templateId);
 
         var id = await query.Where(p => p.IsDefault).Select(p => p.Id).FirstOrDefaultAsync(ct);
         if (id == Guid.Empty)
             id = await query.OrderBy(p => p.SortOrder).Select(p => p.Id).FirstOrDefaultAsync(ct);
 
-        cache[key] = id;
+        cache[templateId] = id;
         return id;
     }
 

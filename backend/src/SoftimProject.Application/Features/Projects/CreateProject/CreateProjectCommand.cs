@@ -16,18 +16,18 @@ public sealed record CreateProjectCommand(
     DateOnly? StartDate,
     DateOnly? EndDate,
     DateOnly? DeadlineDate,
+    Guid ProjectTemplateId,
     Guid? CompanyId = null,
     Guid? ProjectTypeId = null,
     Guid? ProjectStateId = null,
-    Guid? ParentProjectId = null,
-    Guid? ProjectTemplateId = null) : IRequest<Guid>, IRequireRole
+    Guid? ParentProjectId = null) : IRequest<Guid>, IRequireRole
 {
     public string RequiredRole => "Admin";
 }
 
 public sealed class CreateProjectCommandValidator : AbstractValidator<CreateProjectCommand>
 {
-    public CreateProjectCommandValidator()
+    public CreateProjectCommandValidator(IApplicationDbContext dbContext)
     {
         RuleFor(x => x.Name).NotEmpty().MaximumLength(200);
         RuleFor(x => x.Code).MinimumLength(2).MaximumLength(6)
@@ -36,6 +36,13 @@ public sealed class CreateProjectCommandValidator : AbstractValidator<CreateProj
         RuleFor(x => x.Description).MaximumLength(2000);
         RuleFor(x => x.BudgetHours).GreaterThan(0).When(x => x.BudgetHours.HasValue);
         RuleFor(x => x.BudgetAmount).GreaterThan(0).When(x => x.BudgetAmount.HasValue);
+        RuleFor(x => x.ProjectTemplateId)
+            .NotEmpty()
+            .WithMessage("Šablona projektu je povinná.");
+        RuleFor(x => x.ProjectTemplateId)
+            .MustAsync(async (id, ct) =>
+                await dbContext.ProjectTemplates.AnyAsync(t => t.Id == id && t.IsActive, ct))
+            .WithMessage("Šablona projektu neexistuje nebo není aktivní.");
     }
 }
 
@@ -74,23 +81,20 @@ public sealed class CreateProjectCommandHandler(
         dbContext.Projects.Add(project);
 
         // Seed custom field values from template
-        if (request.ProjectTemplateId.HasValue)
-        {
-            var templateFields = await dbContext.ProjectTemplateFields
-                .Where(f => f.ProjectTemplateId == request.ProjectTemplateId.Value)
-                .ToListAsync(cancellationToken);
+        var templateFields = await dbContext.ProjectTemplateFields
+            .Where(f => f.ProjectTemplateId == request.ProjectTemplateId)
+            .ToListAsync(cancellationToken);
 
-            foreach (var field in templateFields)
+        foreach (var field in templateFields)
+        {
+            dbContext.ProjectCustomFieldValues.Add(new ProjectCustomFieldValue
             {
-                dbContext.ProjectCustomFieldValues.Add(new ProjectCustomFieldValue
-                {
-                    Id = Guid.NewGuid(),
-                    ProjectId = project.Id,
-                    CustomFieldDefinitionId = field.CustomFieldDefinitionId,
-                    Value = null,
-                    CreatedAt = DateTime.UtcNow
-                });
-            }
+                Id = Guid.NewGuid(),
+                ProjectId = project.Id,
+                CustomFieldDefinitionId = field.CustomFieldDefinitionId,
+                Value = null,
+                CreatedAt = DateTime.UtcNow
+            });
         }
 
         // Add creator as ProjectManager
@@ -118,9 +122,11 @@ public sealed class CreateProjectCommandHandler(
         };
         dbContext.KanbanBoards.Add(board);
 
-        // Create default columns from active TaskStates
+        // Create default columns from active TaskStates of the project's template
+        // — bez scopu by sloupce ukazovaly na stavy jiných šablon a projekt by
+        // viděl stavy, které mu nepatří.
         var taskStates = await dbContext.TaskStates
-            .Where(ts => ts.IsActive)
+            .Where(ts => ts.IsActive && ts.ProjectTemplateId == request.ProjectTemplateId)
             .OrderBy(ts => ts.SortOrder)
             .ToListAsync(cancellationToken);
 

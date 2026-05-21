@@ -14,7 +14,7 @@ export const createProjectSchema = z.object({
   budgetHours: z.number().positive().optional(),
   budgetAmount: z.number().positive().optional(),
   parentProjectId: z.union([z.string().uuid(), z.literal("")]).optional(),
-  projectTemplateId: z.union([z.string().uuid(), z.literal("")]).optional(),
+  projectTemplateId: z.string().uuid({ message: "Šablona projektu je povinná." }),
 });
 
 export type CreateProjectInput = z.infer<typeof createProjectSchema>;

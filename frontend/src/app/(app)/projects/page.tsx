@@ -55,12 +55,22 @@ function CreateProjectDialog({ open, onClose }: { open: boolean; onClose: () => 
   });
 
   const nameValue = useWatch({ control, name: "name" });
+  const templateValue = useWatch({ control, name: "projectTemplateId" });
 
   useEffect(() => {
     if (!codeManuallyEdited && nameValue) {
       setValue("code", generateCodeFromName(nameValue));
     }
   }, [nameValue, codeManuallyEdited, setValue]);
+
+  // Default na první aktivní šablonu, jakmile se načtou. Šablona je teď
+  // povinná, takže form musí mít vždy zvolenou hodnotu.
+  useEffect(() => {
+    if (!templateValue && templates && templates.length > 0) {
+      const firstActive = templates.find((tpl: ProjectTemplate) => tpl.isActive) ?? templates[0];
+      setValue("projectTemplateId", firstActive.id);
+    }
+  }, [templates, templateValue, setValue]);
 
   const handleClose = () => {
     reset();
@@ -73,7 +83,7 @@ function CreateProjectDialog({ open, onClose }: { open: boolean; onClose: () => 
       const payload = {
         ...data,
         parentProjectId: data.parentProjectId || undefined,
-        projectTemplateId: data.projectTemplateId || undefined,
+        projectTemplateId: data.projectTemplateId,
         description: data.description || undefined,
         startDate: data.startDate || undefined,
         endDate: data.endDate || undefined,
@@ -164,22 +174,23 @@ function CreateProjectDialog({ open, onClose }: { open: boolean; onClose: () => 
           <div>
             <label className="block text-sm font-medium text-card-foreground">
               {t("template")}
-              <span className="text-muted-foreground font-normal ml-1">
-                {t("templateOptional")}
-              </span>
+              <span className="text-destructive ml-1">*</span>
             </label>
             <p className="text-xs text-muted-foreground mb-1">{t("templateHelp")}</p>
             <select
               {...register("projectTemplateId")}
               className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
             >
-              <option value="">{t("templateNone")}</option>
+              <option value="">{t("templateSelect")}</option>
               {activeTemplates?.map((tpl: ProjectTemplate) => (
                 <option key={tpl.id} value={tpl.id}>
                   {tpl.name}
                 </option>
               ))}
             </select>
+            {errors.projectTemplateId && (
+              <p className="text-xs text-destructive mt-1">{errors.projectTemplateId.message}</p>
+            )}
           </div>
 
           <div>

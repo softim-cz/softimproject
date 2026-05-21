@@ -41,15 +41,17 @@ public class Project : BaseEntity
     public string? WebhookSecret { get; set; }
     public Guid? GitHubConnectedByUserId { get; set; }
 
-    // Template
-    public Guid? ProjectTemplateId { get; set; }
+    // Template — povinné. Projekt vždy patří do nějaké šablony (Default, nebo
+    // některé z naklonovaných). Existující projekty bez šablony byly v EF
+    // migraci AddRequiredProjectTemplateId přemapované na Default.
+    public Guid ProjectTemplateId { get; set; }
 
     // Client access
     public string? ClientAccessToken { get; set; }
     public bool ClientAccessEnabled { get; set; }
 
     // Navigation properties
-    public ProjectTemplate? ProjectTemplate { get; set; }
+    public ProjectTemplate ProjectTemplate { get; set; } = null!;
     public Company? Company { get; set; }
     public ProjectType? ProjectType { get; set; }
     public ProjectState? ProjectState { get; set; }

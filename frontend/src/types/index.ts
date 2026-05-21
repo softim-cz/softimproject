@@ -112,7 +112,7 @@ export interface Project {
   externalSystem?: string;
   externalProjectId?: string;
   gitHubConnectedByUserId?: string;
-  projectTemplateId?: string;
+  projectTemplateId: string;
   projectTemplateName?: string;
   members?: ProjectMember[];
   memberCount?: number;
