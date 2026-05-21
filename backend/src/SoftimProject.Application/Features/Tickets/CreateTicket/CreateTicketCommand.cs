@@ -47,9 +47,8 @@ public sealed class CreateTicketCommandHandler(
         if (!taskStateId.HasValue)
         {
             var templateId = project.ProjectTemplateId;
-            var query = dbContext.TaskStates.Where(ts => ts.IsActive);
-            if (templateId.HasValue)
-                query = query.Where(ts => ts.ProjectTemplateId == templateId.Value);
+            var query = dbContext.TaskStates
+                .Where(ts => ts.IsActive && ts.ProjectTemplateId == templateId);
 
             taskStateId = await query
                 .Where(ts => ts.IsDefault)
