@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import { localizedName } from "@/lib/localized-name";
 import type { Locale } from "@/i18n/config";
 import {
+  AlertTriangle,
   Building2,
   FolderTree,
   CircleDot,
@@ -2344,26 +2345,19 @@ function TemplateTicketPrioritiesSection({
   );
 }
 
+// Read-only přehled stavů úkolů napříč všemi šablonami. Editace je
+// per-šablona, aby uživatel viděl/měnil stavy v kontextu jedné šablony
+// (a nedopustil se overshootu napříč jinými, které stejný stav sdílejí).
+// Bez tohoto omezení by globální edit mlčky propsal změnu do všech projektů
+// vázaných na danou šablonu — i těch, které admin v daný moment vůbec nemá
+// v hlavě.
 function TaskStatesGlobalTab() {
   const t = useTranslations("Lookups");
   const tCommon = useTranslations("Common");
   const locale = useLocale() as Locale;
   const { data, isLoading } = useTaskStates();
   const { data: templates } = useProjectTemplates();
-  const updateTS = useUpdateTaskState();
-  const deleteTS = useDeleteTaskState();
-  const [editId, setEditId] = useState<string | null>(null);
   const [templateFilter, setTemplateFilter] = useState<string>("");
-  const [form, setForm] = useState({
-    name: "",
-    nameCs: "",
-    nameEn: "",
-    color: "#3b82f6",
-    sortOrder: 0,
-    isActive: true,
-    isDefault: false,
-    isClosedState: false,
-  });
 
   if (isLoading) return <TableSkeleton rows={4} />;
   if (!data)
@@ -2375,43 +2369,14 @@ function TaskStatesGlobalTab() {
     ? data.filter((ts) => ts.projectTemplateId === templateFilter)
     : data;
 
-  const startEdit = (item: TaskState) => {
-    setEditId(item.id);
-    setForm({
-      name: item.name,
-      nameCs: item.nameCs || "",
-      nameEn: item.nameEn || "",
-      color: item.color,
-      sortOrder: item.sortOrder,
-      isActive: item.isActive,
-      isDefault: item.isDefault,
-      isClosedState: item.isClosedState,
-    });
-  };
-
-  const save = async () => {
-    if (!editId) return;
-    const existing = data.find((c) => c.id === editId)!;
-    await updateTS.mutateAsync({
-      ...existing,
-      name: form.name,
-      nameCs: form.nameCs || undefined,
-      nameEn: form.nameEn || undefined,
-      color: form.color,
-      sortOrder: form.sortOrder,
-      isActive: form.isActive,
-      isDefault: form.isDefault,
-      isClosedState: form.isClosedState,
-    });
-    setEditId(null);
-  };
-
-  const cancel = () => setEditId(null);
-
   return (
     <div>
       <div className="mb-3">
         <p className="text-sm text-muted-foreground">{t("taskStatesGlobal.subtitle")}</p>
+      </div>
+      <div className="mb-3 flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900 dark:border-amber-900/50 dark:bg-amber-950/30 dark:text-amber-200">
+        <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
+        <span>{t("taskStatesGlobal.readOnlyBanner")}</span>
       </div>
       <div className="flex items-center gap-2 mb-3">
         <label className="text-xs font-medium text-muted-foreground">
@@ -2455,143 +2420,44 @@ function TaskStatesGlobalTab() {
               <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground uppercase w-16">
                 {t("common.isClosed")}
               </th>
-              <th className="px-3 py-2 text-right text-xs font-medium text-muted-foreground uppercase w-20">
-                {t("common.actions")}
-              </th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
             {filtered.length === 0 && (
               <tr>
-                <td colSpan={8} className="px-3 py-3 text-xs text-center text-muted-foreground">
+                <td colSpan={7} className="px-3 py-3 text-xs text-center text-muted-foreground">
                   {t("common.empty")}
                 </td>
               </tr>
             )}
-            {filtered.map((item) =>
-              editId === item.id ? (
-                <tr key={item.id} className="bg-accent-orange/5">
-                  <td className="px-3 py-1.5 text-xs text-muted-foreground">
-                    {templateNameById(item.projectTemplateId)}
-                  </td>
-                  <td className="px-3 py-1.5">
-                    <input
-                      type="color"
-                      value={form.color}
-                      onChange={(e) => setForm({ ...form, color: e.target.value })}
-                      className="w-7 h-7 rounded cursor-pointer"
-                    />
-                  </td>
-                  <td className="px-3 py-1.5">
-                    <div className="flex gap-1.5">
-                      <input
-                        value={form.name}
-                        onChange={(e) => setForm({ ...form, name: e.target.value })}
-                        className="w-full px-2 py-1 text-xs border rounded"
-                        placeholder={t("common.name")}
-                      />
-                      <input
-                        value={form.nameCs}
-                        onChange={(e) => setForm({ ...form, nameCs: e.target.value })}
-                        className="w-full px-2 py-1 text-xs border rounded"
-                        placeholder={t("common.nameCs")}
-                      />
-                      <input
-                        value={form.nameEn}
-                        onChange={(e) => setForm({ ...form, nameEn: e.target.value })}
-                        className="w-full px-2 py-1 text-xs border rounded"
-                        placeholder={t("common.nameEn")}
-                      />
-                    </div>
-                  </td>
-                  <td className="px-3 py-1.5">
-                    <input
-                      type="number"
-                      value={form.sortOrder}
-                      onChange={(e) => setForm({ ...form, sortOrder: +e.target.value })}
-                      className="w-full px-2 py-1 text-xs border rounded"
-                    />
-                  </td>
-                  <td className="px-3 py-1.5">
-                    <input
-                      type="checkbox"
-                      checked={form.isActive}
-                      onChange={(e) => setForm({ ...form, isActive: e.target.checked })}
-                    />
-                  </td>
-                  <td className="px-3 py-1.5">
-                    <input
-                      type="checkbox"
-                      checked={form.isDefault}
-                      onChange={(e) => setForm({ ...form, isDefault: e.target.checked })}
-                    />
-                  </td>
-                  <td className="px-3 py-1.5">
-                    <input
-                      type="checkbox"
-                      checked={form.isClosedState}
-                      onChange={(e) => setForm({ ...form, isClosedState: e.target.checked })}
-                    />
-                  </td>
-                  <td className="px-3 py-1.5 text-right">
-                    <button
-                      onClick={save}
-                      disabled={!form.name}
-                      className="p-1 text-green-600 hover:bg-green-50 rounded disabled:opacity-30"
-                    >
-                      <Check className="h-3.5 w-3.5" />
-                    </button>
-                    <button
-                      onClick={cancel}
-                      className="p-1 text-muted-foreground hover:bg-muted/50 rounded"
-                    >
-                      <X className="h-3.5 w-3.5" />
-                    </button>
-                  </td>
-                </tr>
-              ) : (
-                <tr key={item.id} className="hover:bg-muted/30">
-                  <td className="px-3 py-2 text-xs text-muted-foreground">
-                    {templateNameById(item.projectTemplateId)}
-                  </td>
-                  <td className="px-3 py-2">
-                    <div
-                      className="w-5 h-5 rounded-full border"
-                      style={{ backgroundColor: item.color }}
-                    />
-                  </td>
-                  <td className="px-3 py-2 text-xs font-medium">{localizedName(item, locale)}</td>
-                  <td className="px-3 py-2 text-xs">{item.sortOrder}</td>
-                  <td className="px-3 py-2 text-xs">
-                    {item.isActive ? (
-                      <Check className="h-3.5 w-3.5 text-green-600" />
-                    ) : (
-                      <span className="text-muted-foreground">—</span>
-                    )}
-                  </td>
-                  <td className="px-3 py-2 text-xs">
-                    {item.isDefault ? <Check className="h-3.5 w-3.5 text-green-600" /> : null}
-                  </td>
-                  <td className="px-3 py-2 text-xs">
-                    {item.isClosedState ? <Check className="h-3.5 w-3.5 text-red-500" /> : null}
-                  </td>
-                  <td className="px-3 py-2 text-right">
-                    <button
-                      onClick={() => startEdit(item)}
-                      className="p-0.5 text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded"
-                    >
-                      <Pencil className="h-3 w-3" />
-                    </button>
-                    <button
-                      onClick={() => deleteTS.mutate(item.id)}
-                      className="p-0.5 text-muted-foreground hover:text-red-600 hover:bg-red-50 rounded"
-                    >
-                      <Trash2 className="h-3 w-3" />
-                    </button>
-                  </td>
-                </tr>
-              )
-            )}
+            {filtered.map((item) => (
+              <tr key={item.id} className="hover:bg-muted/30">
+                <td className="px-3 py-2 text-xs text-muted-foreground">
+                  {templateNameById(item.projectTemplateId)}
+                </td>
+                <td className="px-3 py-2">
+                  <div
+                    className="w-5 h-5 rounded-full border"
+                    style={{ backgroundColor: item.color }}
+                  />
+                </td>
+                <td className="px-3 py-2 text-xs font-medium">{localizedName(item, locale)}</td>
+                <td className="px-3 py-2 text-xs">{item.sortOrder}</td>
+                <td className="px-3 py-2 text-xs">
+                  {item.isActive ? (
+                    <Check className="h-3.5 w-3.5 text-green-600" />
+                  ) : (
+                    <span className="text-muted-foreground">—</span>
+                  )}
+                </td>
+                <td className="px-3 py-2 text-xs">
+                  {item.isDefault ? <Check className="h-3.5 w-3.5 text-green-600" /> : null}
+                </td>
+                <td className="px-3 py-2 text-xs">
+                  {item.isClosedState ? <Check className="h-3.5 w-3.5 text-red-500" /> : null}
+                </td>
+              </tr>
+            ))}
           </tbody>
         </table>
       </div>

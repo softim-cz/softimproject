@@ -1000,8 +1000,9 @@
     },
     "taskStatesGlobal": {
       "title": "Stavy úkolů",
-      "subtitle": "Spravuje stavy napříč všemi šablonami projektů",
-      "templateColumn": "Šablona"
+      "subtitle": "Přehled stavů úkolů napříč všemi šablonami projektů.",
+      "templateColumn": "Šablona",
+      "readOnlyBanner": "Tento přehled je pouze pro čtení. Editace probíhá v záložce konkrétní šablony, aby se změny aplikovaly v jejím kontextu."
     }
   },
   "Errors": {
