@@ -52,6 +52,7 @@ public sealed class MigrationResumeTests : IClassFixture<IntegrationTestFactory>
                 ? JsonSerializer.Serialize(new StoredMigrationConfig(
                     "https://ep.example",
                     new List<int> { 1 },
+                    TargetProjectTemplateId: Guid.NewGuid(),
                     new Dictionary<int, Guid?>(),
                     new Dictionary<int, Guid>(),
                     new Dictionary<int, Guid>(),

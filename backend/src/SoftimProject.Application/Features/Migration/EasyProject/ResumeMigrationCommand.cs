@@ -57,6 +57,7 @@ public sealed class ResumeMigrationCommandHandler(
             config.BaseUrl,
             request.ApiKey,
             config.ProjectIds,
+            config.TargetProjectTemplateId,
             config.TrackerMapping,
             config.StatusMapping,
             config.PriorityMapping,

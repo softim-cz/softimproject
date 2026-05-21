@@ -35,6 +35,10 @@ interface MigrationState {
   importChecklists: boolean;
   createMissingUsers: boolean;
 
+  // Target template — kam EP importované TaskStates/TicketPriorities patří
+  // (a kam se napojí importované Project.ProjectTemplateId).
+  targetProjectTemplateId: string | null;
+
   // Active migration
   activeJobId: string | null;
 
@@ -58,6 +62,7 @@ interface MigrationState {
   setPrioritySelection: (epId: number, value: string) => void;
   setUserSelection: (epId: number, value: string | null) => void;
   setOption: (key: string, value: boolean) => void;
+  setTargetProjectTemplateId: (id: string | null) => void;
   updateProjectIssueCount: (epId: number, count: number) => void;
   setActiveJobId: (id: string | null) => void;
   reset: () => void;
@@ -84,6 +89,7 @@ const initialState = {
   importWorklogs: true,
   importChecklists: true,
   createMissingUsers: true,
+  targetProjectTemplateId: null as string | null,
   activeJobId: null as string | null,
 };
 
@@ -173,6 +179,8 @@ export const useMigrationStore = create<MigrationState>()((set) => ({
     })),
 
   setOption: (key, value) => set({ [key]: value } as Partial<MigrationState>),
+
+  setTargetProjectTemplateId: (targetProjectTemplateId) => set({ targetProjectTemplateId }),
 
   updateProjectIssueCount: (epId, count) =>
     set((state) => ({

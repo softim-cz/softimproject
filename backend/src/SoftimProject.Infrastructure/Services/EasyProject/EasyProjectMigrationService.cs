@@ -22,20 +22,30 @@ public sealed class EasyProjectMigrationService(
         try
         {
             var ct = tracker.GetCancellationToken(jobId);
-            // Resolve default TaskState and TicketPriority IDs
+            // Default TaskState/TicketPriority resolvujeme ze stavů cílové šablony,
+            // ne globálně — ticket bez explicitního EP status musí spadnout do
+            // stavu, který skutečně patří k jeho projektu (a tedy šabloně).
             var defaultStateId = await dbContext.TaskStates
-                .Where(ts => ts.IsActive && ts.IsDefault)
+                .Where(ts => ts.IsActive && ts.IsDefault && ts.ProjectTemplateId == cmd.TargetProjectTemplateId)
                 .Select(ts => ts.Id)
                 .FirstOrDefaultAsync(ct);
             if (defaultStateId == Guid.Empty)
-                defaultStateId = await dbContext.TaskStates.Where(ts => ts.IsActive).OrderBy(ts => ts.SortOrder).Select(ts => ts.Id).FirstAsync(ct);
+                defaultStateId = await dbContext.TaskStates
+                    .Where(ts => ts.IsActive && ts.ProjectTemplateId == cmd.TargetProjectTemplateId)
+                    .OrderBy(ts => ts.SortOrder)
+                    .Select(ts => ts.Id)
+                    .FirstAsync(ct);
 
             var defaultPriorityId = await dbContext.TicketPriorities
-                .Where(tp => tp.IsActive && tp.IsDefault)
+                .Where(tp => tp.IsActive && tp.IsDefault && tp.ProjectTemplateId == cmd.TargetProjectTemplateId)
                 .Select(tp => tp.Id)
                 .FirstOrDefaultAsync(ct);
             if (defaultPriorityId == Guid.Empty)
-                defaultPriorityId = await dbContext.TicketPriorities.Where(tp => tp.IsActive).OrderBy(tp => tp.SortOrder).Select(tp => tp.Id).FirstAsync(ct);
+                defaultPriorityId = await dbContext.TicketPriorities
+                    .Where(tp => tp.IsActive && tp.ProjectTemplateId == cmd.TargetProjectTemplateId)
+                    .OrderBy(tp => tp.SortOrder)
+                    .Select(tp => tp.Id)
+                    .FirstAsync(ct);
 
             // Phase 1: Fetch data from EP
             tracker.UpdatePhase(jobId, "Fetching data from EasyProject");
@@ -95,8 +105,8 @@ public sealed class EasyProjectMigrationService(
             await NotifyProgress(jobId);
 
             var taskTypeMap = await EnsureTaskTypes(jobId, cmd.TrackerMapping, cmd.AutoCreateTrackers, ct);
-            var taskStateMap = await EnsureTaskStates(jobId, cmd.AutoCreateStatuses, cmd.AutoCreateStatusIsClosed, ct);
-            var priorityMap = await EnsureTicketPriorities(jobId, cmd.AutoCreatePriorities, ct);
+            var taskStateMap = await EnsureTaskStates(jobId, cmd.TargetProjectTemplateId, cmd.AutoCreateStatuses, cmd.AutoCreateStatusIsClosed, ct);
+            var priorityMap = await EnsureTicketPriorities(jobId, cmd.TargetProjectTemplateId, cmd.AutoCreatePriorities, ct);
 
             // Merge auto-created into existing mappings
             var mergedStatusMapping = new Dictionary<int, Guid>(cmd.StatusMapping);
@@ -133,7 +143,7 @@ public sealed class EasyProjectMigrationService(
                 ct.ThrowIfCancellationRequested();
                 try
                 {
-                    var spProjectId = await MigrateProject(jobId, ep, cmd.BaseUrl, adminUserId, ct);
+                    var spProjectId = await MigrateProject(jobId, ep, cmd.BaseUrl, adminUserId, cmd.TargetProjectTemplateId, ct);
                     projectMap[ep.Id] = spProjectId;
                     projectsMigrated++;
                     tracker.UpdateCounts(jobId, "projects", epProjects.Count, projectsMigrated);
@@ -471,7 +481,7 @@ public sealed class EasyProjectMigrationService(
         }
     }
 
-    private async Task<Guid> MigrateProject(Guid jobId, EpProject ep, string baseUrl, Guid adminUserId, CancellationToken ct)
+    private async Task<Guid> MigrateProject(Guid jobId, EpProject ep, string baseUrl, Guid adminUserId, Guid targetTemplateId, CancellationToken ct)
     {
         var externalId = ep.Id.ToString();
         var existing = await dbContext.Projects.FirstOrDefaultAsync(p => p.ExternalSystem == "EasyProject" && p.ExternalProjectId == externalId, ct);
@@ -496,6 +506,7 @@ public sealed class EasyProjectMigrationService(
             ExternalBaseUrl = baseUrl,
             StartDate = ParseDateOnly(ep.StartDate),
             DeadlineDate = ParseDateOnly(ep.DueDate),
+            ProjectTemplateId = targetTemplateId,
             CreatedAt = DateTime.UtcNow
         };
         dbContext.Projects.Add(project);
@@ -503,7 +514,12 @@ public sealed class EasyProjectMigrationService(
 
         var board = new KanbanBoard { Id = Guid.NewGuid(), ProjectId = project.Id, Name = "Main Board", IsDefault = true, CreatedAt = DateTime.UtcNow };
         dbContext.KanbanBoards.Add(board);
-        var taskStates = await dbContext.TaskStates.Where(ts => ts.IsActive).OrderBy(ts => ts.SortOrder).ToListAsync(ct);
+        // Kanban sloupce zakládáme pouze nad stavy cílové šablony, ne globálně —
+        // jinak by KanbanColumn ukazoval na stavy jiných šablon.
+        var taskStates = await dbContext.TaskStates
+            .Where(ts => ts.IsActive && ts.ProjectTemplateId == targetTemplateId)
+            .OrderBy(ts => ts.SortOrder)
+            .ToListAsync(ct);
         for (var i = 0; i < taskStates.Count; i++)
         {
             var col = new KanbanColumn { Id = Guid.NewGuid(), BoardId = board.Id, Name = taskStates[i].Name, Position = i, CreatedAt = DateTime.UtcNow };
@@ -717,14 +733,17 @@ public sealed class EasyProjectMigrationService(
         return result;
     }
 
-    private async Task<Dictionary<int, Guid>> EnsureTaskStates(Guid jobId, Dictionary<int, string>? autoCreate, Dictionary<int, bool>? isClosedMap, CancellationToken ct)
+    private async Task<Dictionary<int, Guid>> EnsureTaskStates(Guid jobId, Guid targetTemplateId, Dictionary<int, string>? autoCreate, Dictionary<int, bool>? isClosedMap, CancellationToken ct)
     {
         var result = new Dictionary<int, Guid>();
         if (autoCreate == null) return result;
 
         foreach (var (epStatusId, name) in autoCreate)
         {
-            var existing = await dbContext.TaskStates.FirstOrDefaultAsync(ts => ts.Name == name, ct);
+            // Scope na cílovou šablonu — bez toho by se křížila jména stavů
+            // mezi šablonami (např. dvě šablony se stavem "Done").
+            var existing = await dbContext.TaskStates
+                .FirstOrDefaultAsync(ts => ts.Name == name && ts.ProjectTemplateId == targetTemplateId, ct);
             if (existing != null)
             {
                 result[epStatusId] = existing.Id;
@@ -732,9 +751,21 @@ public sealed class EasyProjectMigrationService(
                 continue;
             }
 
-            var maxSort = await dbContext.TaskStates.MaxAsync(ts => (int?)ts.SortOrder, ct) ?? 0;
+            var maxSort = await dbContext.TaskStates
+                .Where(ts => ts.ProjectTemplateId == targetTemplateId)
+                .MaxAsync(ts => (int?)ts.SortOrder, ct) ?? 0;
             var isClosed = isClosedMap?.GetValueOrDefault(epStatusId, false) ?? false;
-            var taskState = new TaskState { Id = Guid.NewGuid(), Name = name, Color = "#6B7280", SortOrder = maxSort + 1, IsActive = true, IsDefault = false, IsClosedState = isClosed };
+            var taskState = new TaskState
+            {
+                Id = Guid.NewGuid(),
+                Name = name,
+                Color = "#6B7280",
+                SortOrder = maxSort + 1,
+                IsActive = true,
+                IsDefault = false,
+                IsClosedState = isClosed,
+                ProjectTemplateId = targetTemplateId
+            };
             dbContext.TaskStates.Add(taskState);
             await dbContext.SaveChangesAsync(ct);
             result[epStatusId] = taskState.Id;
@@ -745,14 +776,15 @@ public sealed class EasyProjectMigrationService(
         return result;
     }
 
-    private async Task<Dictionary<int, Guid>> EnsureTicketPriorities(Guid jobId, Dictionary<int, string>? autoCreate, CancellationToken ct)
+    private async Task<Dictionary<int, Guid>> EnsureTicketPriorities(Guid jobId, Guid targetTemplateId, Dictionary<int, string>? autoCreate, CancellationToken ct)
     {
         var result = new Dictionary<int, Guid>();
         if (autoCreate == null) return result;
 
         foreach (var (epPriorityId, name) in autoCreate)
         {
-            var existing = await dbContext.TicketPriorities.FirstOrDefaultAsync(tp => tp.Name == name, ct);
+            var existing = await dbContext.TicketPriorities
+                .FirstOrDefaultAsync(tp => tp.Name == name && tp.ProjectTemplateId == targetTemplateId, ct);
             if (existing != null)
             {
                 result[epPriorityId] = existing.Id;
@@ -760,8 +792,19 @@ public sealed class EasyProjectMigrationService(
                 continue;
             }
 
-            var maxSort = await dbContext.TicketPriorities.MaxAsync(tp => (int?)tp.SortOrder, ct) ?? 0;
-            var priority = new TicketPriority { Id = Guid.NewGuid(), Name = name, Color = "#6B7280", SortOrder = maxSort + 1, IsActive = true, IsDefault = false };
+            var maxSort = await dbContext.TicketPriorities
+                .Where(tp => tp.ProjectTemplateId == targetTemplateId)
+                .MaxAsync(tp => (int?)tp.SortOrder, ct) ?? 0;
+            var priority = new TicketPriority
+            {
+                Id = Guid.NewGuid(),
+                Name = name,
+                Color = "#6B7280",
+                SortOrder = maxSort + 1,
+                IsActive = true,
+                IsDefault = false,
+                ProjectTemplateId = targetTemplateId
+            };
             dbContext.TicketPriorities.Add(priority);
             await dbContext.SaveChangesAsync(ct);
             result[epPriorityId] = priority.Id;

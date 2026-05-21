@@ -6,6 +6,7 @@ namespace SoftimProject.Application.Features.Migration.EasyProject;
 public sealed record StoredMigrationConfig(
     string BaseUrl,
     List<int> ProjectIds,
+    Guid TargetProjectTemplateId,
     Dictionary<int, Guid?> TrackerMapping,
     Dictionary<int, Guid> StatusMapping,
     Dictionary<int, Guid> PriorityMapping,
