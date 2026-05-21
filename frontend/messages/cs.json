@@ -825,7 +825,9 @@
       "epValue": "Hodnota v Easy Projectu",
       "localValue": "Lokální hodnota",
       "selectPlaceholder": "-- Vyberte --",
-      "noMatch": "(nemapováno)"
+      "noMatch": "(nemapováno)",
+      "targetTemplate": "Cílová šablona projektu",
+      "targetTemplateHelp": "Do této šablony spadnou auto-vytvořené stavy úkolů a priority. Importované projekty budou na ni také napojené."
     },
     "users": {
       "title": "Mapování uživatelů",
@@ -845,7 +847,8 @@
       "lookupMappings": "Mapování číselníků",
       "userMappings": "Mapování uživatelů",
       "startMigration": "Spustit migraci",
-      "starting": "Spouštím..."
+      "starting": "Spouštím...",
+      "targetTemplateRequired": "Před spuštěním vyberte cílovou šablonu projektu v kroku Číselníky."
     },
     "progress": {
       "title": "Průběh migrace",

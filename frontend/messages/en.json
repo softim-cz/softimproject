@@ -825,7 +825,9 @@
       "epValue": "Easy Project value",
       "localValue": "Local value",
       "selectPlaceholder": "-- Select --",
-      "noMatch": "(unmapped)"
+      "noMatch": "(unmapped)",
+      "targetTemplate": "Target project template",
+      "targetTemplateHelp": "Auto-created task states and priorities will be added to this template. Imported projects will also be linked to it."
     },
     "users": {
       "title": "User mappings",
@@ -845,7 +847,8 @@
       "lookupMappings": "Lookup mappings",
       "userMappings": "User mappings",
       "startMigration": "Start migration",
-      "starting": "Starting..."
+      "starting": "Starting...",
+      "targetTemplateRequired": "Select a target project template in the Lookups step before starting."
     },
     "progress": {
       "title": "Migration progress",

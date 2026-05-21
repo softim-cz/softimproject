@@ -75,6 +75,7 @@ export function useStartMigration() {
       baseUrl: string;
       apiKey: string;
       projectIds: number[];
+      targetProjectTemplateId: string;
       trackerMapping: Record<number, string | null>;
       statusMapping: Record<number, string>;
       priorityMapping: Record<number, string>;

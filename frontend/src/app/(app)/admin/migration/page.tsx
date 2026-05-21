@@ -29,7 +29,12 @@ import {
   useResumeMigration,
 } from "@/queries/migration";
 import { toast } from "sonner";
-import { useTaskTypes, useTaskStates, useTicketPriorities } from "@/queries/lookups";
+import {
+  useTaskTypes,
+  useTaskStates,
+  useTicketPriorities,
+  useProjectTemplates,
+} from "@/queries/lookups";
 import type { MigrationJob } from "@/types";
 import { HubConnectionBuilder } from "@microsoft/signalr";
 import { useAuth } from "@/lib/auth/use-auth";
@@ -367,16 +372,27 @@ function StepLookups() {
     trackerSelections,
     statusSelections,
     prioritySelections,
+    targetProjectTemplateId,
     setLookups,
     setTrackerSelection,
     setStatusSelection,
     setPrioritySelection,
+    setTargetProjectTemplateId,
     setStep,
   } = useMigrationStore();
   const fetchLookups = useFetchEpLookups();
+  const { data: projectTemplates } = useProjectTemplates();
   const { data: taskTypes } = useTaskTypes();
-  const { data: taskStates } = useTaskStates();
-  const { data: ticketPriorities } = useTicketPriorities();
+  const { data: taskStates } = useTaskStates(targetProjectTemplateId ?? undefined);
+  const { data: ticketPriorities } = useTicketPriorities(targetProjectTemplateId ?? undefined);
+
+  // Default na první aktivní šablonu, aby uživatel mohl rovnou pokračovat.
+  useEffect(() => {
+    if (!targetProjectTemplateId && projectTemplates && projectTemplates.length > 0) {
+      const firstActive = projectTemplates.find((tpl) => tpl.isActive) ?? projectTemplates[0];
+      setTargetProjectTemplateId(firstActive.id);
+    }
+  }, [projectTemplates, targetProjectTemplateId, setTargetProjectTemplateId]);
 
   useEffect(() => {
     if (trackerMappings.length === 0) {
@@ -404,6 +420,29 @@ function StepLookups() {
       <div>
         <h2 className="text-xl font-semibold text-foreground">{t("lookups.title")}</h2>
         <p className="text-sm text-muted-foreground mt-1">{t("lookups.subtitle")}</p>
+      </div>
+
+      {/* Target project template — určuje, do jaké šablony půjdou auto-create
+          lookups a kam se napojí importované projekty. */}
+      <div className="rounded-lg border border-border bg-card p-4">
+        <label className="block text-sm font-semibold text-foreground mb-1">
+          {t("lookups.targetTemplate")}
+        </label>
+        <p className="text-xs text-muted-foreground mb-2">{t("lookups.targetTemplateHelp")}</p>
+        <select
+          value={targetProjectTemplateId ?? ""}
+          onChange={(e) => setTargetProjectTemplateId(e.target.value || null)}
+          className="w-full px-2 py-1.5 rounded border border-border bg-card text-sm"
+        >
+          <option value="">{t("lookups.selectPlaceholder")}</option>
+          {projectTemplates
+            ?.filter((tpl) => tpl.isActive)
+            .map((tpl) => (
+              <option key={tpl.id} value={tpl.id}>
+                {tpl.name}
+              </option>
+            ))}
+        </select>
       </div>
 
       {/* Trackers */}
@@ -650,11 +689,17 @@ function StepReview() {
       else if (sel) priorityMapping[p.epId] = sel;
     }
 
+    if (!store.targetProjectTemplateId) {
+      toast.error(t("review.targetTemplateRequired"));
+      return;
+    }
+
     startMigration.mutate(
       {
         baseUrl: store.baseUrl,
         apiKey: store.apiKey,
         projectIds: [...store.selectedProjectIds],
+        targetProjectTemplateId: store.targetProjectTemplateId,
         trackerMapping,
         statusMapping,
         priorityMapping,
