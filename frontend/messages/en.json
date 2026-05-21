@@ -1000,8 +1000,9 @@
     },
     "taskStatesGlobal": {
       "title": "Task States",
-      "subtitle": "Manage task states across all project templates",
-      "templateColumn": "Template"
+      "subtitle": "Read-only overview of task states across all project templates.",
+      "templateColumn": "Template",
+      "readOnlyBanner": "This overview is read-only. Edit task states within the tab of a specific template so changes apply in that template's context."
     }
   },
   "Errors": {
