@@ -66,7 +66,20 @@
     "signOut": "Sign out",
     "switchLanguage": "Switch language",
     "collapseSidebar": "Collapse sidebar",
-    "expandSidebar": "Expand sidebar"
+    "expandSidebar": "Expand sidebar",
+    "breadcrumbs": {
+      "dashboard": "Dashboard",
+      "projects": "Projects",
+      "tasks": "Tasks",
+      "worklogs": "Worklogs",
+      "resources": "Resources",
+      "admin": "Admin",
+      "lookups": "Lookups",
+      "migration": "Migration",
+      "board": "Board",
+      "settings": "Settings",
+      "tickets": "Tickets"
+    }
   },
   "Timer": {
     "running": "Timer running",
