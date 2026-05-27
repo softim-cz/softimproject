@@ -20,7 +20,10 @@ public sealed record UpdateTicketCommand(
     Guid? TaskTypeId = null,
     Guid? ParentTicketId = null,
     decimal? ExternalBudget = null,
-    string? ExternalUser = null) : IRequest, IRequireProjectRole
+    string? ExternalUser = null,
+    string? ExternalId = null,
+    string? ExternalUrl = null,
+    string? ImplementationNotes = null) : IRequest, IRequireProjectRole
 {
     public ProjectRole RequiredProjectRole => ProjectRole.Developer;
 }
@@ -34,6 +37,10 @@ public sealed class UpdateTicketCommandValidator : AbstractValidator<UpdateTicke
         RuleFor(x => x.TicketPriorityId).NotEmpty();
         RuleFor(x => x.TaskStateId).NotEmpty();
         RuleFor(x => x.EstimatedHours).GreaterThan(0).When(x => x.EstimatedHours.HasValue);
+        RuleFor(x => x.ExternalUser).MaximumLength(200);
+        RuleFor(x => x.ExternalId).MaximumLength(200);
+        RuleFor(x => x.ExternalUrl).MaximumLength(2000);
+        RuleFor(x => x.ImplementationNotes).MaximumLength(10000);
     }
 }
 
@@ -59,6 +66,9 @@ public sealed class UpdateTicketCommandHandler(
         ticket.ParentTicketId = request.ParentTicketId;
         ticket.ExternalBudget = request.ExternalBudget;
         ticket.ExternalUser = request.ExternalUser;
+        ticket.ExternalId = request.ExternalId;
+        ticket.ExternalUrl = request.ExternalUrl;
+        ticket.ImplementationNotes = request.ImplementationNotes;
 
         if (taskStateChanged)
         {
