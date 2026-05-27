@@ -100,19 +100,28 @@ export function useCreateTicket() {
   });
 }
 
+export interface UpdateTicketPayload {
+  projectId: string;
+  id: string;
+  ticketId: string;
+  title: string;
+  description?: string | null;
+  ticketPriorityId: string;
+  taskStateId: string;
+  assigneeId?: string | null;
+  dueDate?: string | null;
+  estimatedHours?: number | null;
+  taskTypeId?: string | null;
+  parentTicketId?: string | null;
+  externalBudget?: number | null;
+  externalUser?: string | null;
+}
+
 export function useUpdateTicket() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({
-      projectId,
-      id,
-      ...ticket
-    }: Partial<Ticket> & { projectId: string; id: string }) => {
-      const { data } = await apiClient.put<Ticket>(
-        `/api/v1/projects/${projectId}/tickets/${id}`,
-        ticket
-      );
-      return data;
+    mutationFn: async ({ id, ...payload }: UpdateTicketPayload) => {
+      await apiClient.put(`/api/v1/projects/${payload.projectId}/tickets/${id}`, payload);
     },
     onSuccess: (_, { projectId, id }) =>
       invalidateQueryKeys(

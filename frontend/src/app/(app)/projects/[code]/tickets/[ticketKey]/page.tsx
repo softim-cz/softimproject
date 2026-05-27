@@ -1,8 +1,9 @@
 "use client";
 
-import { use, useRef, useState } from "react";
-import { useTicketByNumber } from "@/queries/tickets";
-import { useProjectByCode } from "@/queries/projects";
+import { use, useEffect, useRef, useState } from "react";
+import { useTicketByNumber, useUpdateTicket } from "@/queries/tickets";
+import { useProjectByCode, useProjectUsers } from "@/queries/projects";
+import { useTaskStates, useTicketPriorities } from "@/queries/lookups";
 import {
   useComments,
   useCreateComment,
@@ -10,7 +11,7 @@ import {
   useUpdateComment,
 } from "@/queries/comments";
 import { useCurrentUser } from "@/queries/auth";
-import { GlobalRole, ProjectRole } from "@/types";
+import { GlobalRole, ProjectRole, type Ticket, type UserOption } from "@/types";
 import {
   MAX_ATTACHMENT_SIZE_BYTES,
   useAttachments,
@@ -50,9 +51,361 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { createCommentSchema, type CreateCommentInput } from "@/schemas/comment";
 import { toast } from "sonner";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import type { Comment, ChecklistItem } from "@/types";
 import { format } from "date-fns";
+
+type TicketPatch = Partial<
+  Pick<
+    Ticket,
+    | "title"
+    | "description"
+    | "ticketPriorityId"
+    | "taskStateId"
+    | "assigneeId"
+    | "dueDate"
+    | "estimatedHours"
+    | "taskTypeId"
+    | "parentTicketId"
+    | "externalBudget"
+    | "externalUser"
+  >
+>;
+
+function buildUpdatePayload(ticket: Ticket, patch: TicketPatch) {
+  // Backend UpdateTicketCommand requires the full record; merge current ticket values with the patch.
+  return {
+    projectId: ticket.projectId,
+    id: ticket.id,
+    ticketId: ticket.id,
+    title: patch.title ?? ticket.title,
+    description: patch.description ?? ticket.description ?? null,
+    ticketPriorityId: patch.ticketPriorityId ?? ticket.ticketPriorityId,
+    taskStateId: patch.taskStateId ?? ticket.taskStateId,
+    assigneeId: "assigneeId" in patch ? patch.assigneeId : ticket.assigneeId,
+    dueDate: "dueDate" in patch ? patch.dueDate : ticket.dueDate,
+    estimatedHours: "estimatedHours" in patch ? patch.estimatedHours : ticket.estimatedHours,
+    taskTypeId: "taskTypeId" in patch ? patch.taskTypeId : ticket.taskTypeId,
+    parentTicketId: "parentTicketId" in patch ? patch.parentTicketId : ticket.parentTicketId,
+    externalBudget: "externalBudget" in patch ? patch.externalBudget : ticket.externalBudget,
+    externalUser: "externalUser" in patch ? patch.externalUser : ticket.externalUser,
+  };
+}
+
+function EditableTitle({ ticket, canEdit }: { ticket: Ticket; canEdit: boolean }) {
+  const t = useTranslations("TicketDetail");
+  const updateTicket = useUpdateTicket();
+  const [isEditing, setIsEditing] = useState(false);
+  const [draft, setDraft] = useState(ticket.title);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (isEditing) inputRef.current?.focus();
+  }, [isEditing]);
+
+  const startEdit = () => {
+    setDraft(ticket.title);
+    setIsEditing(true);
+  };
+
+  const cancel = () => {
+    setDraft(ticket.title);
+    setIsEditing(false);
+  };
+
+  const save = async () => {
+    const trimmed = draft.trim();
+    if (!trimmed) {
+      toast.error(t("titleRequired"));
+      return;
+    }
+    if (trimmed === ticket.title) {
+      setIsEditing(false);
+      return;
+    }
+    try {
+      await updateTicket.mutateAsync(buildUpdatePayload(ticket, { title: trimmed }));
+      toast.success(t("titleUpdated"));
+      setIsEditing(false);
+    } catch {
+      toast.error(t("updateFailed"));
+    }
+  };
+
+  if (isEditing) {
+    return (
+      <div className="space-y-2">
+        <div className="flex items-start gap-2">
+          <span className="font-mono text-muted-foreground text-2xl font-bold mt-0.5">
+            {ticket.key}
+          </span>
+          <input
+            ref={inputRef}
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") void save();
+              if (e.key === "Escape") cancel();
+            }}
+            className="flex-1 rounded-lg border border-input bg-background px-3 py-1.5 text-2xl font-bold text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+          />
+        </div>
+        <div className="flex items-center justify-end gap-2">
+          <button
+            type="button"
+            onClick={cancel}
+            disabled={updateTicket.isPending}
+            className="inline-flex items-center gap-1 px-2.5 py-1 rounded text-xs text-muted-foreground hover:text-foreground disabled:opacity-50"
+          >
+            <X className="h-3.5 w-3.5" />
+            {t("cancel")}
+          </button>
+          <button
+            type="button"
+            onClick={save}
+            disabled={updateTicket.isPending}
+            className="inline-flex items-center gap-1 px-2.5 py-1 rounded bg-primary text-primary-foreground text-xs font-medium hover:opacity-90 disabled:opacity-50"
+          >
+            <Send className="h-3.5 w-3.5" />
+            {t("save")}
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <h1 className="text-2xl font-bold text-foreground group flex items-start gap-2">
+      <span className="font-mono text-muted-foreground mr-2">{ticket.key}</span>
+      <span className="flex-1">{ticket.title}</span>
+      {canEdit && (
+        <button
+          type="button"
+          onClick={startEdit}
+          className="opacity-0 group-hover:opacity-100 transition-opacity p-1 text-muted-foreground hover:text-foreground rounded"
+          title={t("editTitleAriaLabel")}
+          aria-label={t("editTitleAriaLabel")}
+        >
+          <Pencil className="h-4 w-4" />
+        </button>
+      )}
+    </h1>
+  );
+}
+
+function EditableSidebarSelect({
+  label,
+  displayValue,
+  options,
+  onSave,
+  canEdit,
+  placeholder,
+  ariaLabel,
+}: {
+  label: string;
+  displayValue: React.ReactNode;
+  options: { id: string; label: string }[];
+  onSave: (id: string | null) => Promise<void>;
+  canEdit: boolean;
+  placeholder?: string;
+  ariaLabel: string;
+}) {
+  const t = useTranslations("TicketDetail");
+  const [isEditing, setIsEditing] = useState(false);
+  const [draft, setDraft] = useState<string>("");
+  const [saving, setSaving] = useState(false);
+
+  const startEdit = (initial: string) => {
+    setDraft(initial);
+    setIsEditing(true);
+  };
+
+  const save = async () => {
+    setSaving(true);
+    try {
+      await onSave(draft || null);
+      setIsEditing(false);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="group">
+      <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+        {label}
+      </label>
+      {isEditing ? (
+        <div className="mt-1 space-y-2">
+          <select
+            autoFocus
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            className="w-full rounded-lg border border-input bg-background px-2 py-1 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+          >
+            {placeholder !== undefined && <option value="">{placeholder}</option>}
+            {options.map((o) => (
+              <option key={o.id} value={o.id}>
+                {o.label}
+              </option>
+            ))}
+          </select>
+          <div className="flex items-center justify-end gap-1">
+            <button
+              type="button"
+              onClick={() => setIsEditing(false)}
+              disabled={saving}
+              className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs text-muted-foreground hover:text-foreground disabled:opacity-50"
+            >
+              <X className="h-3 w-3" />
+              {t("cancel")}
+            </button>
+            <button
+              type="button"
+              onClick={save}
+              disabled={saving}
+              className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-primary text-primary-foreground text-xs font-medium hover:opacity-90 disabled:opacity-50"
+            >
+              <Send className="h-3 w-3" />
+              {t("save")}
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div className="mt-1 flex items-center justify-between gap-2">
+          <div className="flex-1 min-w-0">{displayValue}</div>
+          {canEdit && (
+            <button
+              type="button"
+              onClick={() => startEdit(options.length > 0 ? (options[0]?.id ?? "") : "")}
+              className="opacity-0 group-hover:opacity-100 transition-opacity p-1 text-muted-foreground hover:text-foreground rounded"
+              title={ariaLabel}
+              aria-label={ariaLabel}
+            >
+              <Pencil className="h-3.5 w-3.5" />
+            </button>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function EditableSidebarText({
+  label,
+  displayValue,
+  initialValue,
+  inputType,
+  step,
+  min,
+  onSave,
+  canEdit,
+  ariaLabel,
+}: {
+  label: string;
+  displayValue: React.ReactNode;
+  initialValue: string;
+  inputType: "date" | "number";
+  step?: string;
+  min?: string;
+  onSave: (value: string) => Promise<void>;
+  canEdit: boolean;
+  ariaLabel: string;
+}) {
+  const t = useTranslations("TicketDetail");
+  const [isEditing, setIsEditing] = useState(false);
+  const [draft, setDraft] = useState(initialValue);
+  const [saving, setSaving] = useState(false);
+
+  const startEdit = () => {
+    setDraft(initialValue);
+    setIsEditing(true);
+  };
+
+  const save = async () => {
+    setSaving(true);
+    try {
+      await onSave(draft);
+      setIsEditing(false);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="group">
+      <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+        {label}
+      </label>
+      {isEditing ? (
+        <div className="mt-1 space-y-2">
+          <input
+            autoFocus
+            type={inputType}
+            step={step}
+            min={min}
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") void save();
+              if (e.key === "Escape") setIsEditing(false);
+            }}
+            className="w-full rounded-lg border border-input bg-background px-2 py-1 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+          />
+          <div className="flex items-center justify-end gap-1">
+            <button
+              type="button"
+              onClick={() => setIsEditing(false)}
+              disabled={saving}
+              className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs text-muted-foreground hover:text-foreground disabled:opacity-50"
+            >
+              <X className="h-3 w-3" />
+              {t("cancel")}
+            </button>
+            <button
+              type="button"
+              onClick={save}
+              disabled={saving}
+              className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-primary text-primary-foreground text-xs font-medium hover:opacity-90 disabled:opacity-50"
+            >
+              <Send className="h-3 w-3" />
+              {t("save")}
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div className="mt-1 flex items-center justify-between gap-2">
+          <div className="flex-1 min-w-0">{displayValue}</div>
+          {canEdit && (
+            <button
+              type="button"
+              onClick={startEdit}
+              className="opacity-0 group-hover:opacity-100 transition-opacity p-1 text-muted-foreground hover:text-foreground rounded"
+              title={ariaLabel}
+              aria-label={ariaLabel}
+            >
+              <Pencil className="h-3.5 w-3.5" />
+            </button>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function localizedLookupName(
+  locale: string,
+  name: string,
+  nameCs?: string | null,
+  nameEn?: string | null
+): string {
+  if (locale.startsWith("cs")) return nameCs?.trim() || name;
+  return nameEn?.trim() || name;
+}
+
+function userPickerLabel(u: UserOption) {
+  return u.displayName?.trim() ? u.displayName : u.email;
+}
 
 function LinkedPullRequestsSection({
   projectId,
@@ -747,11 +1100,35 @@ export default function TicketDetailPage({
   params: Promise<{ code: string; ticketKey: string }>;
 }) {
   const t = useTranslations("TicketDetail");
+  const locale = useLocale();
   const { code, ticketKey } = use(params);
   const ticketNumber = parseInt(ticketKey.split("-").pop() || "0", 10);
   const { data: project } = useProjectByCode(code);
   const projectId = project?.id ?? "";
   const { data: ticket, isLoading, error } = useTicketByNumber(projectId, ticketNumber);
+  const { data: currentUser } = useCurrentUser();
+  const { data: taskStates } = useTaskStates(project?.projectTemplateId);
+  const { data: priorities } = useTicketPriorities(project?.projectTemplateId);
+  const { data: projectUsers } = useProjectUsers();
+  const updateTicket = useUpdateTicket();
+
+  const canEditTicket =
+    !!currentUser &&
+    !!project &&
+    (currentUser.globalRole === GlobalRole.Admin ||
+      currentUser.projectRoles.some(
+        (pr) => pr.projectId === project.id && pr.role !== ProjectRole.Guest
+      ));
+
+  const saveTicketPatch = async (patch: TicketPatch, successKey: string) => {
+    if (!ticket) return;
+    try {
+      await updateTicket.mutateAsync(buildUpdatePayload(ticket, patch));
+      toast.success(t(successKey));
+    } catch {
+      toast.error(t("updateFailed"));
+    }
+  };
 
   if (isLoading) {
     return (
@@ -786,10 +1163,7 @@ export default function TicketDetailPage({
         {/* Main content */}
         <div className="lg:col-span-2 space-y-6">
           <div>
-            <h1 className="text-2xl font-bold text-foreground">
-              <span className="font-mono text-muted-foreground mr-2">{ticket.key}</span>
-              {ticket.title}
-            </h1>
+            <EditableTitle ticket={ticket} canEdit={canEditTicket} />
             {ticket.externalUrl && (
               <a
                 href={ticket.externalUrl}
@@ -841,38 +1215,73 @@ export default function TicketDetailPage({
         {/* Sidebar */}
         <div className="space-y-4">
           <div className="rounded-lg border border-border bg-card p-4 space-y-4">
-            <div>
-              <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                {t("status")}
-              </label>
-              <div className="mt-1">
+            <EditableSidebarSelect
+              label={t("status")}
+              displayValue={
                 <StatusBadge name={ticket.taskStateName} color={ticket.taskStateColor} />
-              </div>
-            </div>
+              }
+              options={
+                taskStates
+                  ?.filter((s) => s.isActive)
+                  .sort((a, b) => a.sortOrder - b.sortOrder)
+                  .map((s) => ({
+                    id: s.id,
+                    label: localizedLookupName(locale, s.name, s.nameCs, s.nameEn),
+                  })) ?? []
+              }
+              canEdit={canEditTicket}
+              ariaLabel={t("editStatusAriaLabel")}
+              onSave={async (id) => {
+                if (!id || id === ticket.taskStateId) return;
+                await saveTicketPatch({ taskStateId: id }, "statusUpdated");
+              }}
+            />
 
-            <div>
-              <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                {t("priority")}
-              </label>
-              <div className="mt-1">
+            <EditableSidebarSelect
+              label={t("priority")}
+              displayValue={
                 <PriorityBadge
                   name={ticket.ticketPriorityName}
                   color={ticket.ticketPriorityColor}
                 />
-              </div>
-            </div>
+              }
+              options={
+                priorities
+                  ?.filter((p) => p.isActive)
+                  .sort((a, b) => a.sortOrder - b.sortOrder)
+                  .map((p) => ({
+                    id: p.id,
+                    label: localizedLookupName(locale, p.name, p.nameCs, p.nameEn),
+                  })) ?? []
+              }
+              canEdit={canEditTicket}
+              ariaLabel={t("editPriorityAriaLabel")}
+              onSave={async (id) => {
+                if (!id || id === ticket.ticketPriorityId) return;
+                await saveTicketPatch({ ticketPriorityId: id }, "priorityUpdated");
+              }}
+            />
 
-            <div>
-              <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                {t("assignee")}
-              </label>
-              <div className="mt-1 flex items-center gap-2">
-                <User className="h-4 w-4 text-muted-foreground" />
-                <span className="text-sm text-foreground">
-                  {ticket.assignee?.displayName || t("assignee")}
-                </span>
-              </div>
-            </div>
+            <EditableSidebarSelect
+              label={t("assignee")}
+              displayValue={
+                <div className="flex items-center gap-2">
+                  <User className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-sm text-foreground">
+                    {ticket.assignee?.displayName || t("unassigned")}
+                  </span>
+                </div>
+              }
+              options={projectUsers?.map((u) => ({ id: u.id, label: userPickerLabel(u) })) ?? []}
+              placeholder={t("unassigned")}
+              canEdit={canEditTicket}
+              ariaLabel={t("editAssigneeAriaLabel")}
+              onSave={async (id) => {
+                const newAssignee = id ?? null;
+                if (newAssignee === (ticket.assigneeId ?? null)) return;
+                await saveTicketPatch({ assigneeId: newAssignee ?? undefined }, "assigneeUpdated");
+              }}
+            />
 
             <div>
               <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
@@ -886,31 +1295,62 @@ export default function TicketDetailPage({
               </div>
             </div>
 
-            {ticket.dueDate && (
-              <div>
-                <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                  {t("dueDate")}
-                </label>
-                <div className="mt-1 flex items-center gap-2">
+            <EditableSidebarText
+              label={t("dueDate")}
+              displayValue={
+                <div className="flex items-center gap-2">
                   <Calendar className="h-4 w-4 text-muted-foreground" />
                   <span className="text-sm text-foreground">
-                    {format(new Date(ticket.dueDate), "MMM d, yyyy")}
+                    {ticket.dueDate
+                      ? format(new Date(ticket.dueDate), "MMM d, yyyy")
+                      : t("noDueDate")}
                   </span>
                 </div>
-              </div>
-            )}
+              }
+              initialValue={ticket.dueDate ?? ""}
+              inputType="date"
+              canEdit={canEditTicket}
+              ariaLabel={t("editDueDateAriaLabel")}
+              onSave={async (value) => {
+                const next = value ? value : null;
+                const current = ticket.dueDate ?? null;
+                if (next === current) return;
+                await saveTicketPatch({ dueDate: next ?? undefined }, "dueDateUpdated");
+              }}
+            />
 
-            {ticket.estimatedHours && (
-              <div>
-                <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                  {t("estimatedHours")}
-                </label>
-                <div className="mt-1 flex items-center gap-2">
+            <EditableSidebarText
+              label={t("estimatedHours")}
+              displayValue={
+                <div className="flex items-center gap-2">
                   <Clock className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-sm text-foreground">{ticket.estimatedHours}h</span>
+                  <span className="text-sm text-foreground">
+                    {ticket.estimatedHours ? `${ticket.estimatedHours}h` : t("noEstimate")}
+                  </span>
                 </div>
-              </div>
-            )}
+              }
+              initialValue={ticket.estimatedHours?.toString() ?? ""}
+              inputType="number"
+              step="0.5"
+              min="0"
+              canEdit={canEditTicket}
+              ariaLabel={t("editEstimatedHoursAriaLabel")}
+              onSave={async (value) => {
+                const trimmed = value.trim();
+                if (!trimmed) {
+                  if (ticket.estimatedHours === undefined || ticket.estimatedHours === null) return;
+                  await saveTicketPatch({ estimatedHours: undefined }, "estimatedHoursUpdated");
+                  return;
+                }
+                const parsed = Number(trimmed);
+                if (!Number.isFinite(parsed) || parsed <= 0) {
+                  toast.error(t("estimatedHoursInvalid"));
+                  return;
+                }
+                if (parsed === ticket.estimatedHours) return;
+                await saveTicketPatch({ estimatedHours: parsed }, "estimatedHoursUpdated");
+              }}
+            />
 
             <div>
               <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
