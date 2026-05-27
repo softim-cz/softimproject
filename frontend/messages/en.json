@@ -677,7 +677,14 @@
     "noExternalUrl": "Not set",
     "externalUrlPlaceholder": "https://…",
     "editExternalUrlAriaLabel": "Change external URL",
-    "externalUrlUpdated": "External URL updated."
+    "externalUrlUpdated": "External URL updated.",
+    "noParentTicket": "No parent ticket",
+    "editParentTicketAriaLabel": "Change parent ticket",
+    "parentTicketPlaceholder": "e.g. DEMO-12 (empty = unlink)",
+    "parentKeyInvalid": "Enter a key in CODE-NUMBER format, e.g. DEMO-12.",
+    "parentIsSelf": "A ticket cannot be its own parent.",
+    "parentNotFound": "No parent ticket found with this key.",
+    "parentTicketUpdated": "Parent ticket updated."
   },
   "Board": {
     "groupBy": "Group by",

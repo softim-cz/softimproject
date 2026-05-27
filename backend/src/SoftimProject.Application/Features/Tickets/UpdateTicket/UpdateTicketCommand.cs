@@ -54,6 +54,12 @@ public sealed class UpdateTicketCommandHandler(
             ?? throw new NotFoundException(nameof(Domain.Entities.Ticket), request.TicketId);
 
         var taskStateChanged = ticket.TaskStateId != request.TaskStateId;
+        var parentChanged = ticket.ParentTicketId != request.ParentTicketId;
+
+        if (parentChanged && request.ParentTicketId.HasValue)
+        {
+            await ValidateParentAsync(ticket, request.ParentTicketId.Value, cancellationToken);
+        }
 
         ticket.Title = request.Title;
         ticket.Description = request.Description;
@@ -76,6 +82,47 @@ public sealed class UpdateTicketCommandHandler(
         }
 
         await dbContext.SaveChangesAsync(cancellationToken);
+    }
+
+    private async Task ValidateParentAsync(Domain.Entities.Ticket ticket, Guid parentId, CancellationToken cancellationToken)
+    {
+        if (parentId == ticket.Id)
+        {
+            throw new ValidationException("Ticket nemůže být svým vlastním nadřízeným úkolem.");
+        }
+
+        var parent = await dbContext.Tickets
+            .Where(t => t.Id == parentId)
+            .Select(t => new { t.Id, t.ProjectId, t.ParentTicketId })
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (parent is null)
+        {
+            throw new ValidationException("Nadřízený úkol nebyl nalezen.");
+        }
+
+        if (parent.ProjectId != ticket.ProjectId)
+        {
+            throw new ValidationException("Nadřízený úkol musí patřit do stejného projektu.");
+        }
+
+        // Walk up the parent chain to detect cycles.
+        var visited = new HashSet<Guid> { ticket.Id, parent.Id };
+        var current = parent.ParentTicketId;
+        while (current.HasValue)
+        {
+            if (!visited.Add(current.Value))
+            {
+                throw new ValidationException("Vazba na nadřízený úkol by vytvořila cyklus.");
+            }
+
+            var next = await dbContext.Tickets
+                .Where(t => t.Id == current.Value)
+                .Select(t => t.ParentTicketId)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            current = next;
+        }
     }
 
     private async Task SyncColumnForStateAsync(Domain.Entities.Ticket ticket, CancellationToken cancellationToken)
