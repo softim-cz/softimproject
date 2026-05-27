@@ -46,6 +46,8 @@ public sealed class UpdateTicketCommandHandler(
             .FirstOrDefaultAsync(t => t.Id == request.TicketId && t.ProjectId == request.ProjectId, cancellationToken)
             ?? throw new NotFoundException(nameof(Domain.Entities.Ticket), request.TicketId);
 
+        var taskStateChanged = ticket.TaskStateId != request.TaskStateId;
+
         ticket.Title = request.Title;
         ticket.Description = request.Description;
         ticket.TicketPriorityId = request.TicketPriorityId;
@@ -58,6 +60,42 @@ public sealed class UpdateTicketCommandHandler(
         ticket.ExternalBudget = request.ExternalBudget;
         ticket.ExternalUser = request.ExternalUser;
 
+        if (taskStateChanged)
+        {
+            await SyncColumnForStateAsync(ticket, cancellationToken);
+        }
+
         await dbContext.SaveChangesAsync(cancellationToken);
+    }
+
+    private async Task SyncColumnForStateAsync(Domain.Entities.Ticket ticket, CancellationToken cancellationToken)
+    {
+        // Keep current column if it already maps the new state; otherwise pick the first column on the
+        // default board that maps it. Without this, sidebar status edits would leave tickets stranded
+        // in their original kanban column.
+        if (ticket.ColumnId.HasValue)
+        {
+            var currentColumn = await dbContext.KanbanColumns
+                .Include(c => c.MapsToTaskStates)
+                .FirstOrDefaultAsync(c => c.Id == ticket.ColumnId.Value, cancellationToken);
+
+            if (currentColumn is not null && currentColumn.MapsToTaskStates.Any(ts => ts.Id == ticket.TaskStateId))
+            {
+                return;
+            }
+        }
+
+        var targetColumn = await dbContext.KanbanColumns
+            .Where(c => c.Board.ProjectId == ticket.ProjectId
+                        && c.Board.IsDefault
+                        && c.MapsToTaskStates.Any(ts => ts.Id == ticket.TaskStateId))
+            .OrderBy(c => c.Position)
+            .Select(c => new { c.Id })
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (targetColumn is not null)
+        {
+            ticket.ColumnId = targetColumn.Id;
+        }
     }
 }
