@@ -1,6 +1,7 @@
 "use client";
 
 import { use, useEffect, useRef, useState } from "react";
+import apiClient from "@/lib/api/client";
 import { useTicketByNumber, useUpdateTicket } from "@/queries/tickets";
 import { useProjectByCode, useProjectUsers } from "@/queries/projects";
 import { useTaskStates, useTicketPriorities } from "@/queries/lookups";
@@ -11,7 +12,13 @@ import {
   useUpdateComment,
 } from "@/queries/comments";
 import { useCurrentUser } from "@/queries/auth";
-import { GlobalRole, ProjectRole, type Ticket, type UserOption } from "@/types";
+import {
+  GlobalRole,
+  ProjectRole,
+  type Ticket,
+  type TicketSubTicket,
+  type UserOption,
+} from "@/types";
 import {
   MAX_ATTACHMENT_SIZE_BYTES,
   useAttachments,
@@ -501,6 +508,181 @@ function EditableTextSection({
       ) : (
         <p className="text-sm text-muted-foreground italic">{emptyLabel}</p>
       )}
+    </div>
+  );
+}
+
+function EditableParentField({
+  ticket,
+  projectCode,
+  canEdit,
+  onSave,
+}: {
+  ticket: Ticket;
+  projectCode: string;
+  canEdit: boolean;
+  onSave: (parentId: string | null) => Promise<void>;
+}) {
+  const t = useTranslations("TicketDetail");
+  const [isEditing, setIsEditing] = useState(false);
+  const [draft, setDraft] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  const startEdit = () => {
+    setDraft(ticket.parentTicketKey ?? "");
+    setIsEditing(true);
+  };
+
+  const save = async () => {
+    const trimmed = draft.trim();
+    setSaving(true);
+    try {
+      if (!trimmed) {
+        if (ticket.parentTicketId == null) {
+          setIsEditing(false);
+          return;
+        }
+        await onSave(null);
+        setIsEditing(false);
+        return;
+      }
+
+      // Expecting "CODE-NUMBER" format. Same project only (BE enforces this).
+      const match = trimmed.match(/-(\d+)$/);
+      if (!match) {
+        toast.error(t("parentKeyInvalid"));
+        return;
+      }
+      const number = parseInt(match[1], 10);
+      if (!Number.isFinite(number) || number <= 0) {
+        toast.error(t("parentKeyInvalid"));
+        return;
+      }
+      try {
+        const { data } = await apiClient.get<{ id: string }>(
+          `/api/v1/projects/${ticket.projectId}/tickets/by-number/${number}`
+        );
+        if (data.id === ticket.id) {
+          toast.error(t("parentIsSelf"));
+          return;
+        }
+        if (data.id === ticket.parentTicketId) {
+          setIsEditing(false);
+          return;
+        }
+        await onSave(data.id);
+        setIsEditing(false);
+      } catch {
+        toast.error(t("parentNotFound"));
+      }
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="group">
+      <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+        {t("parentTicket")}
+      </label>
+      {isEditing ? (
+        <div className="mt-1 space-y-2">
+          <input
+            autoFocus
+            type="text"
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") void save();
+              if (e.key === "Escape") setIsEditing(false);
+            }}
+            placeholder={t("parentTicketPlaceholder")}
+            className="w-full rounded-lg border border-input bg-background px-2 py-1 text-sm text-foreground font-mono focus:outline-none focus:ring-2 focus:ring-ring"
+          />
+          <div className="flex items-center justify-end gap-1">
+            <button
+              type="button"
+              onClick={() => setIsEditing(false)}
+              disabled={saving}
+              className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs text-muted-foreground hover:text-foreground disabled:opacity-50"
+            >
+              <X className="h-3 w-3" />
+              {t("cancel")}
+            </button>
+            <button
+              type="button"
+              onClick={save}
+              disabled={saving}
+              className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-primary text-primary-foreground text-xs font-medium hover:opacity-90 disabled:opacity-50"
+            >
+              <Send className="h-3 w-3" />
+              {t("save")}
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div className="mt-1 flex items-center justify-between gap-2">
+          <div className="flex-1 min-w-0">
+            {ticket.parentTicketKey ? (
+              <Link
+                href={`/projects/${projectCode}/tickets/${ticket.parentTicketKey}`}
+                className="inline-flex items-center gap-1 text-sm text-foreground hover:text-primary"
+              >
+                <span className="font-mono text-muted-foreground">{ticket.parentTicketKey}</span>
+                <span className="truncate">{ticket.parentTicketTitle}</span>
+              </Link>
+            ) : (
+              <span className="text-sm text-muted-foreground">{t("noParentTicket")}</span>
+            )}
+          </div>
+          {canEdit && (
+            <button
+              type="button"
+              onClick={startEdit}
+              className="opacity-0 group-hover:opacity-100 transition-opacity p-1 text-muted-foreground hover:text-foreground rounded"
+              title={t("editParentTicketAriaLabel")}
+              aria-label={t("editParentTicketAriaLabel")}
+            >
+              <Pencil className="h-3.5 w-3.5" />
+            </button>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function SubTicketsSection({
+  subTickets,
+  projectCode,
+}: {
+  subTickets: TicketSubTicket[] | undefined;
+  projectCode: string;
+}) {
+  const t = useTranslations("TicketDetail");
+  if (!subTickets || subTickets.length === 0) return null;
+
+  return (
+    <div className="space-y-3">
+      <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
+        <FileText className="h-4 w-4 text-muted-foreground" />
+        {t("subTickets")}
+        <span className="text-xs text-muted-foreground font-normal">({subTickets.length})</span>
+      </h3>
+      <ul className="space-y-2">
+        {subTickets.map((sub) => (
+          <li key={sub.id}>
+            <Link
+              href={`/projects/${projectCode}/tickets/${sub.key}`}
+              className="flex items-center gap-3 p-2 rounded border border-border hover:bg-muted/30"
+            >
+              <span className="font-mono text-xs text-muted-foreground shrink-0">{sub.key}</span>
+              <span className="text-sm text-foreground flex-1 min-w-0 truncate">{sub.title}</span>
+              <StatusBadge name={sub.taskStateName} color={sub.taskStateColor} />
+            </Link>
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }
@@ -1305,6 +1487,8 @@ export default function TicketDetailPage({
             }}
           />
 
+          <SubTicketsSection subTickets={ticket.subTickets} projectCode={code} />
+
           {ticket.aiSummary && (
             <div className="rounded-lg border border-purple-200 bg-purple-50 p-4">
               <div className="flex items-center gap-2 mb-2">
@@ -1414,6 +1598,19 @@ export default function TicketDetailPage({
                 </span>
               </div>
             </div>
+
+            <EditableParentField
+              ticket={ticket}
+              projectCode={code}
+              canEdit={canEditTicket}
+              onSave={async (parentId) => {
+                if ((parentId ?? null) === (ticket.parentTicketId ?? null)) return;
+                await saveTicketPatch(
+                  { parentTicketId: parentId ?? undefined },
+                  "parentTicketUpdated"
+                );
+              }}
+            />
 
             <EditableSidebarText
               label={t("dueDate")}

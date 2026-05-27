@@ -677,7 +677,14 @@
     "noExternalUrl": "Neuvedeno",
     "externalUrlPlaceholder": "https://…",
     "editExternalUrlAriaLabel": "Změnit externí URL",
-    "externalUrlUpdated": "Externí URL upraveno."
+    "externalUrlUpdated": "Externí URL upraveno.",
+    "noParentTicket": "Bez nadřízeného úkolu",
+    "editParentTicketAriaLabel": "Změnit nadřízený úkol",
+    "parentTicketPlaceholder": "např. DEMO-12 (prázdné = odpojit)",
+    "parentKeyInvalid": "Zadejte klíč ve formátu CODE-NUMBER, např. DEMO-12.",
+    "parentIsSelf": "Ticket nemůže být svým vlastním nadřízeným úkolem.",
+    "parentNotFound": "Nadřízený úkol s tímto klíčem nebyl nalezen.",
+    "parentTicketUpdated": "Nadřízený úkol upraven."
   },
   "Board": {
     "groupBy": "Seskupit podle",

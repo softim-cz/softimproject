@@ -31,6 +31,15 @@ public sealed record TicketChecklistItemDto(
     bool IsCompleted,
     int Position);
 
+public sealed record TicketSubTicketDto(
+    Guid Id,
+    int Number,
+    string Key,
+    string Title,
+    Guid TaskStateId,
+    string TaskStateName,
+    string TaskStateColor);
+
 public sealed record TicketDetailDto(
     Guid Id,
     int Number,
@@ -56,6 +65,8 @@ public sealed record TicketDetailDto(
     string? TaskTypeName,
     string? TaskTypeIcon,
     Guid? ParentTicketId,
+    int? ParentTicketNumber,
+    string? ParentTicketKey,
     string? ParentTicketTitle,
     decimal CumulativeWorkedHours,
     decimal? ExternalBudget,
@@ -69,7 +80,8 @@ public sealed record TicketDetailDto(
     DateTime? UpdatedAt,
     List<TicketCommentDto> Comments,
     List<TicketAttachmentDto> Attachments,
-    List<TicketChecklistItemDto> ChecklistItems);
+    List<TicketChecklistItemDto> ChecklistItems,
+    List<TicketSubTicketDto> SubTickets);
 
 internal static class TicketDetailProjections
 {
@@ -98,6 +110,8 @@ internal static class TicketDetailProjections
         ticket.TaskType != null ? ticket.TaskType.Name : null,
         ticket.TaskType != null ? ticket.TaskType.Icon : null,
         ticket.ParentTicketId,
+        ticket.ParentTicket != null ? ticket.ParentTicket.Number : (int?)null,
+        ticket.ParentTicket != null ? ticket.ParentTicket.Project.Code + "-" + ticket.ParentTicket.Number : null,
         ticket.ParentTicket != null ? ticket.ParentTicket.Title : null,
         ticket.CumulativeWorkedHours,
         ticket.ExternalBudget,
@@ -137,5 +151,16 @@ internal static class TicketDetailProjections
                 checklistItem.Text,
                 checklistItem.IsCompleted,
                 checklistItem.Position))
+            .ToList(),
+        ticket.SubTickets
+            .OrderBy(sub => sub.Number)
+            .Select(sub => new TicketSubTicketDto(
+                sub.Id,
+                sub.Number,
+                ticket.Project.Code + "-" + sub.Number,
+                sub.Title,
+                sub.TaskStateId,
+                sub.TaskState.Name,
+                sub.TaskState.Color))
             .ToList());
 }

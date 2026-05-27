@@ -192,6 +192,10 @@ export interface Ticket {
   taskTypeName?: string;
   taskTypeIcon?: string;
   parentTicketId?: string;
+  parentTicketNumber?: number;
+  parentTicketKey?: string;
+  parentTicketTitle?: string;
+  subTickets?: TicketSubTicket[];
   cumulativeWorkedHours?: number;
   externalBudget?: number;
   externalUser?: string;
@@ -202,6 +206,16 @@ export interface Ticket {
   attachmentsCount: number;
   createdAt: string;
   updatedAt?: string;
+}
+
+export interface TicketSubTicket {
+  id: string;
+  number: number;
+  key: string;
+  title: string;
+  taskStateId: string;
+  taskStateName: string;
+  taskStateColor: string;
 }
 
 export interface TicketAttachment {
