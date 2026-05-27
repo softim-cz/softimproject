@@ -69,6 +69,9 @@ type TicketPatch = Partial<
     | "parentTicketId"
     | "externalBudget"
     | "externalUser"
+    | "externalId"
+    | "externalUrl"
+    | "implementationNotes"
   >
 >;
 
@@ -89,6 +92,10 @@ function buildUpdatePayload(ticket: Ticket, patch: TicketPatch) {
     parentTicketId: "parentTicketId" in patch ? patch.parentTicketId : ticket.parentTicketId,
     externalBudget: "externalBudget" in patch ? patch.externalBudget : ticket.externalBudget,
     externalUser: "externalUser" in patch ? patch.externalUser : ticket.externalUser,
+    externalId: "externalId" in patch ? patch.externalId : ticket.externalId,
+    externalUrl: "externalUrl" in patch ? patch.externalUrl : ticket.externalUrl,
+    implementationNotes:
+      "implementationNotes" in patch ? patch.implementationNotes : ticket.implementationNotes,
   };
 }
 
@@ -301,16 +308,18 @@ function EditableSidebarText({
   onSave,
   canEdit,
   ariaLabel,
+  placeholder,
 }: {
   label: string;
   displayValue: React.ReactNode;
   initialValue: string;
-  inputType: "date" | "number";
+  inputType: "date" | "number" | "text" | "url";
   step?: string;
   min?: string;
   onSave: (value: string) => Promise<void>;
   canEdit: boolean;
   ariaLabel: string;
+  placeholder?: string;
 }) {
   const t = useTranslations("TicketDetail");
   const [isEditing, setIsEditing] = useState(false);
@@ -344,6 +353,7 @@ function EditableSidebarText({
             type={inputType}
             step={step}
             min={min}
+            placeholder={placeholder}
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
             onKeyDown={(e) => {
@@ -388,6 +398,108 @@ function EditableSidebarText({
             </button>
           )}
         </div>
+      )}
+    </div>
+  );
+}
+
+function EditableTextSection({
+  icon,
+  title,
+  value,
+  emptyLabel,
+  placeholder,
+  onSave,
+  canEdit,
+  ariaLabel,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  value: string | null | undefined;
+  emptyLabel: string;
+  placeholder: string;
+  onSave: (value: string | null) => Promise<void>;
+  canEdit: boolean;
+  ariaLabel: string;
+}) {
+  const t = useTranslations("TicketDetail");
+  const [isEditing, setIsEditing] = useState(false);
+  const [draft, setDraft] = useState(value ?? "");
+  const [saving, setSaving] = useState(false);
+  const hasValue = !!value && value.trim().length > 0;
+
+  const startEdit = () => {
+    setDraft(value ?? "");
+    setIsEditing(true);
+  };
+
+  const save = async () => {
+    const trimmed = draft.trim();
+    setSaving(true);
+    try {
+      await onSave(trimmed.length === 0 ? null : trimmed);
+      setIsEditing(false);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="space-y-2 group">
+      <div className="flex items-center justify-between">
+        <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
+          {icon}
+          {title}
+        </h3>
+        {canEdit && !isEditing && (
+          <button
+            type="button"
+            onClick={startEdit}
+            className="opacity-0 group-hover:opacity-100 transition-opacity p-1 text-muted-foreground hover:text-foreground rounded"
+            title={ariaLabel}
+            aria-label={ariaLabel}
+          >
+            <Pencil className="h-3.5 w-3.5" />
+          </button>
+        )}
+      </div>
+      {isEditing ? (
+        <div className="space-y-2">
+          <textarea
+            autoFocus
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            rows={4}
+            placeholder={placeholder}
+            className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring resize-y"
+          />
+          <div className="flex items-center justify-end gap-2">
+            <button
+              type="button"
+              onClick={() => setIsEditing(false)}
+              disabled={saving}
+              className="inline-flex items-center gap-1 px-2.5 py-1 rounded text-xs text-muted-foreground hover:text-foreground disabled:opacity-50"
+            >
+              <X className="h-3.5 w-3.5" />
+              {t("cancel")}
+            </button>
+            <button
+              type="button"
+              onClick={save}
+              disabled={saving}
+              className="inline-flex items-center gap-1 px-2.5 py-1 rounded bg-primary text-primary-foreground text-xs font-medium hover:opacity-90 disabled:opacity-50"
+            >
+              <Send className="h-3.5 w-3.5" />
+              {t("save")}
+            </button>
+          </div>
+        </div>
+      ) : hasValue ? (
+        <div className="rounded-lg border border-border p-4 bg-muted/30">
+          <p className="whitespace-pre-wrap text-sm text-foreground">{value}</p>
+        </div>
+      ) : (
+        <p className="text-sm text-muted-foreground italic">{emptyLabel}</p>
       )}
     </div>
   );
@@ -1164,16 +1276,6 @@ export default function TicketDetailPage({
         <div className="lg:col-span-2 space-y-6">
           <div>
             <EditableTitle ticket={ticket} canEdit={canEditTicket} />
-            {ticket.externalUrl && (
-              <a
-                href={ticket.externalUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-sm text-accent-orange hover:underline"
-              >
-                {ticket.externalId || t("externalLink")}
-              </a>
-            )}
           </div>
 
           {ticket.description && (
@@ -1184,6 +1286,24 @@ export default function TicketDetailPage({
               </div>
             </div>
           )}
+
+          <EditableTextSection
+            icon={<FileText className="h-4 w-4 text-muted-foreground" />}
+            title={t("implementationNotes")}
+            value={ticket.implementationNotes}
+            emptyLabel={t("noImplementationNotes")}
+            placeholder={t("implementationNotesPlaceholder")}
+            canEdit={canEditTicket}
+            ariaLabel={t("editImplementationNotesAriaLabel")}
+            onSave={async (next) => {
+              const current = ticket.implementationNotes ?? null;
+              if (next === current) return;
+              await saveTicketPatch(
+                { implementationNotes: next ?? undefined },
+                "implementationNotesUpdated"
+              );
+            }}
+          />
 
           {ticket.aiSummary && (
             <div className="rounded-lg border border-purple-200 bg-purple-50 p-4">
@@ -1349,6 +1469,111 @@ export default function TicketDetailPage({
                 }
                 if (parsed === ticket.estimatedHours) return;
                 await saveTicketPatch({ estimatedHours: parsed }, "estimatedHoursUpdated");
+              }}
+            />
+
+            <EditableSidebarText
+              label={t("externalBudgetLabel")}
+              displayValue={
+                <span className="text-sm text-foreground">
+                  {ticket.externalBudget != null && ticket.externalBudget !== 0
+                    ? ticket.externalBudget.toString()
+                    : t("noExternalBudget")}
+                </span>
+              }
+              initialValue={ticket.externalBudget?.toString() ?? ""}
+              inputType="number"
+              step="0.5"
+              min="0"
+              canEdit={canEditTicket}
+              ariaLabel={t("editExternalBudgetAriaLabel")}
+              onSave={async (value) => {
+                const trimmed = value.trim();
+                if (!trimmed) {
+                  if (ticket.externalBudget == null) return;
+                  await saveTicketPatch({ externalBudget: undefined }, "externalBudgetUpdated");
+                  return;
+                }
+                const parsed = Number(trimmed);
+                if (!Number.isFinite(parsed) || parsed < 0) {
+                  toast.error(t("externalBudgetInvalid"));
+                  return;
+                }
+                if (parsed === ticket.externalBudget) return;
+                await saveTicketPatch({ externalBudget: parsed }, "externalBudgetUpdated");
+              }}
+            />
+
+            <EditableSidebarText
+              label={t("externalUserLabel")}
+              displayValue={
+                <span className="text-sm text-foreground">
+                  {ticket.externalUser?.trim() ? ticket.externalUser : t("noExternalUser")}
+                </span>
+              }
+              initialValue={ticket.externalUser ?? ""}
+              inputType="text"
+              placeholder={t("externalUserPlaceholder")}
+              canEdit={canEditTicket}
+              ariaLabel={t("editExternalUserAriaLabel")}
+              onSave={async (value) => {
+                const trimmed = value.trim();
+                const next = trimmed.length === 0 ? null : trimmed;
+                const current = ticket.externalUser?.trim() ? ticket.externalUser : null;
+                if (next === current) return;
+                await saveTicketPatch({ externalUser: next ?? undefined }, "externalUserUpdated");
+              }}
+            />
+
+            <EditableSidebarText
+              label={t("externalIdLabel")}
+              displayValue={
+                <span className="text-sm text-foreground font-mono">
+                  {ticket.externalId?.trim() ? ticket.externalId : t("noExternalId")}
+                </span>
+              }
+              initialValue={ticket.externalId ?? ""}
+              inputType="text"
+              placeholder={t("externalIdPlaceholder")}
+              canEdit={canEditTicket}
+              ariaLabel={t("editExternalIdAriaLabel")}
+              onSave={async (value) => {
+                const trimmed = value.trim();
+                const next = trimmed.length === 0 ? null : trimmed;
+                const current = ticket.externalId?.trim() ? ticket.externalId : null;
+                if (next === current) return;
+                await saveTicketPatch({ externalId: next ?? undefined }, "externalIdUpdated");
+              }}
+            />
+
+            <EditableSidebarText
+              label={t("externalUrlLabel")}
+              displayValue={
+                ticket.externalUrl?.trim() ? (
+                  <a
+                    href={ticket.externalUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-sm text-accent-orange hover:underline inline-flex items-center gap-1 break-all"
+                  >
+                    <ExternalLink className="h-3 w-3 shrink-0" />
+                    {ticket.externalUrl}
+                  </a>
+                ) : (
+                  <span className="text-sm text-foreground">{t("noExternalUrl")}</span>
+                )
+              }
+              initialValue={ticket.externalUrl ?? ""}
+              inputType="url"
+              placeholder={t("externalUrlPlaceholder")}
+              canEdit={canEditTicket}
+              ariaLabel={t("editExternalUrlAriaLabel")}
+              onSave={async (value) => {
+                const trimmed = value.trim();
+                const next = trimmed.length === 0 ? null : trimmed;
+                const current = ticket.externalUrl?.trim() ? ticket.externalUrl : null;
+                if (next === current) return;
+                await saveTicketPatch({ externalUrl: next ?? undefined }, "externalUrlUpdated");
               }}
             />
 

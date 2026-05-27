@@ -115,6 +115,9 @@ export interface UpdateTicketPayload {
   parentTicketId?: string | null;
   externalBudget?: number | null;
   externalUser?: string | null;
+  externalId?: string | null;
+  externalUrl?: string | null;
+  implementationNotes?: string | null;
 }
 
 export function useUpdateTicket() {
