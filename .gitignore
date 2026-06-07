@@ -452,3 +452,8 @@ out/
 
 # Windows accidental artifacts
 nul
+
+# Claude paměť (sdílená přes OneDrive, ne přes git)
+.claude/memory/
+.claude/scheduled_tasks.lock
+
