@@ -20,6 +20,7 @@ public sealed class TicketConfiguration : IEntityTypeConfiguration<Ticket>
         builder.Property(t => t.CumulativeWorkedHours).HasPrecision(10, 2);
         builder.Property(t => t.ExternalBudget).HasPrecision(14, 2);
         builder.Property(t => t.ExternalUser).HasMaxLength(256);
+        builder.Property(t => t.ExternalProject).HasMaxLength(256);
         builder.Property(t => t.ImplementationNotes).HasColumnType("nvarchar(max)");
         builder.Property(t => t.LastComment).HasMaxLength(2000);
 

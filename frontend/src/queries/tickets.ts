@@ -117,6 +117,7 @@ export interface UpdateTicketPayload {
   externalUser?: string | null;
   externalId?: string | null;
   externalUrl?: string | null;
+  externalProject?: string | null;
   implementationNotes?: string | null;
 }
 

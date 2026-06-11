@@ -19,7 +19,8 @@ public sealed record CreateTicketCommand(
     Guid? TaskStateId = null,
     Guid? ParentTicketId = null,
     decimal? ExternalBudget = null,
-    string? ExternalUser = null) : IRequest<Guid>, IRequireProjectAccess;
+    string? ExternalUser = null,
+    string? ExternalProject = null) : IRequest<Guid>, IRequireProjectAccess;
 
 public sealed class CreateTicketCommandValidator : AbstractValidator<CreateTicketCommand>
 {
@@ -82,6 +83,7 @@ public sealed class CreateTicketCommandHandler(
             ParentTicketId = request.ParentTicketId,
             ExternalBudget = request.ExternalBudget,
             ExternalUser = request.ExternalUser,
+            ExternalProject = request.ExternalProject,
             Position = 0,
             CreatedAt = DateTime.UtcNow
         };

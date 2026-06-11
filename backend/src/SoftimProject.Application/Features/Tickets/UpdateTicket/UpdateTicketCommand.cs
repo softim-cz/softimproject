@@ -23,6 +23,7 @@ public sealed record UpdateTicketCommand(
     string? ExternalUser = null,
     string? ExternalId = null,
     string? ExternalUrl = null,
+    string? ExternalProject = null,
     string? ImplementationNotes = null) : IRequest, IRequireProjectRole
 {
     public ProjectRole RequiredProjectRole => ProjectRole.Developer;
@@ -40,6 +41,7 @@ public sealed class UpdateTicketCommandValidator : AbstractValidator<UpdateTicke
         RuleFor(x => x.ExternalUser).MaximumLength(200);
         RuleFor(x => x.ExternalId).MaximumLength(200);
         RuleFor(x => x.ExternalUrl).MaximumLength(2000);
+        RuleFor(x => x.ExternalProject).MaximumLength(256);
         RuleFor(x => x.ImplementationNotes).MaximumLength(10000);
     }
 }
@@ -74,6 +76,7 @@ public sealed class UpdateTicketCommandHandler(
         ticket.ExternalUser = request.ExternalUser;
         ticket.ExternalId = request.ExternalId;
         ticket.ExternalUrl = request.ExternalUrl;
+        ticket.ExternalProject = request.ExternalProject;
         ticket.ImplementationNotes = request.ImplementationNotes;
 
         if (taskStateChanged)

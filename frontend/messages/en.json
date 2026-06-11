@@ -684,7 +684,12 @@
     "parentKeyInvalid": "Enter a key in CODE-NUMBER format, e.g. DEMO-12.",
     "parentIsSelf": "A ticket cannot be its own parent.",
     "parentNotFound": "No parent ticket found with this key.",
-    "parentTicketUpdated": "Parent ticket updated."
+    "parentTicketUpdated": "Parent ticket updated.",
+    "externalProjectLabel": "External project",
+    "noExternalProject": "No external project",
+    "externalProjectPlaceholder": "External project name",
+    "editExternalProjectAriaLabel": "Edit external project",
+    "externalProjectUpdated": "External project updated"
   },
   "Board": {
     "groupBy": "Group by",
