@@ -16,16 +16,16 @@ public class AttachmentsController : ApiControllerBase
 
     [HttpPost]
     [RequestSizeLimit(50 * 1024 * 1024)] // 50 MB
-    public async Task<ActionResult<Guid>> Upload(Guid projectId, Guid ticketId, IFormFile file)
+    public async Task<ActionResult<AttachmentDto>> Upload(Guid projectId, Guid ticketId, IFormFile file)
     {
-        var id = await Mediator.Send(new UploadAttachmentCommand(
+        var attachment = await Mediator.Send(new UploadAttachmentCommand(
             projectId,
             ticketId,
             file.FileName,
             file.ContentType,
             file.Length,
             file.OpenReadStream()));
-        return Ok(id);
+        return Ok(attachment);
     }
 
     [HttpDelete("{id:guid}")]
