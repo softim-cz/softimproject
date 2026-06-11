@@ -9,6 +9,7 @@ interface WorklogQueryParams extends QueryParams {
   ticketId?: string;
   from?: string;
   to?: string;
+  includeSubprojects?: boolean;
   page?: number;
   pageSize?: number;
 }

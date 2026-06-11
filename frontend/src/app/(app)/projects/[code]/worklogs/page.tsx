@@ -376,7 +376,12 @@ export default function ProjectWorklogsPage({ params }: { params: Promise<{ code
   const projectId = project?.id ?? "";
   const allColumns = useMemo(() => buildAllColumns(t), [t]);
   const [page, setPage] = useState(1);
-  const { data: worklogsPage, isLoading, error } = useWorklogsPaged({ projectId, page });
+  const [includeSubprojects, setIncludeSubprojects] = useState(false);
+  const {
+    data: worklogsPage,
+    isLoading,
+    error,
+  } = useWorklogsPaged({ projectId, page, includeSubprojects: includeSubprojects || undefined });
   const worklogs = useMemo(() => worklogsPage?.items ?? [], [worklogsPage]);
   const { data: currentUser } = useCurrentUser();
   const deleteWorklog = useDeleteWorklog();
@@ -555,6 +560,18 @@ export default function ProjectWorklogsPage({ params }: { params: Promise<{ code
           {worklogsPage ? t("totalSuffix", { count: worklogsPage.totalCount }) : ""}
         </p>
         <div className="flex items-center gap-2">
+          <label className="inline-flex items-center gap-1.5 px-2 text-sm text-muted-foreground cursor-pointer select-none">
+            <input
+              type="checkbox"
+              checked={includeSubprojects}
+              onChange={(e) => {
+                setIncludeSubprojects(e.target.checked);
+                setPage(1);
+              }}
+              className="rounded"
+            />
+            {t("includeSubprojects")}
+          </label>
           <button
             onClick={() => setDialogOpen(true)}
             className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-primary-foreground bg-primary rounded-lg hover:opacity-90 transition-opacity"

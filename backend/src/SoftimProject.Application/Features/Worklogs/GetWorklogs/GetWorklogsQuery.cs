@@ -34,6 +34,7 @@ public sealed record GetWorklogsQuery(
     DateOnly? From = null,
     DateOnly? To = null,
     Guid? UserId = null,
+    bool IncludeSubprojects = false,
     int Page = 1,
     int PageSize = 50) : IRequest<PagedResult<WorklogDto>>;
 
@@ -46,7 +47,17 @@ public sealed class GetWorklogsQueryHandler(
         var query = dbContext.Worklogs.AsNoTracking().AsQueryable();
 
         if (request.ProjectId.HasValue)
-            query = query.Where(w => w.Ticket.ProjectId == request.ProjectId.Value);
+        {
+            if (request.IncludeSubprojects)
+            {
+                var projectIds = await GetProjectAndDescendantsAsync(request.ProjectId.Value, cancellationToken);
+                query = query.Where(w => projectIds.Contains(w.Ticket.ProjectId));
+            }
+            else
+            {
+                query = query.Where(w => w.Ticket.ProjectId == request.ProjectId.Value);
+            }
+        }
 
         if (request.TicketId.HasValue)
             query = query.Where(w => w.TicketId == request.TicketId.Value);
@@ -102,5 +113,39 @@ public sealed class GetWorklogsQueryHandler(
             .ToListAsync(cancellationToken);
 
         return new PagedResult<WorklogDto>(items, totalCount, page, pageSize);
+    }
+
+    // Returns the project plus all of its (recursive) sub-projects. Loads the project edges once
+    // and walks the tree in memory; the result set is cycle-safe via the visited set.
+    private async Task<HashSet<Guid>> GetProjectAndDescendantsAsync(Guid rootId, CancellationToken cancellationToken)
+    {
+        var edges = await dbContext.Projects
+            .AsNoTracking()
+            .Select(p => new { p.Id, p.ParentProjectId })
+            .ToListAsync(cancellationToken);
+
+        var childrenByParent = edges
+            .Where(e => e.ParentProjectId.HasValue)
+            .GroupBy(e => e.ParentProjectId!.Value)
+            .ToDictionary(g => g.Key, g => g.Select(e => e.Id).ToList());
+
+        var result = new HashSet<Guid>();
+        var stack = new Stack<Guid>();
+        stack.Push(rootId);
+
+        while (stack.Count > 0)
+        {
+            var id = stack.Pop();
+            if (!result.Add(id))
+                continue;
+
+            if (childrenByParent.TryGetValue(id, out var children))
+            {
+                foreach (var childId in children)
+                    stack.Push(childId);
+            }
+        }
+
+        return result;
     }
 }

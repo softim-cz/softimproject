@@ -475,7 +475,8 @@
     "deleteAriaLabel": "Smazat výkaz",
     "previousPage": "Předchozí strana",
     "nextPage": "Další strana",
-    "pageRange": "{from}–{to} z {total}"
+    "pageRange": "{from}–{to} z {total}",
+    "includeSubprojects": "Včetně podprojektů"
   },
   "FilterBar": {
     "addFilter": "Přidat filtr",
