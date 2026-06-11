@@ -1669,6 +1669,16 @@ export default function TicketDetailPage({
               }}
             />
 
+            <div>
+              <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                {t("workedHours")}
+              </label>
+              <div className="mt-1 flex items-center gap-2">
+                <Clock className="h-4 w-4 text-muted-foreground" />
+                <span className="text-sm text-foreground">{`${ticket.cumulativeWorkedHours ?? 0}h`}</span>
+              </div>
+            </div>
+
             <EditableSidebarText
               label={t("externalBudgetLabel")}
               displayValue={

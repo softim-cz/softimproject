@@ -44,6 +44,7 @@ public sealed class UpdateWorklogCommandHandler(
     public async Task Handle(UpdateWorklogCommand request, CancellationToken cancellationToken)
     {
         var worklog = await dbContext.GetWorklogForProjectAsync(request.ProjectId, request.WorklogId, cancellationToken);
+        var originalTicketId = worklog.TicketId;
 
         var callerId = currentUserService.UserId
             ?? throw new UnauthorizedAccessException("Current user is not initialized.");
@@ -89,5 +90,11 @@ public sealed class UpdateWorklogCommandHandler(
         worklog.UpdatedAt = DateTime.UtcNow;
 
         await dbContext.SaveChangesAsync(cancellationToken);
+
+        await CumulativeWorkedHoursCalculator.RecalculateUpwardAsync(dbContext, originalTicketId, cancellationToken);
+        if (worklog.TicketId != originalTicketId)
+        {
+            await CumulativeWorkedHoursCalculator.RecalculateUpwardAsync(dbContext, worklog.TicketId, cancellationToken);
+        }
     }
 }

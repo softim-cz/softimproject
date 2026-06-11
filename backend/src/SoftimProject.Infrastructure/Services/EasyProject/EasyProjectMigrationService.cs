@@ -1,6 +1,7 @@
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using SoftimProject.Application.Common;
 using SoftimProject.Application.Features.Migration.EasyProject;
 using SoftimProject.Application.Features.Migration.EasyProject.Models;
 using SoftimProject.Application.Interfaces;
@@ -396,11 +397,8 @@ public sealed class EasyProjectMigrationService(
 
             foreach (var spProjectId in projectMap.Values)
             {
-                var tickets = await dbContext.Tickets.Where(t => t.ProjectId == spProjectId).ToListAsync(ct);
-                foreach (var ticket in tickets)
-                {
-                    ticket.CumulativeWorkedHours = await dbContext.Worklogs.Where(w => w.TicketId == ticket.Id).SumAsync(w => w.Hours, ct);
-                }
+                // Roll worklog hours up the sub-ticket tree so CumulativeWorkedHours includes descendants.
+                await CumulativeWorkedHoursCalculator.RecalculateProjectAsync(dbContext, spProjectId, ct);
 
                 var project = await dbContext.Projects.FindAsync([spProjectId], ct);
                 if (project != null)

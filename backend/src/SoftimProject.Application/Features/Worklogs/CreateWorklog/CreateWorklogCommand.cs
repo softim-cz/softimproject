@@ -74,6 +74,8 @@ public sealed class CreateWorklogCommandHandler(
         dbContext.Worklogs.Add(worklog);
         await dbContext.SaveChangesAsync(cancellationToken);
 
+        await CumulativeWorkedHoursCalculator.RecalculateUpwardAsync(dbContext, request.TicketId, cancellationToken);
+
         return worklog.Id;
     }
 }
