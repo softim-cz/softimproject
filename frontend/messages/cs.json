@@ -240,7 +240,8 @@
       "hours": "Hodiny",
       "description": "Popis",
       "source": "Zdroj",
-      "actions": "Akce"
+      "actions": "Akce",
+      "aiSummary": "AI souhrn"
     },
     "editAriaLabel": "Upravit výkaz",
     "deleteAriaLabel": "Smazat výkaz",
@@ -486,7 +487,8 @@
     "previousPage": "Předchozí strana",
     "nextPage": "Další strana",
     "pageRange": "{from}–{to} z {total}",
-    "includeSubprojects": "Včetně podprojektů"
+    "includeSubprojects": "Včetně podprojektů",
+    "aiSummary": "AI souhrn"
   },
   "FilterBar": {
     "addFilter": "Přidat filtr",

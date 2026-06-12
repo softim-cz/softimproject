@@ -103,6 +103,19 @@ function buildAllColumns(t: (key: string) => string) {
         </span>
       ),
     }),
+    columnHelper.accessor("aiSummary", {
+      header: t("aiSummary"),
+      size: 280,
+      minSize: 150,
+      cell: ({ row }) => (
+        <span
+          className="text-sm text-muted-foreground truncate block"
+          title={row.original.aiSummary || undefined}
+        >
+          {row.original.aiSummary || "-"}
+        </span>
+      ),
+    }),
     columnHelper.accessor("isBillable", {
       header: t("billable"),
       size: 90,

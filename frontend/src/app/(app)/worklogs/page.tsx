@@ -467,6 +467,9 @@ export default function WorklogsPage() {
                       <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground uppercase">
                         {t("columns.source")}
                       </th>
+                      <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground uppercase">
+                        {t("columns.aiSummary")}
+                      </th>
                       <th className="px-3 py-2 text-right text-xs font-medium text-muted-foreground uppercase w-20">
                         {t("columns.actions")}
                       </th>
@@ -492,6 +495,12 @@ export default function WorklogsPage() {
                         </td>
                         <td className="px-3 py-2 text-sm text-muted-foreground">
                           {worklog.source}
+                        </td>
+                        <td
+                          className="px-3 py-2 text-sm text-muted-foreground truncate max-w-xs"
+                          title={worklog.aiSummary || undefined}
+                        >
+                          {worklog.aiSummary || "-"}
                         </td>
                         <td className="px-3 py-2 text-sm">
                           <div className="flex items-center justify-end gap-1">

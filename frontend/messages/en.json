@@ -240,7 +240,8 @@
       "hours": "Hours",
       "description": "Description",
       "source": "Source",
-      "actions": "Actions"
+      "actions": "Actions",
+      "aiSummary": "AI summary"
     },
     "editAriaLabel": "Edit worklog",
     "deleteAriaLabel": "Delete worklog",
@@ -486,7 +487,8 @@
     "previousPage": "Previous page",
     "nextPage": "Next page",
     "pageRange": "{from}–{to} of {total}",
-    "includeSubprojects": "Include sub-projects"
+    "includeSubprojects": "Include sub-projects",
+    "aiSummary": "AI summary"
   },
   "FilterBar": {
     "addFilter": "Add filter",
