@@ -21,7 +21,8 @@ public sealed record ProjectTemplateDto(
     bool IsActive,
     List<ProjectTemplateFieldDto> Fields,
     List<TemplateTaskStateDto> TaskStates,
-    List<TemplateTicketPriorityDto> TicketPriorities);
+    List<TemplateTicketPriorityDto> TicketPriorities,
+    List<Guid> AllowedTaskTypeIds);
 
 // GET ALL
 public sealed record GetProjectTemplatesQuery : IRequest<List<ProjectTemplateDto>>;
@@ -35,6 +36,7 @@ public sealed class GetProjectTemplatesQueryHandler(IApplicationDbContext dbCont
             .Include(t => t.Fields).ThenInclude(f => f.CustomFieldDefinition)
             .Include(t => t.TaskStates)
             .Include(t => t.TicketPriorities)
+            .Include(t => t.AllowedTaskTypes)
             .OrderBy(t => t.Name)
             .Select(t => new ProjectTemplateDto(
                 t.Id, t.Name, t.Description, t.IsActive,
@@ -47,7 +49,8 @@ public sealed class GetProjectTemplatesQueryHandler(IApplicationDbContext dbCont
                     .ToList(),
                 t.TicketPriorities.OrderBy(tp => tp.SortOrder).ThenBy(tp => tp.Name)
                     .Select(tp => new TemplateTicketPriorityDto(tp.Id, tp.Name, tp.Color, tp.SortOrder, tp.IsActive, tp.IsDefault))
-                    .ToList()))
+                    .ToList(),
+                t.AllowedTaskTypes.Select(tt => tt.Id).ToList()))
             .ToListAsync(cancellationToken);
     }
 }
@@ -56,7 +59,8 @@ public sealed class GetProjectTemplatesQueryHandler(IApplicationDbContext dbCont
 public sealed record CreateProjectTemplateCommand(
     string Name,
     string? Description,
-    List<Guid> CustomFieldDefinitionIds) : IRequest<Guid>, IRequireRole
+    List<Guid> CustomFieldDefinitionIds,
+    List<Guid>? AllowedTaskTypeIds = null) : IRequest<Guid>, IRequireRole
 {
     public string RequiredRole => "Admin";
 }
@@ -98,6 +102,8 @@ public sealed class CreateProjectTemplateCommandHandler(IApplicationDbContext db
             });
         }
 
+        await ProjectTemplateTaskTypeHelper.AssignAllowedTaskTypesAsync(dbContext, template, request.AllowedTaskTypeIds, cancellationToken);
+
         await dbContext.SaveChangesAsync(cancellationToken);
         return template.Id;
     }
@@ -109,7 +115,8 @@ public sealed record UpdateProjectTemplateCommand(
     string Name,
     string? Description,
     bool IsActive,
-    List<Guid> CustomFieldDefinitionIds) : IRequest, IRequireRole
+    List<Guid> CustomFieldDefinitionIds,
+    List<Guid>? AllowedTaskTypeIds = null) : IRequest, IRequireRole
 {
     public string RequiredRole => "Admin";
 }
@@ -130,6 +137,7 @@ public sealed class UpdateProjectTemplateCommandHandler(IApplicationDbContext db
     {
         var template = await dbContext.ProjectTemplates
             .Include(t => t.Fields)
+            .Include(t => t.AllowedTaskTypes)
             .FirstOrDefaultAsync(t => t.Id == request.Id, cancellationToken)
             ?? throw new NotFoundException(nameof(ProjectTemplate), request.Id);
 
@@ -153,7 +161,33 @@ public sealed class UpdateProjectTemplateCommandHandler(IApplicationDbContext db
             });
         }
 
+        // Null = ponechat beze změny; prázdný seznam = vymazat allow-list.
+        if (request.AllowedTaskTypeIds is not null)
+        {
+            template.AllowedTaskTypes.Clear();
+            await ProjectTemplateTaskTypeHelper.AssignAllowedTaskTypesAsync(dbContext, template, request.AllowedTaskTypeIds, cancellationToken);
+        }
+
         await dbContext.SaveChangesAsync(cancellationToken);
+    }
+}
+
+// Shared helper for assigning the M:N allow-list onto a tracked template.
+internal static class ProjectTemplateTaskTypeHelper
+{
+    public static async Task AssignAllowedTaskTypesAsync(
+        IApplicationDbContext dbContext, ProjectTemplate template, List<Guid>? taskTypeIds, CancellationToken cancellationToken)
+    {
+        if (taskTypeIds is null || taskTypeIds.Count == 0)
+            return;
+
+        var ids = taskTypeIds.ToHashSet();
+        var types = await dbContext.TaskTypes
+            .Where(tt => ids.Contains(tt.Id))
+            .ToListAsync(cancellationToken);
+
+        foreach (var type in types)
+            template.AllowedTaskTypes.Add(type);
     }
 }
 

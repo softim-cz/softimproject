@@ -55,6 +55,9 @@ public sealed class UpdateTicketCommandHandler(
             .FirstOrDefaultAsync(t => t.Id == request.TicketId && t.ProjectId == request.ProjectId, cancellationToken)
             ?? throw new NotFoundException(nameof(Domain.Entities.Ticket), request.TicketId);
 
+        // Reject TaskTypes the project (or its template) does not allow.
+        await AllowedTaskTypeResolver.ValidateTaskTypeAsync(dbContext, request.ProjectId, request.TaskTypeId, cancellationToken);
+
         var taskStateChanged = ticket.TaskStateId != request.TaskStateId;
         var parentChanged = ticket.ParentTicketId != request.ParentTicketId;
         var oldParentId = ticket.ParentTicketId;

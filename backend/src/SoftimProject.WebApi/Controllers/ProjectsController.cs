@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using SoftimProject.Application.Features.Projects.AllowedTaskTypes;
 using SoftimProject.Application.Features.Projects.ClientPortal;
 using SoftimProject.Application.Features.Projects.CreateProject;
 using SoftimProject.Application.Features.Projects.CustomFields;
@@ -102,6 +103,22 @@ public class ProjectsController : ApiControllerBase
 
     [HttpPut("{projectId:guid}/custom-fields")]
     public async Task<IActionResult> SaveCustomFields(Guid projectId, SaveProjectCustomFieldValuesCommand command)
+    {
+        if (projectId != command.ProjectId) return BadRequest("Route projectId does not match command projectId.");
+        await Mediator.Send(command);
+        return NoContent();
+    }
+
+    // --- Allowed Task Types ---
+
+    [HttpGet("{projectId:guid}/allowed-task-types")]
+    public async Task<ActionResult<ProjectAllowedTaskTypesDto>> GetAllowedTaskTypes(Guid projectId)
+    {
+        return Ok(await Mediator.Send(new GetProjectAllowedTaskTypesQuery(projectId)));
+    }
+
+    [HttpPut("{projectId:guid}/allowed-task-types")]
+    public async Task<IActionResult> SetAllowedTaskTypes(Guid projectId, SetProjectAllowedTaskTypesCommand command)
     {
         if (projectId != command.ProjectId) return BadRequest("Route projectId does not match command projectId.");
         await Mediator.Send(command);

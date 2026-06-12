@@ -371,7 +371,16 @@
     "synced": "Synchronizováno {synced} položek{failedSuffix}",
     "failedSuffix": ", {failed} selhalo",
     "syncFailed": "Synchronizace se nezdařila",
-    "legacyTokenIntro": "Repozitář {repo} je propojen přes starší API token. Pro lepší zážitek připojte svůj GitHub účet."
+    "legacyTokenIntro": "Repozitář {repo} je propojen přes starší API token. Pro lepší zážitek připojte svůj GitHub účet.",
+    "allowedTaskTypes": "Povolené typy úkolů",
+    "allowedTaskTypesDescription": "Omezte, které typy úkolů lze v tomto projektu používat. Výběr přebíjí výchozí nastavení šablony.",
+    "allowedTaskTypesInheritsRestricted": "Bez vlastního výběru se použije výchozí nastavení šablony ({count} typů).",
+    "allowedTaskTypesInheritsAll": "Bez vlastního výběru jsou povoleny všechny aktivní typy úkolů.",
+    "allowedTaskTypesNone": "Nejsou definovány žádné typy úkolů.",
+    "allowedTaskTypesSaved": "Povolené typy úkolů uloženy.",
+    "allowedTaskTypesSaveFailed": "Uložení povolených typů úkolů selhalo.",
+    "saveAllowedTaskTypes": "Uložit typy úkolů",
+    "inactiveTaskType": "neaktivní"
   },
   "Resources": {
     "title": "Zdroje",
@@ -517,7 +526,8 @@
     "create": "Vytvořit",
     "creating": "Vytvářím...",
     "createFailed": "Vytvoření ticketu se nezdařilo",
-    "created": "Ticket vytvořen"
+    "created": "Ticket vytvořen",
+    "taskTypeNone": "— Bez typu —"
   },
   "EmptyState": {
     "default": "Žádná data"
@@ -982,7 +992,8 @@
       "deleteFailed": "Smazání se nezdařilo",
       "deleteConfirm": "Opravdu chcete smazat tuto položku?",
       "empty": "Žádné položky",
-      "loadFailed": "Načtení se nezdařilo"
+      "loadFailed": "Načtení se nezdařilo",
+      "inactive": "neaktivní"
     },
     "company": {
       "title": "Firmy / Zákazníci",
@@ -1050,7 +1061,9 @@
       "taskStates": "Stavy úkolů",
       "ticketPriorities": "Priority úkolů",
       "addTaskState": "Přidat stav",
-      "addPriority": "Přidat prioritu"
+      "addPriority": "Přidat prioritu",
+      "allowedTaskTypes": "Povolené typy úkolů",
+      "allowedTaskTypesHint": "Pokud nevyberete žádný, projekty z této šablony mohou používat všechny aktivní typy úkolů."
     },
     "priority": {
       "title": "Priority",

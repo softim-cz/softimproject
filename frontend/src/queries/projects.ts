@@ -4,6 +4,7 @@ import type {
   GitHubRepo,
   GitHubStatus,
   Project,
+  ProjectAllowedTaskTypes,
   ProjectCustomFieldValue,
   ProjectRole,
   UserOption,
@@ -55,6 +56,35 @@ export function useProjectByCode(code: string) {
       return data;
     },
     enabled: !!code,
+  });
+}
+
+export function useProjectAllowedTaskTypes(projectId: string) {
+  return useQuery({
+    queryKey: [...queryKeys.projects.detail(projectId), "allowed-task-types"],
+    queryFn: async () => {
+      const { data } = await apiClient.get<ProjectAllowedTaskTypes>(
+        `/api/v1/projects/${projectId}/allowed-task-types`
+      );
+      return data;
+    },
+    enabled: !!projectId,
+  });
+}
+
+export function useSetProjectAllowedTaskTypes(projectId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (taskTypeIds: string[]) => {
+      await apiClient.put(`/api/v1/projects/${projectId}/allowed-task-types`, {
+        projectId,
+        taskTypeIds,
+      });
+    },
+    onSuccess: () =>
+      queryClient.invalidateQueries({
+        queryKey: [...queryKeys.projects.detail(projectId), "allowed-task-types"],
+      }),
   });
 }
 

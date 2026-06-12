@@ -2469,6 +2469,7 @@ function ProjectTemplatesTab() {
   const t = useTranslations("Lookups");
   const { data, isLoading } = useProjectTemplates();
   const { data: fieldDefs } = useCustomFieldDefinitions();
+  const { data: taskTypes } = useTaskTypes();
   const createMutation = useCreateProjectTemplate();
   const updateMutation = useUpdateProjectTemplate();
   const deleteMutation = useDeleteProjectTemplate();
@@ -2481,6 +2482,7 @@ function ProjectTemplatesTab() {
     description: "",
     isActive: true,
     selectedFieldIds: [] as string[],
+    selectedTaskTypeIds: [] as string[],
   });
   const [duplicateName, setDuplicateName] = useState("");
   const [duplicatingId, setDuplicatingId] = useState<string | null>(null);
@@ -2493,7 +2495,13 @@ function ProjectTemplatesTab() {
   const startAdd = () => {
     setAdding(true);
     setEditId(null);
-    setForm({ name: "", description: "", isActive: true, selectedFieldIds: [] });
+    setForm({
+      name: "",
+      description: "",
+      isActive: true,
+      selectedFieldIds: [],
+      selectedTaskTypeIds: [],
+    });
   };
   const startEdit = (item: ProjectTemplate) => {
     setEditId(item.id);
@@ -2503,6 +2511,7 @@ function ProjectTemplatesTab() {
       description: item.description || "",
       isActive: item.isActive,
       selectedFieldIds: item.fields.map((f) => f.customFieldDefinitionId),
+      selectedTaskTypeIds: item.allowedTaskTypeIds,
     });
   };
 
@@ -2515,6 +2524,15 @@ function ProjectTemplatesTab() {
     }));
   };
 
+  const toggleTaskType = (id: string) => {
+    setForm((prev) => ({
+      ...prev,
+      selectedTaskTypeIds: prev.selectedTaskTypeIds.includes(id)
+        ? prev.selectedTaskTypeIds.filter((tid) => tid !== id)
+        : [...prev.selectedTaskTypeIds, id],
+    }));
+  };
+
   const save = async () => {
     if (editId) {
       await updateMutation.mutateAsync({
@@ -2523,6 +2541,7 @@ function ProjectTemplatesTab() {
         description: form.description || undefined,
         isActive: form.isActive,
         customFieldDefinitionIds: form.selectedFieldIds,
+        allowedTaskTypeIds: form.selectedTaskTypeIds,
       });
       setEditId(null);
     } else {
@@ -2530,6 +2549,7 @@ function ProjectTemplatesTab() {
         name: form.name,
         description: form.description || undefined,
         customFieldDefinitionIds: form.selectedFieldIds,
+        allowedTaskTypeIds: form.selectedTaskTypeIds,
       });
       setAdding(false);
     }
@@ -2610,6 +2630,40 @@ function ProjectTemplatesTab() {
             </div>
           )}
 
+          {taskTypes && taskTypes.length > 0 && (
+            <div>
+              <p className="text-xs font-medium text-muted-foreground mb-1">
+                {t("template.allowedTaskTypes")}
+              </p>
+              <p className="text-xs text-muted-foreground mb-2">
+                {t("template.allowedTaskTypesHint")}
+              </p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                {taskTypes
+                  .filter((tt) => tt.isActive || form.selectedTaskTypeIds.includes(tt.id))
+                  .map((tt) => (
+                    <label
+                      key={tt.id}
+                      className="flex items-center gap-2 text-sm p-2 rounded-lg border border-border hover:bg-muted/30 cursor-pointer"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={form.selectedTaskTypeIds.includes(tt.id)}
+                        onChange={() => toggleTaskType(tt.id)}
+                        className="rounded"
+                      />
+                      <span className="font-medium">{tt.name}</span>
+                      {!tt.isActive && (
+                        <span className="text-xs text-muted-foreground">
+                          ({t("common.inactive")})
+                        </span>
+                      )}
+                    </label>
+                  ))}
+              </div>
+            </div>
+          )}
+
           <div className="flex justify-end gap-2">
             <button
               onClick={cancel}
@@ -2655,6 +2709,11 @@ function ProjectTemplatesTab() {
               <span className="text-xs text-muted-foreground px-2">
                 {item.fields.length} {t("customField.title")}
               </span>
+              {item.allowedTaskTypeIds.length > 0 && (
+                <span className="text-xs text-muted-foreground px-2">
+                  {item.allowedTaskTypeIds.length} {t("template.allowedTaskTypes")}
+                </span>
+              )}
               <span className="text-xs px-2">
                 {item.isActive ? (
                   <span className="text-green-600">{t("common.isActive")}</span>

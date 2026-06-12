@@ -30,6 +30,7 @@ public sealed class DuplicateProjectTemplateCommandHandler(IApplicationDbContext
             .Include(t => t.Fields)
             .Include(t => t.TaskStates)
             .Include(t => t.TicketPriorities)
+            .Include(t => t.AllowedTaskTypes)
             .FirstOrDefaultAsync(t => t.Id == request.SourceTemplateId, cancellationToken)
             ?? throw new NotFoundException(nameof(ProjectTemplate), request.SourceTemplateId);
 
@@ -41,6 +42,10 @@ public sealed class DuplicateProjectTemplateCommandHandler(IApplicationDbContext
             IsActive = true,
             CreatedAt = DateTime.UtcNow
         };
+
+        // Zkopírovat allow-list typů úkolů (M:N — sdílíme stejné TaskType entity).
+        foreach (var taskType in source.AllowedTaskTypes)
+            newTemplate.AllowedTaskTypes.Add(taskType);
 
         dbContext.ProjectTemplates.Add(newTemplate);
 

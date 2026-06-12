@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useCreateTicket, type CreateTicketPayload } from "@/queries/tickets";
 import { useTicketPriorities } from "@/queries/lookups";
+import { useProjectAllowedTaskTypes } from "@/queries/projects";
 import { toast } from "sonner";
 import { useTranslations } from "next-intl";
 import { X } from "lucide-react";
@@ -26,9 +27,11 @@ export function CreateTicketDialog({
   const tCommon = useTranslations("Common");
   const createTicket = useCreateTicket();
   const { data: priorities } = useTicketPriorities(projectTemplateId);
+  const { data: allowedTaskTypes } = useProjectAllowedTaskTypes(projectId);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [ticketPriorityId, setTicketPriorityId] = useState<string>("");
+  const [taskTypeId, setTaskTypeId] = useState<string>("");
   const [dueDate, setDueDate] = useState("");
   const [estimatedHours, setEstimatedHours] = useState("");
 
@@ -49,6 +52,7 @@ export function CreateTicketDialog({
       columnId: defaultColumnId,
       dueDate: dueDate || undefined,
       estimatedHours: estimatedHours ? parseFloat(estimatedHours) : undefined,
+      taskTypeId: taskTypeId || undefined,
     };
 
     try {
@@ -64,6 +68,7 @@ export function CreateTicketDialog({
     setTitle("");
     setDescription("");
     setTicketPriorityId("");
+    setTaskTypeId("");
     setDueDate("");
     setEstimatedHours("");
     onClose();
@@ -141,6 +146,26 @@ export function CreateTicketDialog({
               />
             </div>
           </div>
+
+          {allowedTaskTypes && allowedTaskTypes.effectiveTaskTypes.length > 0 && (
+            <div>
+              <label className="block text-sm font-medium text-card-foreground mb-1">
+                {t("type")}
+              </label>
+              <select
+                value={taskTypeId}
+                onChange={(e) => setTaskTypeId(e.target.value)}
+                className={inputClass}
+              >
+                <option value="">{t("taskTypeNone")}</option>
+                {allowedTaskTypes.effectiveTaskTypes.map((tt) => (
+                  <option key={tt.id} value={tt.id}>
+                    {tt.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
 
           <div>
             <label className="block text-sm font-medium text-card-foreground mb-1">

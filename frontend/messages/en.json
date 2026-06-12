@@ -371,7 +371,16 @@
     "synced": "Synced {synced} items{failedSuffix}",
     "failedSuffix": ", {failed} failed",
     "syncFailed": "Sync failed",
-    "legacyTokenIntro": "Repository {repo} is linked via a legacy API token. Connect your GitHub account for a better experience."
+    "legacyTokenIntro": "Repository {repo} is linked via a legacy API token. Connect your GitHub account for a better experience.",
+    "allowedTaskTypes": "Allowed task types",
+    "allowedTaskTypesDescription": "Restrict which task types can be used in this project. This selection overrides the template default.",
+    "allowedTaskTypesInheritsRestricted": "With no project-specific selection, the template default applies ({count} types).",
+    "allowedTaskTypesInheritsAll": "With no project-specific selection, all active task types are allowed.",
+    "allowedTaskTypesNone": "No task types defined.",
+    "allowedTaskTypesSaved": "Allowed task types saved.",
+    "allowedTaskTypesSaveFailed": "Failed to save allowed task types.",
+    "saveAllowedTaskTypes": "Save task types",
+    "inactiveTaskType": "inactive"
   },
   "Resources": {
     "title": "Resources",
@@ -517,7 +526,8 @@
     "create": "Create",
     "creating": "Creating...",
     "createFailed": "Failed to create ticket",
-    "created": "Ticket created"
+    "created": "Ticket created",
+    "taskTypeNone": "— No type —"
   },
   "EmptyState": {
     "default": "No data"
@@ -982,7 +992,8 @@
       "deleteFailed": "Failed to delete",
       "deleteConfirm": "Are you sure you want to delete this item?",
       "empty": "No items",
-      "loadFailed": "Failed to load"
+      "loadFailed": "Failed to load",
+      "inactive": "inactive"
     },
     "company": {
       "title": "Companies / Customers",
@@ -1050,7 +1061,9 @@
       "taskStates": "Task states",
       "ticketPriorities": "Ticket priorities",
       "addTaskState": "Add state",
-      "addPriority": "Add priority"
+      "addPriority": "Add priority",
+      "allowedTaskTypes": "Allowed task types",
+      "allowedTaskTypesHint": "If none are selected, projects using this template may use all active task types."
     },
     "priority": {
       "title": "Priorities",
