@@ -176,7 +176,8 @@
       "board": "Board",
       "tasks": "Tasks",
       "worklogs": "Worklogs",
-      "settings": "Settings"
+      "settings": "Settings",
+      "discussion": "Discussion"
     }
   },
   "EditWorklog": {
@@ -704,7 +705,9 @@
     "noDescription": "No description",
     "descriptionPlaceholder": "Describe the ticket... (Markdown supported)",
     "editDescriptionAriaLabel": "Edit description",
-    "descriptionUpdated": "Description updated"
+    "descriptionUpdated": "Description updated",
+    "externalUserBadge": "{user} (external)",
+    "externalUserTitle": "Author from an external system"
   },
   "Board": {
     "groupBy": "Group by",
@@ -1092,5 +1095,18 @@
     "imageUploadFailed": "Upload of image \"{name}\" failed",
     "imageTooLarge": "Image \"{name}\" is too large",
     "hint": "Markdown supported. Drop or paste images directly."
+  },
+  "ProjectDiscussion": {
+    "title": "Project discussion",
+    "subtitle": "Project-level comments (not tied to a specific task).",
+    "writeComment": "Write a comment…",
+    "internalOnly": "Internal only",
+    "send": "Send",
+    "added": "Comment added.",
+    "addFailed": "Failed to add comment.",
+    "empty": "No comments yet.",
+    "externalBadge": "external",
+    "externalUserTitle": "Author from an external system",
+    "internalBadge": "Internal"
   }
 }

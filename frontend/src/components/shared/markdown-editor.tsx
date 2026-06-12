@@ -27,7 +27,9 @@ export function MarkdownEditor({
   value: string;
   onChange: (value: string) => void;
   projectId: string;
-  ticketId: string;
+  // Optional: inline image upload requires a ticket to attach to. When absent
+  // (e.g. project-level comments) the editor still works, just without uploads.
+  ticketId?: string;
   placeholder?: string;
   rows?: number;
   disabled?: boolean;
@@ -60,6 +62,7 @@ export function MarkdownEditor({
   };
 
   const uploadImages = async (files: File[]) => {
+    if (!ticketId) return;
     const images = files.filter((f) => f.type.startsWith("image/"));
     if (images.length === 0) return;
     for (const file of images) {
@@ -133,24 +136,28 @@ export function MarkdownEditor({
             {t("preview")}
           </button>
         </div>
-        <button
-          type="button"
-          onClick={() => fileInputRef.current?.click()}
-          disabled={disabled || uploadingCount > 0}
-          className="inline-flex items-center gap-1 rounded px-2 py-1 text-xs text-muted-foreground hover:text-foreground disabled:opacity-50"
-          title={t("addImage")}
-        >
-          <ImagePlus className="h-3.5 w-3.5" />
-          {t("addImage")}
-        </button>
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept="image/*"
-          multiple
-          className="hidden"
-          onChange={handleFileInputChange}
-        />
+        {ticketId && (
+          <>
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={disabled || uploadingCount > 0}
+              className="inline-flex items-center gap-1 rounded px-2 py-1 text-xs text-muted-foreground hover:text-foreground disabled:opacity-50"
+              title={t("addImage")}
+            >
+              <ImagePlus className="h-3.5 w-3.5" />
+              {t("addImage")}
+            </button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              multiple
+              className="hidden"
+              onChange={handleFileInputChange}
+            />
+          </>
+        )}
       </div>
 
       {tab === "write" ? (

@@ -1149,6 +1149,14 @@ function CommentCard({
               .slice(0, 2)}
           </div>
           <span className="text-sm font-medium text-foreground">{comment.author.displayName}</span>
+          {comment.externalUser && (
+            <span
+              className="text-[10px] px-1.5 py-0.5 rounded bg-blue-100 text-blue-700 font-medium"
+              title={t("externalUserTitle")}
+            >
+              {t("externalUserBadge", { user: comment.externalUser })}
+            </span>
+          )}
           {comment.isInternal && (
             <span className="text-[10px] px-1.5 py-0.5 rounded bg-yellow-100 text-yellow-700 font-medium">
               {t("internalBadge")}

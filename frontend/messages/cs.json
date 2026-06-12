@@ -176,7 +176,8 @@
       "board": "Kanban",
       "tasks": "Úkoly",
       "worklogs": "Výkazy",
-      "settings": "Nastavení"
+      "settings": "Nastavení",
+      "discussion": "Diskuze"
     }
   },
   "EditWorklog": {
@@ -704,7 +705,9 @@
     "noDescription": "Bez popisu",
     "descriptionPlaceholder": "Popište ticket... (podporuje Markdown)",
     "editDescriptionAriaLabel": "Upravit popis",
-    "descriptionUpdated": "Popis aktualizován"
+    "descriptionUpdated": "Popis aktualizován",
+    "externalUserBadge": "{user} (externí)",
+    "externalUserTitle": "Autor z externího systému"
   },
   "Board": {
     "groupBy": "Seskupit podle",
@@ -1092,5 +1095,18 @@
     "imageUploadFailed": "Nahrání obrázku „{name}“ se nezdařilo",
     "imageTooLarge": "Obrázek „{name}“ je příliš velký",
     "hint": "Podporuje Markdown. Obrázky lze přetáhnout nebo vložit ze schránky."
+  },
+  "ProjectDiscussion": {
+    "title": "Diskuze k projektu",
+    "subtitle": "Komentáře na úrovni projektu (netýkají se konkrétního úkolu).",
+    "writeComment": "Napsat komentář…",
+    "internalOnly": "Pouze interní",
+    "send": "Odeslat",
+    "added": "Komentář přidán.",
+    "addFailed": "Přidání komentáře selhalo.",
+    "empty": "Zatím žádné komentáře.",
+    "externalBadge": "externí",
+    "externalUserTitle": "Autor z externího systému",
+    "internalBadge": "Interní"
   }
 }
