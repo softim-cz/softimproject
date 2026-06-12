@@ -28,6 +28,8 @@ import {
 import { PriorityBadge } from "@/components/shared/priority-badge";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { Skeleton } from "@/components/shared/loading-skeleton";
+import { MarkdownContent } from "@/components/shared/markdown-content";
+import { MarkdownEditor } from "@/components/shared/markdown-editor";
 import {
   User,
   Calendar,
@@ -54,7 +56,7 @@ import { useLinkedPullRequests, useCreateTicketBranch } from "@/queries/github";
 import { useTicketAiHistory, useResummarizeTicket, type AiInvocation } from "@/queries/ai";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { createCommentSchema, type CreateCommentInput } from "@/schemas/comment";
 import { toast } from "sonner";
@@ -506,6 +508,113 @@ function EditableTextSection({
       ) : hasValue ? (
         <div className="rounded-lg border border-border p-4 bg-muted/30">
           <p className="whitespace-pre-wrap text-sm text-foreground">{value}</p>
+        </div>
+      ) : (
+        <p className="text-sm text-muted-foreground italic">{emptyLabel}</p>
+      )}
+    </div>
+  );
+}
+
+function EditableMarkdownSection({
+  icon,
+  title,
+  value,
+  emptyLabel,
+  placeholder,
+  onSave,
+  canEdit,
+  ariaLabel,
+  projectId,
+  ticketId,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  value: string | null | undefined;
+  emptyLabel: string;
+  placeholder: string;
+  onSave: (value: string | null) => Promise<void>;
+  canEdit: boolean;
+  ariaLabel: string;
+  projectId: string;
+  ticketId: string;
+}) {
+  const t = useTranslations("TicketDetail");
+  const [isEditing, setIsEditing] = useState(false);
+  const [draft, setDraft] = useState(value ?? "");
+  const [saving, setSaving] = useState(false);
+  const hasValue = !!value && value.trim().length > 0;
+
+  const startEdit = () => {
+    setDraft(value ?? "");
+    setIsEditing(true);
+  };
+
+  const save = async () => {
+    const trimmed = draft.trim();
+    setSaving(true);
+    try {
+      await onSave(trimmed.length === 0 ? null : trimmed);
+      setIsEditing(false);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="space-y-2 group">
+      <div className="flex items-center justify-between">
+        <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
+          {icon}
+          {title}
+        </h3>
+        {canEdit && !isEditing && (
+          <button
+            type="button"
+            onClick={startEdit}
+            className="opacity-0 group-hover:opacity-100 transition-opacity p-1 text-muted-foreground hover:text-foreground rounded"
+            title={ariaLabel}
+            aria-label={ariaLabel}
+          >
+            <Pencil className="h-3.5 w-3.5" />
+          </button>
+        )}
+      </div>
+      {isEditing ? (
+        <div className="space-y-2">
+          <MarkdownEditor
+            value={draft}
+            onChange={setDraft}
+            projectId={projectId}
+            ticketId={ticketId}
+            placeholder={placeholder}
+            rows={8}
+            autoFocus
+          />
+          <div className="flex items-center justify-end gap-2">
+            <button
+              type="button"
+              onClick={() => setIsEditing(false)}
+              disabled={saving}
+              className="inline-flex items-center gap-1 px-2.5 py-1 rounded text-xs text-muted-foreground hover:text-foreground disabled:opacity-50"
+            >
+              <X className="h-3.5 w-3.5" />
+              {t("cancel")}
+            </button>
+            <button
+              type="button"
+              onClick={save}
+              disabled={saving}
+              className="inline-flex items-center gap-1 px-2.5 py-1 rounded bg-primary text-primary-foreground text-xs font-medium hover:opacity-90 disabled:opacity-50"
+            >
+              <Send className="h-3.5 w-3.5" />
+              {t("save")}
+            </button>
+          </div>
+        </div>
+      ) : hasValue ? (
+        <div className="rounded-lg border border-border p-4 bg-muted/30">
+          <MarkdownContent content={value!} />
         </div>
       ) : (
         <p className="text-sm text-muted-foreground italic">{emptyLabel}</p>
@@ -1087,11 +1196,13 @@ function CommentCard({
 
       {isEditing ? (
         <div className="space-y-2">
-          <textarea
+          <MarkdownEditor
             value={draft}
-            onChange={(event) => setDraft(event.target.value)}
+            onChange={setDraft}
+            projectId={projectId}
+            ticketId={ticketId}
             rows={3}
-            className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring resize-none"
+            autoFocus
           />
           <div className="flex items-center justify-end gap-2">
             <button
@@ -1115,7 +1226,7 @@ function CommentCard({
           </div>
         </div>
       ) : (
-        <p className="text-sm text-foreground whitespace-pre-wrap">{comment.content}</p>
+        <MarkdownContent content={comment.content} />
       )}
     </div>
   );
@@ -1128,12 +1239,13 @@ function CommentsSection({ projectId, ticketId }: { projectId: string; ticketId:
   const createComment = useCreateComment();
   const {
     register,
+    control,
     handleSubmit,
     reset,
     formState: { errors, isSubmitting },
   } = useForm<CreateCommentInput>({
     resolver: zodResolver(createCommentSchema),
-    defaultValues: { isInternal: true },
+    defaultValues: { content: "", isInternal: true },
   });
 
   const onSubmit = async (data: CreateCommentInput) => {
@@ -1159,11 +1271,19 @@ function CommentsSection({ projectId, ticketId }: { projectId: string; ticketId:
       </h3>
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-3">
-        <textarea
-          {...register("content")}
-          rows={3}
-          className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring resize-none"
-          placeholder={t("writeComment")}
+        <Controller
+          control={control}
+          name="content"
+          render={({ field }) => (
+            <MarkdownEditor
+              value={field.value ?? ""}
+              onChange={field.onChange}
+              projectId={projectId}
+              ticketId={ticketId}
+              rows={3}
+              placeholder={t("writeComment")}
+            />
+          )}
         />
         {errors.content && <p className="text-xs text-destructive">{errors.content.message}</p>}
         <div className="flex items-center justify-between">
@@ -1462,14 +1582,22 @@ export default function TicketDetailPage({
             <EditableTitle ticket={ticket} canEdit={canEditTicket} />
           </div>
 
-          {ticket.description && (
-            <div className="prose prose-sm max-w-none text-foreground">
-              <h3 className="text-sm font-semibold text-foreground mb-2">{t("description")}</h3>
-              <div className="rounded-lg border border-border p-4 bg-muted/30">
-                <p className="whitespace-pre-wrap text-sm">{ticket.description}</p>
-              </div>
-            </div>
-          )}
+          <EditableMarkdownSection
+            icon={<FileText className="h-4 w-4 text-muted-foreground" />}
+            title={t("description")}
+            value={ticket.description}
+            emptyLabel={t("noDescription")}
+            placeholder={t("descriptionPlaceholder")}
+            canEdit={canEditTicket}
+            ariaLabel={t("editDescriptionAriaLabel")}
+            projectId={projectId}
+            ticketId={ticket.id}
+            onSave={async (next) => {
+              const current = ticket.description ?? null;
+              if (next === current) return;
+              await saveTicketPatch({ description: next ?? undefined }, "descriptionUpdated");
+            }}
+          />
 
           <EditableTextSection
             icon={<FileText className="h-4 w-4 text-muted-foreground" />}

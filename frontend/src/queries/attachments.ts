@@ -45,7 +45,7 @@ export function useUploadAttachment() {
     }) => {
       const formData = new FormData();
       formData.append("file", file);
-      const { data } = await apiClient.post<string>(
+      const { data } = await apiClient.post<AttachmentDto>(
         `/api/v1/projects/${projectId}/tickets/${ticketId}/attachments`,
         formData,
         {

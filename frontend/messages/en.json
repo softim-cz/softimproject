@@ -689,7 +689,11 @@
     "noExternalProject": "No external project",
     "externalProjectPlaceholder": "External project name",
     "editExternalProjectAriaLabel": "Edit external project",
-    "externalProjectUpdated": "External project updated"
+    "externalProjectUpdated": "External project updated",
+    "noDescription": "No description",
+    "descriptionPlaceholder": "Describe the ticket... (Markdown supported)",
+    "editDescriptionAriaLabel": "Edit description",
+    "descriptionUpdated": "Description updated"
   },
   "Board": {
     "groupBy": "Group by",
@@ -1064,5 +1068,15 @@
     "unauthorized": "You are not authorized",
     "loadFailed": "Failed to load",
     "saveFailed": "Failed to save"
+  },
+  "Markdown": {
+    "write": "Write",
+    "preview": "Preview",
+    "previewEmpty": "Nothing to preview",
+    "addImage": "Image",
+    "uploadingImage": "Uploading image...",
+    "imageUploadFailed": "Upload of image \"{name}\" failed",
+    "imageTooLarge": "Image \"{name}\" is too large",
+    "hint": "Markdown supported. Drop or paste images directly."
   }
 }
