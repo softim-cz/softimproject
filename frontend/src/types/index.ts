@@ -199,6 +199,7 @@ export interface Ticket {
   cumulativeWorkedHours?: number;
   externalBudget?: number;
   externalUser?: string;
+  externalProject?: string;
   implementationNotes?: string;
   lastComment?: string;
   checklistItems: ChecklistItem[];

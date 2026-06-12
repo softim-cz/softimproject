@@ -28,6 +28,7 @@ public class Ticket : BaseEntity
     public decimal CumulativeWorkedHours { get; set; }
     public decimal? ExternalBudget { get; set; }
     public string? ExternalUser { get; set; }
+    public string? ExternalProject { get; set; } // Name of the external project (e.g. EasyProject source)
     public string? ImplementationNotes { get; set; }
     public string? LastComment { get; set; }
 

@@ -80,6 +80,7 @@ type TicketPatch = Partial<
     | "externalUser"
     | "externalId"
     | "externalUrl"
+    | "externalProject"
     | "implementationNotes"
   >
 >;
@@ -103,6 +104,7 @@ function buildUpdatePayload(ticket: Ticket, patch: TicketPatch) {
     externalUser: "externalUser" in patch ? patch.externalUser : ticket.externalUser,
     externalId: "externalId" in patch ? patch.externalId : ticket.externalId,
     externalUrl: "externalUrl" in patch ? patch.externalUrl : ticket.externalUrl,
+    externalProject: "externalProject" in patch ? patch.externalProject : ticket.externalProject,
     implementationNotes:
       "implementationNotes" in patch ? patch.implementationNotes : ticket.implementationNotes,
   };
@@ -1899,6 +1901,30 @@ export default function TicketDetailPage({
                 const current = ticket.externalUrl?.trim() ? ticket.externalUrl : null;
                 if (next === current) return;
                 await saveTicketPatch({ externalUrl: next ?? undefined }, "externalUrlUpdated");
+              }}
+            />
+
+            <EditableSidebarText
+              label={t("externalProjectLabel")}
+              displayValue={
+                <span className="text-sm text-foreground">
+                  {ticket.externalProject?.trim() ? ticket.externalProject : t("noExternalProject")}
+                </span>
+              }
+              initialValue={ticket.externalProject ?? ""}
+              inputType="text"
+              placeholder={t("externalProjectPlaceholder")}
+              canEdit={canEditTicket}
+              ariaLabel={t("editExternalProjectAriaLabel")}
+              onSave={async (value) => {
+                const trimmed = value.trim();
+                const next = trimmed.length === 0 ? null : trimmed;
+                const current = ticket.externalProject?.trim() ? ticket.externalProject : null;
+                if (next === current) return;
+                await saveTicketPatch(
+                  { externalProject: next ?? undefined },
+                  "externalProjectUpdated"
+                );
               }}
             />
 

@@ -550,6 +550,7 @@ public sealed class EasyProjectMigrationService(
             existing.TaskTypeId = taskTypeId; existing.AssigneeId = assigneeId; existing.ReporterId = reporterId;
             existing.EstimatedHours = issue.EstimatedHours; existing.DueDate = ParseDateOnly(issue.DueDate); existing.ColumnId = column?.Id;
             existing.ExternalUrl = $"{cmd.BaseUrl.TrimEnd('/')}/issues/{issue.Id}";
+            existing.ExternalProject = issue.Project?.Name;
             tracker.IncrementUpdated(jobId); return existing.Id;
         }
 
@@ -567,6 +568,7 @@ public sealed class EasyProjectMigrationService(
             ReporterId = reporterId,
             ExternalId = externalId,
             ExternalUrl = $"{cmd.BaseUrl.TrimEnd('/')}/issues/{issue.Id}",
+            ExternalProject = issue.Project?.Name,
             EstimatedHours = issue.EstimatedHours,
             DueDate = ParseDateOnly(issue.DueDate),
             ColumnId = column?.Id,
