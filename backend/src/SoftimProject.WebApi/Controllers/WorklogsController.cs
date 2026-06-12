@@ -15,10 +15,11 @@ public class WorklogsController : ApiControllerBase
         [FromQuery] DateOnly? from = null,
         [FromQuery] DateOnly? to = null,
         [FromQuery] Guid? userId = null,
+        [FromQuery] bool includeSubprojects = false,
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 50)
     {
-        return Ok(await Mediator.Send(new GetWorklogsQuery(projectId, ticketId, from, to, userId, page, pageSize)));
+        return Ok(await Mediator.Send(new GetWorklogsQuery(projectId, ticketId, from, to, userId, includeSubprojects, page, pageSize)));
     }
 
     [HttpPost]

@@ -475,7 +475,8 @@
     "deleteAriaLabel": "Delete worklog",
     "previousPage": "Previous page",
     "nextPage": "Next page",
-    "pageRange": "{from}–{to} of {total}"
+    "pageRange": "{from}–{to} of {total}",
+    "includeSubprojects": "Include sub-projects"
   },
   "FilterBar": {
     "addFilter": "Add filter",
