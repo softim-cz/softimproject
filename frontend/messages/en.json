@@ -684,7 +684,11 @@
     "parentKeyInvalid": "Enter a key in CODE-NUMBER format, e.g. DEMO-12.",
     "parentIsSelf": "A ticket cannot be its own parent.",
     "parentNotFound": "No parent ticket found with this key.",
-    "parentTicketUpdated": "Parent ticket updated."
+    "parentTicketUpdated": "Parent ticket updated.",
+    "noDescription": "No description",
+    "descriptionPlaceholder": "Describe the ticket... (Markdown supported)",
+    "editDescriptionAriaLabel": "Edit description",
+    "descriptionUpdated": "Description updated"
   },
   "Board": {
     "groupBy": "Group by",
@@ -1059,5 +1063,15 @@
     "unauthorized": "You are not authorized",
     "loadFailed": "Failed to load",
     "saveFailed": "Failed to save"
+  },
+  "Markdown": {
+    "write": "Write",
+    "preview": "Preview",
+    "previewEmpty": "Nothing to preview",
+    "addImage": "Image",
+    "uploadingImage": "Uploading image...",
+    "imageUploadFailed": "Upload of image \"{name}\" failed",
+    "imageTooLarge": "Image \"{name}\" is too large",
+    "hint": "Markdown supported. Drop or paste images directly."
   }
 }

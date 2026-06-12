@@ -684,7 +684,11 @@
     "parentKeyInvalid": "Zadejte klíč ve formátu CODE-NUMBER, např. DEMO-12.",
     "parentIsSelf": "Ticket nemůže být svým vlastním nadřízeným úkolem.",
     "parentNotFound": "Nadřízený úkol s tímto klíčem nebyl nalezen.",
-    "parentTicketUpdated": "Nadřízený úkol upraven."
+    "parentTicketUpdated": "Nadřízený úkol upraven.",
+    "noDescription": "Bez popisu",
+    "descriptionPlaceholder": "Popište ticket... (podporuje Markdown)",
+    "editDescriptionAriaLabel": "Upravit popis",
+    "descriptionUpdated": "Popis aktualizován"
   },
   "Board": {
     "groupBy": "Seskupit podle",
@@ -1059,5 +1063,15 @@
     "unauthorized": "Nemáte oprávnění",
     "loadFailed": "Načtení selhalo",
     "saveFailed": "Uložení selhalo"
+  },
+  "Markdown": {
+    "write": "Psát",
+    "preview": "Náhled",
+    "previewEmpty": "Není co zobrazit",
+    "addImage": "Obrázek",
+    "uploadingImage": "Nahrávám obrázek...",
+    "imageUploadFailed": "Nahrání obrázku „{name}“ se nezdařilo",
+    "imageTooLarge": "Obrázek „{name}“ je příliš velký",
+    "hint": "Podporuje Markdown. Obrázky lze přetáhnout nebo vložit ze schránky."
   }
 }
