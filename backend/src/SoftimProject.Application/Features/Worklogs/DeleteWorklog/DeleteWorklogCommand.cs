@@ -34,7 +34,11 @@ public sealed class DeleteWorklogCommandHandler(
                 throw new UnauthorizedAccessException("Only the worklog owner, the project manager, or Admin can delete this worklog.");
         }
 
+        var ticketId = worklog.TicketId;
+
         dbContext.Worklogs.Remove(worklog);
         await dbContext.SaveChangesAsync(cancellationToken);
+
+        await CumulativeWorkedHoursCalculator.RecalculateUpwardAsync(dbContext, ticketId, cancellationToken);
     }
 }

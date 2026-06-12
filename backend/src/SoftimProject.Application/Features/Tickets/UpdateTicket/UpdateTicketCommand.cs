@@ -57,6 +57,7 @@ public sealed class UpdateTicketCommandHandler(
 
         var taskStateChanged = ticket.TaskStateId != request.TaskStateId;
         var parentChanged = ticket.ParentTicketId != request.ParentTicketId;
+        var oldParentId = ticket.ParentTicketId;
 
         if (parentChanged && request.ParentTicketId.HasValue)
         {
@@ -85,6 +86,14 @@ public sealed class UpdateTicketCommandHandler(
         }
 
         await dbContext.SaveChangesAsync(cancellationToken);
+
+        if (parentChanged)
+        {
+            // Re-parenting moves the ticket's whole subtree between branches, so both the
+            // old and the new ancestor chains need their cumulative totals recomputed.
+            await CumulativeWorkedHoursCalculator.RecalculateUpwardAsync(dbContext, oldParentId, cancellationToken);
+            await CumulativeWorkedHoursCalculator.RecalculateUpwardAsync(dbContext, request.ParentTicketId, cancellationToken);
+        }
     }
 
     private async Task ValidateParentAsync(Domain.Entities.Ticket ticket, Guid parentId, CancellationToken cancellationToken)
