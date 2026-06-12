@@ -375,6 +375,7 @@ export function useCreateProjectTemplate() {
       name: string;
       description?: string;
       customFieldDefinitionIds: string[];
+      allowedTaskTypeIds?: string[];
     }) => {
       const { data } = await apiClient.post<string>("/api/v1/lookups/project-templates", body);
       return data;
@@ -392,6 +393,7 @@ export function useUpdateProjectTemplate() {
       description?: string;
       isActive: boolean;
       customFieldDefinitionIds: string[];
+      allowedTaskTypeIds?: string[];
     }) => {
       await apiClient.put(`/api/v1/lookups/project-templates/${body.id}`, body);
     },

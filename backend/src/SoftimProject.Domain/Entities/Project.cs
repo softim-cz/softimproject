@@ -65,4 +65,8 @@ public class Project : BaseEntity
     public ICollection<Comment> Comments { get; set; } = new List<Comment>();
     public ICollection<ViewConfiguration> ViewConfigurations { get; set; } = new List<ViewConfiguration>();
     public ICollection<ProjectCustomFieldValue> CustomFieldValues { get; set; } = new List<ProjectCustomFieldValue>();
+
+    // Per-projekt override povolených typů úkolů. Prázdná = zdědit ze šablony
+    // (ProjectTemplate.AllowedTaskTypes). Neprázdná = nahrazuje default ze šablony.
+    public ICollection<TaskType> AllowedTaskTypes { get; set; } = new List<TaskType>();
 }

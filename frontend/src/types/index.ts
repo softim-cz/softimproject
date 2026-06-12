@@ -418,6 +418,18 @@ export interface ProjectTemplate {
   fields: ProjectTemplateField[];
   taskStates: TaskState[];
   ticketPriorities: TicketPriorityLookup[];
+  allowedTaskTypeIds: string[];
+}
+
+export interface ProjectAllowedTaskTypes {
+  // True when ticket creation/edit is limited to `effectiveTaskTypes`.
+  isRestricted: boolean;
+  // Project's own override (empty = inherit template default).
+  overrideTaskTypeIds: string[];
+  // Template default (shown so the UI can explain what is inherited).
+  templateTaskTypeIds: string[];
+  // Resolved list actually offered when creating/editing tickets.
+  effectiveTaskTypes: TaskType[];
 }
 
 // Migration types

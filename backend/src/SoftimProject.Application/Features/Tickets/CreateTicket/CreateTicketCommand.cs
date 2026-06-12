@@ -1,6 +1,7 @@
 using FluentValidation;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using SoftimProject.Application.Common;
 using SoftimProject.Application.Interfaces;
 using SoftimProject.Domain.Entities;
 
@@ -41,6 +42,9 @@ public sealed class CreateTicketCommandHandler(
         // Load project to assign next ticket number
         var project = await dbContext.Projects.FindAsync([request.ProjectId], cancellationToken)
             ?? throw new Common.NotFoundException(nameof(Domain.Entities.Project), request.ProjectId);
+
+        // Reject TaskTypes the project (or its template) does not allow.
+        await AllowedTaskTypeResolver.ValidateTaskTypeAsync(dbContext, request.ProjectId, request.TaskTypeId, cancellationToken);
 
         // Resolve TaskStateId: use provided or find default scoped to project's template
         var taskStateId = request.TaskStateId;

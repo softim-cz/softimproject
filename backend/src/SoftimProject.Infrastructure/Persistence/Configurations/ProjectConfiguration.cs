@@ -46,6 +46,14 @@ public sealed class ProjectConfiguration : IEntityTypeConfiguration<Project>
             .HasForeignKey(p => p.ProjectTemplateId).IsRequired()
             .OnDelete(DeleteBehavior.Restrict);
 
+        // Per-projekt override povolených typů úkolů (M:N přes implicitní join tabulku).
+        builder.HasMany(p => p.AllowedTaskTypes)
+            .WithMany()
+            .UsingEntity(
+                "ProjectAllowedTaskTypes",
+                l => l.HasOne(typeof(TaskType)).WithMany().HasForeignKey("TaskTypeId").OnDelete(DeleteBehavior.Cascade),
+                r => r.HasOne(typeof(Project)).WithMany().HasForeignKey("ProjectId").OnDelete(DeleteBehavior.Cascade));
+
         builder.HasIndex(p => p.Code).IsUnique();
         builder.HasIndex(p => p.ClientAccessToken).IsUnique().HasFilter("[ClientAccessToken] IS NOT NULL");
     }

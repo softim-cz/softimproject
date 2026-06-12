@@ -79,6 +79,7 @@ export interface CreateTicketPayload {
   columnId?: string;
   dueDate?: string;
   estimatedHours?: number;
+  taskTypeId?: string;
 }
 
 export function useCreateTicket() {
