@@ -1140,5 +1140,18 @@
     "none": "Zatím žádné výkazy.",
     "editAria": "Upravit výkaz",
     "deleteAria": "Smazat výkaz"
+  },
+  "CommandPalette": {
+    "placeholder": "Hledat projekty a stránky…",
+    "empty": "Nic nenalezeno.",
+    "navGroup": "Navigace",
+    "projectsGroup": "Projekty",
+    "nav": {
+      "dashboard": "Přehled",
+      "projects": "Projekty",
+      "worklogs": "Výkazy",
+      "resources": "Zdroje",
+      "admin": "Administrace"
+    }
   }
 }

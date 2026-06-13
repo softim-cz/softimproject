@@ -1140,5 +1140,18 @@
     "none": "No worklogs yet.",
     "editAria": "Edit worklog",
     "deleteAria": "Delete worklog"
+  },
+  "CommandPalette": {
+    "placeholder": "Search projects and pages…",
+    "empty": "No results.",
+    "navGroup": "Navigation",
+    "projectsGroup": "Projects",
+    "nav": {
+      "dashboard": "Dashboard",
+      "projects": "Projects",
+      "worklogs": "Worklogs",
+      "resources": "Resources",
+      "admin": "Admin"
+    }
   }
 }

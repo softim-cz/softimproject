@@ -11,6 +11,7 @@ import { HubConnectionState } from "@microsoft/signalr";
 import { useState, useRef, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { LocaleSwitcher } from "./locale-switcher";
+import { CommandPalette } from "./command-palette";
 
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -183,6 +184,7 @@ export function Topbar() {
   const t = useTranslations("Topbar");
   const tCrumbs = useTranslations("Topbar.breadcrumbs");
   const breadcrumbs = buildBreadcrumbs(pathname);
+  const [paletteOpen, setPaletteOpen] = useState(false);
 
   return (
     <header className="h-14 border-b border-border bg-card flex items-center justify-between px-6 shrink-0">
@@ -219,13 +221,18 @@ export function Topbar() {
       {/* Right section */}
       <div className="flex items-center gap-2">
         {/* Command palette trigger */}
-        <button className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-border text-sm text-muted-foreground hover:bg-muted transition-colors">
+        <button
+          type="button"
+          onClick={() => setPaletteOpen(true)}
+          className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-border text-sm text-muted-foreground hover:bg-muted transition-colors"
+        >
           <Search className="h-4 w-4" />
           <span className="hidden md:inline">{t("search")}</span>
           <kbd className="hidden md:inline-flex items-center gap-0.5 rounded border border-border bg-muted px-1.5 py-0.5 text-[10px] font-mono text-muted-foreground">
             Ctrl+K
           </kbd>
         </button>
+        <CommandPalette open={paletteOpen} onOpenChange={setPaletteOpen} />
 
         <ConnectionIndicator />
         <LocaleSwitcher />
