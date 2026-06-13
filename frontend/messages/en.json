@@ -954,6 +954,14 @@
       "resuming": "Resuming...",
       "resumeFailed": "Failed to resume migration",
       "report": "Report"
+    },
+    "maintenance": {
+      "title": "Maintenance: HTML → Markdown",
+      "description": "Converts HTML content from imports (ticket/project descriptions, comments) to Markdown so it renders readably. New imports are converted automatically.",
+      "normalizeHtml": "Normalize HTML content",
+      "running": "Normalizing…",
+      "done": "Done: {tickets} tickets, {comments} comments, {projects} projects.",
+      "failed": "Normalization failed."
     }
   },
   "Lookups": {

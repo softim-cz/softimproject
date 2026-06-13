@@ -485,7 +485,7 @@ public sealed class EasyProjectMigrationService(
         var existing = await dbContext.Projects.FirstOrDefaultAsync(p => p.ExternalSystem == "EasyProject" && p.ExternalProjectId == externalId, ct);
         if (existing != null)
         {
-            existing.Name = ep.Name; existing.Description = ep.Description; existing.Status = MapProjectStatus(ep.Status);
+            existing.Name = ep.Name; existing.Description = HtmlToMarkdown.Convert(ep.Description); existing.Status = MapProjectStatus(ep.Status);
             existing.StartDate = ParseDateOnly(ep.StartDate); existing.DeadlineDate = ParseDateOnly(ep.DueDate);
             tracker.IncrementUpdated(jobId); tracker.AddLog(jobId, $"Updated project '{ep.Name}'"); return existing.Id;
         }
@@ -497,7 +497,7 @@ public sealed class EasyProjectMigrationService(
             Id = Guid.NewGuid(),
             Name = ep.Name,
             Code = code,
-            Description = ep.Description,
+            Description = HtmlToMarkdown.Convert(ep.Description),
             Status = MapProjectStatus(ep.Status),
             ExternalSystem = "EasyProject",
             ExternalProjectId = externalId,
@@ -544,7 +544,7 @@ public sealed class EasyProjectMigrationService(
 
         if (existing != null)
         {
-            existing.Title = issue.Subject; existing.Description = issue.Description; existing.TaskStateId = taskStateId; existing.TicketPriorityId = ticketPriorityId;
+            existing.Title = issue.Subject; existing.Description = HtmlToMarkdown.Convert(issue.Description); existing.TaskStateId = taskStateId; existing.TicketPriorityId = ticketPriorityId;
             existing.TaskTypeId = taskTypeId; existing.AssigneeId = assigneeId; existing.ReporterId = reporterId;
             existing.EstimatedHours = issue.EstimatedHours; existing.DueDate = ParseDateOnly(issue.DueDate); existing.ColumnId = column?.Id;
             existing.ExternalUrl = $"{cmd.BaseUrl.TrimEnd('/')}/issues/{issue.Id}";
@@ -557,7 +557,7 @@ public sealed class EasyProjectMigrationService(
             Id = Guid.NewGuid(),
             ProjectId = spProjectId,
             Title = issue.Subject,
-            Description = issue.Description,
+            Description = HtmlToMarkdown.Convert(issue.Description),
             TaskStateId = taskStateId,
             TicketPriorityId = ticketPriorityId,
             Position = 0,
@@ -586,7 +586,7 @@ public sealed class EasyProjectMigrationService(
             TicketId = spTicketId,
             ProjectId = spProjectId,
             AuthorId = authorId,
-            Content = journal.Notes ?? string.Empty,
+            Content = HtmlToMarkdown.Convert(journal.Notes) ?? string.Empty,
             IsInternal = journal.PrivateNotes,
             Source = CommentSource.EasyProject,
             ExternalId = externalId,
@@ -609,7 +609,7 @@ public sealed class EasyProjectMigrationService(
         var userId = te.User != null && userMap.TryGetValue(te.User.Id, out var uid) ? uid : adminUserId;
         var description = string.IsNullOrWhiteSpace(te.Comments)
             ? $"Migrated from EasyProject time entry #{externalId}."
-            : te.Comments!;
+            : HtmlToMarkdown.Convert(te.Comments) ?? te.Comments!;
         dbContext.Worklogs.Add(new Worklog
         {
             Id = Guid.NewGuid(),

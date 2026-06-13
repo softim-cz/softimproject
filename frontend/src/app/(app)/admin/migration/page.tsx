@@ -27,6 +27,7 @@ import {
   useMigrationProgress,
   useMigrationHistory,
   useResumeMigration,
+  useNormalizeHtml,
 } from "@/queries/migration";
 import { toast } from "sonner";
 import {
@@ -1255,6 +1256,40 @@ function MigrationHistorySection() {
   );
 }
 
+function HtmlMaintenanceSection() {
+  const t = useTranslations("Migration");
+  const normalize = useNormalizeHtml();
+
+  const run = async () => {
+    try {
+      const r = await normalize.mutateAsync();
+      toast.success(
+        t("maintenance.done", {
+          tickets: r.tickets,
+          comments: r.comments,
+          projects: r.projects,
+        })
+      );
+    } catch {
+      toast.error(t("maintenance.failed"));
+    }
+  };
+
+  return (
+    <div className="mt-8 rounded-lg border border-border p-4">
+      <h3 className="text-sm font-semibold text-foreground mb-1">{t("maintenance.title")}</h3>
+      <p className="text-xs text-muted-foreground mb-3">{t("maintenance.description")}</p>
+      <button
+        onClick={run}
+        disabled={normalize.isPending}
+        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium border border-border rounded-lg hover:bg-muted transition-colors disabled:opacity-50"
+      >
+        {normalize.isPending ? t("maintenance.running") : t("maintenance.normalizeHtml")}
+      </button>
+    </div>
+  );
+}
+
 export default function MigrationPage() {
   const t = useTranslations("Migration");
   const { step } = useMigrationStore();
@@ -1278,6 +1313,7 @@ export default function MigrationPage() {
       </div>
 
       {step < 5 && <MigrationHistorySection />}
+      {step < 5 && <HtmlMaintenanceSection />}
     </div>
   );
 }
