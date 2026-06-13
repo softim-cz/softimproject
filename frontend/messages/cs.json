@@ -1110,5 +1110,27 @@
     "externalBadge": "externí",
     "externalUserTitle": "Autor z externího systému",
     "internalBadge": "Interní"
+  },
+  "TicketWorklogs": {
+    "title": "Výkazy",
+    "totalHours": "· celkem {hours} h",
+    "add": "Přidat výkaz",
+    "date": "Datum",
+    "hours": "Hodiny",
+    "description": "Popis",
+    "descriptionCounter": "{count}/2000",
+    "descriptionPlaceholder": "Co bylo odpracováno… (min. 16 znaků)",
+    "billable": "Fakturovatelné",
+    "cancel": "Zrušit",
+    "save": "Uložit",
+    "saving": "Ukládám…",
+    "added": "Výkaz přidán.",
+    "addFailed": "Přidání výkazu selhalo.",
+    "deleted": "Výkaz smazán.",
+    "deleteFailed": "Smazání výkazu selhalo.",
+    "deleteConfirm": "Opravdu smazat tento výkaz?",
+    "none": "Zatím žádné výkazy.",
+    "editAria": "Upravit výkaz",
+    "deleteAria": "Smazat výkaz"
   }
 }

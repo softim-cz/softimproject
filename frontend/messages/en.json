@@ -1110,5 +1110,27 @@
     "externalBadge": "external",
     "externalUserTitle": "Author from an external system",
     "internalBadge": "Internal"
+  },
+  "TicketWorklogs": {
+    "title": "Worklogs",
+    "totalHours": "· {hours} h total",
+    "add": "Add worklog",
+    "date": "Date",
+    "hours": "Hours",
+    "description": "Description",
+    "descriptionCounter": "{count}/2000",
+    "descriptionPlaceholder": "What was worked on… (min. 16 chars)",
+    "billable": "Billable",
+    "cancel": "Cancel",
+    "save": "Save",
+    "saving": "Saving…",
+    "added": "Worklog added.",
+    "addFailed": "Failed to add worklog.",
+    "deleted": "Worklog deleted.",
+    "deleteFailed": "Failed to delete worklog.",
+    "deleteConfirm": "Delete this worklog?",
+    "none": "No worklogs yet.",
+    "editAria": "Edit worklog",
+    "deleteAria": "Delete worklog"
   }
 }
