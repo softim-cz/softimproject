@@ -87,15 +87,17 @@ export function useUpdateComment() {
       ticketId,
       commentId,
       content,
+      isInternal,
     }: {
       projectId: string;
       ticketId: string;
       commentId: string;
       content: string;
+      isInternal?: boolean;
     }) => {
       await apiClient.put(
         `/api/v1/projects/${projectId}/tickets/${ticketId}/comments/${commentId}`,
-        { projectId, ticketId, commentId, content }
+        { projectId, ticketId, commentId, content, isInternal }
       );
     },
     onSuccess: async (_, { projectId, ticketId }) => {

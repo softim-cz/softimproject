@@ -11,7 +11,8 @@ public sealed record UpdateCommentCommand(
     Guid ProjectId,
     Guid TicketId,
     Guid CommentId,
-    string Content) : IRequest, IRequireProjectAccess;
+    string Content,
+    bool? IsInternal = null) : IRequest, IRequireProjectAccess;
 
 public sealed class UpdateCommentCommandValidator : AbstractValidator<UpdateCommentCommand>
 {
@@ -47,6 +48,8 @@ public sealed class UpdateCommentCommandHandler(
         }
 
         comment.Content = request.Content;
+        if (request.IsInternal.HasValue)
+            comment.IsInternal = request.IsInternal.Value;
         comment.UpdatedAt = DateTime.UtcNow;
 
         if (comment.Ticket is not null)

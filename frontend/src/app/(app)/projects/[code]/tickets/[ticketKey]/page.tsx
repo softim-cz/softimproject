@@ -1106,6 +1106,7 @@ function CommentCard({
   const deleteComment = useDeleteComment();
   const [isEditing, setIsEditing] = useState(false);
   const [draft, setDraft] = useState(comment.content);
+  const [draftInternal, setDraftInternal] = useState(comment.isInternal);
 
   const handleSave = async () => {
     const content = draft.trim();
@@ -1119,6 +1120,7 @@ function CommentCard({
         ticketId,
         commentId: comment.id,
         content,
+        isInternal: draftInternal,
       });
       toast.success(t("commentUpdated"));
       setIsEditing(false);
@@ -1180,6 +1182,7 @@ function CommentCard({
               <button
                 onClick={() => {
                   setDraft(comment.content);
+                  setDraftInternal(comment.isInternal);
                   setIsEditing(true);
                 }}
                 className="p-1 text-muted-foreground hover:text-foreground rounded"
@@ -1212,25 +1215,36 @@ function CommentCard({
             rows={3}
             autoFocus
           />
-          <div className="flex items-center justify-end gap-2">
-            <button
-              type="button"
-              onClick={() => setIsEditing(false)}
-              disabled={updateComment.isPending}
-              className="inline-flex items-center gap-1 px-2.5 py-1 rounded text-xs text-muted-foreground hover:text-foreground disabled:opacity-50"
-            >
-              <X className="h-3.5 w-3.5" />
-              {t("cancel")}
-            </button>
-            <button
-              type="button"
-              onClick={handleSave}
-              disabled={updateComment.isPending}
-              className="inline-flex items-center gap-1 px-2.5 py-1 rounded bg-primary text-primary-foreground text-xs font-medium hover:opacity-90 disabled:opacity-50"
-            >
-              <Send className="h-3.5 w-3.5" />
-              {t("save")}
-            </button>
+          <div className="flex items-center justify-between gap-2">
+            <label className="flex items-center gap-2 text-xs text-muted-foreground">
+              <input
+                type="checkbox"
+                checked={draftInternal}
+                onChange={(e) => setDraftInternal(e.target.checked)}
+                className="rounded"
+              />
+              {t("internalOnly")}
+            </label>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setIsEditing(false)}
+                disabled={updateComment.isPending}
+                className="inline-flex items-center gap-1 px-2.5 py-1 rounded text-xs text-muted-foreground hover:text-foreground disabled:opacity-50"
+              >
+                <X className="h-3.5 w-3.5" />
+                {t("cancel")}
+              </button>
+              <button
+                type="button"
+                onClick={handleSave}
+                disabled={updateComment.isPending}
+                className="inline-flex items-center gap-1 px-2.5 py-1 rounded bg-primary text-primary-foreground text-xs font-medium hover:opacity-90 disabled:opacity-50"
+              >
+                <Send className="h-3.5 w-3.5" />
+                {t("save")}
+              </button>
+            </div>
           </div>
         </div>
       ) : (
