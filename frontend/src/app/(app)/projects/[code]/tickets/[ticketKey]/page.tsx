@@ -259,6 +259,13 @@ function EditableSidebarSelect({
             autoFocus
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                void save();
+              }
+              if (e.key === "Escape") setIsEditing(false);
+            }}
             className="w-full rounded-lg border border-input bg-background px-2 py-1 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
           >
             {placeholder !== undefined && <option value="">{placeholder}</option>}
@@ -480,6 +487,13 @@ function EditableTextSection({
             autoFocus
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+                e.preventDefault();
+                void save();
+              }
+              if (e.key === "Escape") setIsEditing(false);
+            }}
             rows={4}
             placeholder={placeholder}
             className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring resize-y"
@@ -581,7 +595,16 @@ function EditableMarkdownSection({
         )}
       </div>
       {isEditing ? (
-        <div className="space-y-2">
+        <div
+          className="space-y-2"
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+              e.preventDefault();
+              void save();
+            }
+            if (e.key === "Escape") setIsEditing(false);
+          }}
+        >
           <MarkdownEditor
             value={draft}
             onChange={setDraft}
