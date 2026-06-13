@@ -954,6 +954,14 @@
       "resuming": "Pokračuje...",
       "resumeFailed": "Obnovení migrace se nezdařilo",
       "report": "Report"
+    },
+    "maintenance": {
+      "title": "Údržba: HTML → Markdown",
+      "description": "Převede HTML obsah z importu (popisy ticketů/projektů, komentáře) na Markdown, aby se zobrazoval čitelně. Nové importy se převádějí automaticky.",
+      "normalizeHtml": "Normalizovat HTML obsah",
+      "running": "Normalizuji…",
+      "done": "Hotovo: {tickets} ticketů, {comments} komentářů, {projects} projektů.",
+      "failed": "Normalizace selhala."
     }
   },
   "Lookups": {

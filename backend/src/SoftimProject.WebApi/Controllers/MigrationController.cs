@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using SoftimProject.Application.Features.Migration;
 using SoftimProject.Application.Features.Migration.EasyProject;
 using SoftimProject.Application.Features.Migration.EasyProject.Dtos;
 
@@ -6,6 +7,12 @@ namespace SoftimProject.WebApi.Controllers;
 
 public class MigrationController : ApiControllerBase
 {
+    [HttpPost("normalize-html")]
+    public async Task<ActionResult<NormalizeHtmlContentResult>> NormalizeHtml()
+    {
+        return Ok(await Mediator.Send(new NormalizeHtmlContentCommand()));
+    }
+
     [HttpPost("test-connection")]
     public async Task<ActionResult<TestEpConnectionResult>> TestConnection([FromBody] TestEpConnectionQuery query)
     {

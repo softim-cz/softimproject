@@ -170,3 +170,16 @@ export function useResumeMigration() {
     },
   });
 }
+
+export function useNormalizeHtml() {
+  return useMutation({
+    mutationFn: async () => {
+      const { data } = await apiClient.post<{
+        tickets: number;
+        comments: number;
+        projects: number;
+      }>("/api/v1/migration/normalize-html");
+      return data;
+    },
+  });
+}
