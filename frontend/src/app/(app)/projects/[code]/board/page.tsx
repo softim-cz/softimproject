@@ -29,7 +29,7 @@ import { CSS } from "@dnd-kit/utilities";
 import { useDroppable } from "@dnd-kit/core";
 import { cn } from "@/lib/utils";
 import { CreateTicketDialog } from "@/components/tickets/CreateTicketDialog";
-import Link from "next/link";
+import { TaskPreviewSidebar } from "@/components/task-list/TaskPreviewSidebar";
 import { useTranslations } from "next-intl";
 import {
   MessageSquare,
@@ -133,14 +133,14 @@ function parseCardFields(raw: unknown): CardField[] {
 
 const TicketCard = memo(function TicketCard({
   ticket,
-  code,
   cardFields,
   isDragging = false,
+  onSelect,
 }: {
   ticket: Ticket;
-  code: string;
   cardFields: CardField[];
   isDragging?: boolean;
+  onSelect?: (ticket: Ticket) => void;
 }) {
   const visibleFields = cardFields.filter((f) => f.visible);
 
@@ -216,8 +216,8 @@ const TicketCard = memo(function TicketCard({
   };
 
   return (
-    <Link
-      href={`/projects/${code}/tickets/${ticket.key}`}
+    <div
+      onClick={onSelect ? () => onSelect(ticket) : undefined}
       className={cn(
         "block rounded-lg border border-border bg-card p-3 hover:shadow-sm transition-shadow cursor-pointer",
         isDragging && "shadow-lg opacity-90 rotate-2"
@@ -230,18 +230,18 @@ const TicketCard = memo(function TicketCard({
           {visibleFields.map((f) => renderField(f))}
         </div>
       )}
-    </Link>
+    </div>
   );
 });
 
 function SortableTicketCard({
   ticket,
-  code,
   cardFields,
+  onSelectTicket,
 }: {
   ticket: Ticket;
-  code: string;
   cardFields: CardField[];
+  onSelectTicket: (ticket: Ticket) => void;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: ticket.id,
@@ -255,7 +255,7 @@ function SortableTicketCard({
 
   return (
     <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
-      <TicketCard ticket={ticket} code={code} cardFields={cardFields} />
+      <TicketCard ticket={ticket} cardFields={cardFields} onSelect={onSelectTicket} />
     </div>
   );
 }
@@ -263,13 +263,13 @@ function SortableTicketCard({
 const KanbanColumn = memo(function KanbanColumn({
   column,
   projectId,
-  code,
   cardFields,
+  onSelectTicket,
 }: {
   column: KanbanColumnType;
   projectId: string;
-  code: string;
   cardFields: CardField[];
+  onSelectTicket: (ticket: Ticket) => void;
 }) {
   const t = useTranslations("Board");
   const tCommon = useTranslations("Common");
@@ -320,8 +320,8 @@ const KanbanColumn = memo(function KanbanColumn({
             <SortableTicketCard
               key={ticket.id}
               ticket={ticket}
-              code={code}
               cardFields={cardFields}
+              onSelectTicket={onSelectTicket}
             />
           ))}
         </SortableContext>
@@ -481,9 +481,12 @@ export default function BoardPage({ params }: { params: Promise<{ code: string }
   const upsertConfig = useUpsertViewConfiguration();
   const moveTicket = useMoveTicket();
   const [activeTicket, setActiveTicket] = useState<Ticket | null>(null);
+  const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
   const [showGroupBy, setShowGroupBy] = useState(false);
   const [showCardSettings, setShowCardSettings] = useState(false);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
+
+  const handleSelectTicket = useCallback((ticket: Ticket) => setSelectedTicket(ticket), []);
 
   const savedConfig = useMemo<KanbanConfig>(() => {
     if (!viewConfig?.configurationJson) return defaultConfig;
@@ -783,38 +786,48 @@ export default function BoardPage({ params }: { params: Promise<{ code: string }
         onDragStart={handleDragStart}
         onDragEnd={handleDragEnd}
       >
-        <div className="flex-1 overflow-auto">
-          {swimlanes.map((lane) => (
-            <div key={lane.name || "__default"} className="mb-6">
-              {lane.name && (
-                <div className="flex items-center gap-2 mb-3 sticky left-0">
-                  <h3 className="text-sm font-semibold text-foreground">{lane.name}</h3>
-                  <span className="text-xs text-muted-foreground">
-                    ({lane.columns.reduce((sum, c) => sum + c.tickets.length, 0)})
-                  </span>
+        <div className="flex-1 flex overflow-hidden">
+          <div className="flex-1 overflow-auto">
+            {swimlanes.map((lane) => (
+              <div key={lane.name || "__default"} className="mb-6">
+                {lane.name && (
+                  <div className="flex items-center gap-2 mb-3 sticky left-0">
+                    <h3 className="text-sm font-semibold text-foreground">{lane.name}</h3>
+                    <span className="text-xs text-muted-foreground">
+                      ({lane.columns.reduce((sum, c) => sum + c.tickets.length, 0)})
+                    </span>
+                  </div>
+                )}
+                <div className="flex gap-4 pb-4">
+                  {lane.columns
+                    .sort((a, b) => a.position - b.position)
+                    .map((column) => (
+                      <KanbanColumn
+                        key={`${lane.name}-${column.id}`}
+                        column={column}
+                        projectId={projectId}
+                        cardFields={cardFields}
+                        onSelectTicket={handleSelectTicket}
+                      />
+                    ))}
                 </div>
-              )}
-              <div className="flex gap-4 pb-4">
-                {lane.columns
-                  .sort((a, b) => a.position - b.position)
-                  .map((column) => (
-                    <KanbanColumn
-                      key={`${lane.name}-${column.id}`}
-                      column={column}
-                      projectId={projectId}
-                      code={code}
-                      cardFields={cardFields}
-                    />
-                  ))}
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
+
+          {selectedTicket && (
+            <TaskPreviewSidebar
+              ticket={selectedTicket}
+              code={code}
+              onClose={() => setSelectedTicket(null)}
+            />
+          )}
         </div>
 
         <DragOverlay>
           {activeTicket && (
             <div className="w-[280px]">
-              <TicketCard ticket={activeTicket} code={code} cardFields={cardFields} isDragging />
+              <TicketCard ticket={activeTicket} cardFields={cardFields} isDragging />
             </div>
           )}
         </DragOverlay>
