@@ -590,16 +590,29 @@ export default function BoardPage({ params }: { params: Promise<{ code: string }
       if (!over || !board) return;
 
       const ticketId = active.id as string;
-      const targetColumnId = over.id as string;
+      const overId = over.id as string;
+      if (overId === ticketId) return;
 
-      const targetColumn = board.columns.find((c) => c.id === targetColumnId);
-      if (!targetColumn) return;
+      // `over` is either a column (the droppable surface) or a ticket card (a
+      // sortable item). When a column already has cards, dropping over it
+      // reports the card's id, not the column's — so resolve to the column
+      // either way, otherwise the move is dropped and the card snaps back.
+      let targetColumn = board.columns.find((c) => c.id === overId);
+      let position: number;
+      if (targetColumn) {
+        position = targetColumn.tickets.length;
+      } else {
+        targetColumn = board.columns.find((c) => c.tickets.some((t) => t.id === overId));
+        if (!targetColumn) return;
+        const overIndex = targetColumn.tickets.findIndex((t) => t.id === overId);
+        position = overIndex === -1 ? targetColumn.tickets.length : overIndex;
+      }
 
       moveTicket.mutate({
         projectId,
         ticketId,
-        targetColumnId,
-        position: targetColumn.tickets.length,
+        targetColumnId: targetColumn.id,
+        position,
       });
     },
     [board, projectId, moveTicket]
