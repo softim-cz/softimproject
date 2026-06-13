@@ -54,11 +54,17 @@ public sealed class ResummarizeTicketCommandHandler(
             },
             cancellationToken);
 
-        if (!string.IsNullOrWhiteSpace(recorded.Payload))
+        if (string.IsNullOrWhiteSpace(recorded.Payload))
         {
-            ticket.AiSummary = recorded.Payload;
-            await dbContext.SaveChangesAsync(cancellationToken);
+            // AI returned nothing — almost always because no chat client is configured
+            // (no Azure OpenAI endpoint/key). Surface it instead of silently recording an
+            // empty run, which previously looked like "only my prompt was saved".
+            throw new ValidationException(
+                "AI nevrátila žádný výstup. Generování AI souhrnů není nakonfigurované (chybí připojení k Azure OpenAI).");
         }
+
+        ticket.AiSummary = recorded.Payload;
+        await dbContext.SaveChangesAsync(cancellationToken);
 
         return recorded.InvocationId;
     }
