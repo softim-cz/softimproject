@@ -61,7 +61,11 @@ export function useResummarizeTicket(projectId: string, ticketId: string) {
       return data;
     },
     onSuccess: () => {
+      // Refresh both the AI history list (keyed by ticketId) and the ticket detail
+      // (keyed by ["tickets", projectId, "by-number", ...]) so the new summary shows
+      // immediately without a hard reload (Ctrl+F5).
       qc.invalidateQueries({ queryKey: ["tickets", ticketId] });
+      qc.invalidateQueries({ queryKey: ["tickets", projectId] });
     },
   });
 }

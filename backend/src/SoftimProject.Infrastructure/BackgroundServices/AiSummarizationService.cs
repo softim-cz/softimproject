@@ -63,6 +63,7 @@ public sealed class AiSummarizationService(
                                 ticket.Title,
                                 ticket.Description ?? string.Empty,
                                 comments,
+                                userInstruction: null,
                                 ct2),
                             ct);
                         return new AiInvocationCall<string>(

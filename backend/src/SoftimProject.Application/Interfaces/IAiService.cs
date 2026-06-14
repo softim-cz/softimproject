@@ -13,6 +13,7 @@ public interface IAiService
         string title,
         string description,
         IEnumerable<string> comments,
+        string? userInstruction = null,
         CancellationToken cancellationToken = default);
 
     Task<(string Report, AiTokenUsage Usage, string Prompt)> GenerateReportAsync(
