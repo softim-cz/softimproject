@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using SoftimProject.Application.Features.Worklogs.CreateWorklog;
 using SoftimProject.Application.Features.Worklogs.DeleteWorklog;
+using SoftimProject.Application.Features.Worklogs.GetWorklogById;
 using SoftimProject.Application.Features.Worklogs.GetWorklogs;
 using SoftimProject.Application.Features.Worklogs.UpdateWorklog;
 
@@ -20,6 +21,12 @@ public class WorklogsController : ApiControllerBase
         [FromQuery] int pageSize = 50)
     {
         return Ok(await Mediator.Send(new GetWorklogsQuery(projectId, ticketId, from, to, userId, includeSubprojects, page, pageSize)));
+    }
+
+    [HttpGet("{worklogId:guid}")]
+    public async Task<ActionResult<WorklogDto>> GetById(Guid worklogId)
+    {
+        return Ok(await Mediator.Send(new GetWorklogByIdQuery(worklogId)));
     }
 
     [HttpPost]
