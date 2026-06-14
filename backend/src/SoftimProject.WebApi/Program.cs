@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Identity.Web;
+using Microsoft.OpenApi;
 using Serilog;
 using SoftimProject.Infrastructure;
 using SoftimProject.Infrastructure.Options;
@@ -98,7 +99,46 @@ try
             options.JsonSerializerOptions.Converters.Add(
                 new System.Text.Json.Serialization.JsonStringEnumConverter()));
     builder.Services.AddOpenApi();
-    builder.Services.AddSwaggerGen();
+    builder.Services.AddSwaggerGen(options =>
+    {
+        options.SwaggerDoc("v1", new OpenApiInfo
+        {
+            Title = "SoftimProject API",
+            Version = "v1",
+            Description = "API pro práci s projekty, tickety a worklogy. "
+                + "Autentizace: Entra JWT nebo osobní API klíč (spk_…) v hlavičce Authorization: Bearer.",
+        });
+
+        // Pick up XML doc comments when present (see #103).
+        foreach (var xml in Directory.GetFiles(AppContext.BaseDirectory, "*.xml"))
+        {
+            try { options.IncludeXmlComments(xml, includeControllerXmlComments: true); }
+            catch { /* not all assemblies emit XML */ }
+        }
+
+        // Entra JWT or personal API key — both ride on Authorization: Bearer.
+        options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+        {
+            Name = "Authorization",
+            Type = SecuritySchemeType.Http,
+            Scheme = "bearer",
+            BearerFormat = "JWT or spk_…",
+            In = ParameterLocation.Header,
+            Description = "Vlož Entra JWT NEBO osobní API klíč (spk_…). 'Bearer ' se doplní automaticky.",
+        });
+        options.AddSecurityDefinition("ApiKey", new OpenApiSecurityScheme
+        {
+            Name = "X-Api-Key",
+            Type = SecuritySchemeType.ApiKey,
+            In = ParameterLocation.Header,
+            Description = "Osobní API klíč (spk_…) v hlavičce X-Api-Key.",
+        });
+        options.AddSecurityRequirement(doc => new OpenApiSecurityRequirement
+        {
+            { new OpenApiSecuritySchemeReference("Bearer", doc, null), new List<string>() },
+            { new OpenApiSecuritySchemeReference("ApiKey", doc, null), new List<string>() },
+        });
+    });
 
     // API Versioning
     builder.Services.AddApiVersioning(options =>
@@ -163,11 +203,18 @@ try
     app.UseMiddleware<ExceptionHandlingMiddleware>();
     app.UseSerilogRequestLogging();
 
-    if (app.Environment.IsDevelopment())
+    // Swagger UI: always in Development, and in other environments when explicitly
+    // enabled (Swagger:Enabled). API endpoints stay [Authorize], so the UI only
+    // exposes the API shape — callers still need a token/API key to invoke anything.
+    if (app.Environment.IsDevelopment() || app.Configuration.GetValue<bool>("Swagger:Enabled"))
     {
         app.MapOpenApi();
         app.UseSwagger();
-        app.UseSwaggerUI();
+        app.UseSwaggerUI(options =>
+        {
+            options.SwaggerEndpoint("/swagger/v1/swagger.json", "SoftimProject API v1");
+            options.DocumentTitle = "SoftimProject API";
+        });
     }
 
     app.UseHttpsRedirection();
