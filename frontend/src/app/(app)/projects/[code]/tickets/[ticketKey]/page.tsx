@@ -1913,7 +1913,7 @@ export default function TicketDetailPage({
                 <Sparkles className="h-4 w-4 text-purple-600" />
                 <h3 className="text-sm font-semibold text-purple-900">{t("aiSummaryTitle")}</h3>
               </div>
-              <p className="text-sm text-purple-800">{ticket.aiSummary}</p>
+              <MarkdownContent content={ticket.aiSummary} />
             </div>
           )}
 
