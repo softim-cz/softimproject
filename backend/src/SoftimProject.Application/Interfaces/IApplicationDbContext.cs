@@ -6,6 +6,7 @@ namespace SoftimProject.Application.Interfaces;
 public interface IApplicationDbContext
 {
     DbSet<User> Users { get; }
+    DbSet<ApiKey> ApiKeys { get; }
     DbSet<Project> Projects { get; }
     DbSet<ProjectMember> ProjectMembers { get; }
     DbSet<KanbanBoard> KanbanBoards { get; }

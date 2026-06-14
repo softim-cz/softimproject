@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { Bell, Search, LogOut, User, Settings, Wifi, WifiOff, ChevronRight } from "lucide-react";
+import { Bell, Search, LogOut, Wifi, WifiOff, ChevronRight, KeyRound } from "lucide-react";
 import { useAuth } from "@/lib/auth/use-auth";
 import { useNotifications } from "@/queries/notifications";
 import { useSignalR } from "@/lib/signalr/signalr-provider";
@@ -157,14 +157,14 @@ function UserMenu() {
             <p className="text-xs text-muted-foreground">{user?.username}</p>
           </div>
           <div className="py-1">
-            <button className="flex items-center gap-2 w-full px-3 py-2 text-sm text-popover-foreground hover:bg-muted transition-colors">
-              <User className="h-4 w-4" />
-              {t("profile")}
-            </button>
-            <button className="flex items-center gap-2 w-full px-3 py-2 text-sm text-popover-foreground hover:bg-muted transition-colors">
-              <Settings className="h-4 w-4" />
-              {t("settings")}
-            </button>
+            <Link
+              href="/api-keys"
+              onClick={() => setOpen(false)}
+              className="flex items-center gap-2 w-full px-3 py-2 text-sm text-popover-foreground hover:bg-muted transition-colors"
+            >
+              <KeyRound className="h-4 w-4" />
+              {t("apiKeys")}
+            </Link>
             <button
               onClick={() => logout()}
               className="flex items-center gap-2 w-full px-3 py-2 text-sm text-red-600 hover:bg-muted transition-colors"

@@ -38,19 +38,36 @@ try
     var devAuthEnabled = builder.Environment.IsDevelopment()
         && builder.Configuration.GetValue<bool>("DevAuth:Enabled");
 
+    string primaryScheme;
+    var authBuilder = builder.Services.AddAuthentication(
+        devAuthEnabled ? DevAuthenticationHandler.SchemeName : JwtBearerDefaults.AuthenticationScheme);
+
     if (devAuthEnabled)
     {
         Log.Warning("DevAuth scheme is ENABLED. This must never run in Production.");
-        builder.Services.AddAuthentication(DevAuthenticationHandler.SchemeName)
-            .AddScheme<AuthenticationSchemeOptions, DevAuthenticationHandler>(
-                DevAuthenticationHandler.SchemeName, _ => { });
+        primaryScheme = DevAuthenticationHandler.SchemeName;
+        authBuilder.AddScheme<AuthenticationSchemeOptions, DevAuthenticationHandler>(
+            DevAuthenticationHandler.SchemeName, _ => { });
     }
     else
     {
-        builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-            .AddMicrosoftIdentityWebApi(builder.Configuration.GetSection("AzureAd"));
+        primaryScheme = JwtBearerDefaults.AuthenticationScheme;
+        authBuilder.AddMicrosoftIdentityWebApi(builder.Configuration.GetSection("AzureAd"));
     }
-    builder.Services.AddAuthorization();
+
+    // Personal API keys work as a second scheme in both environments.
+    authBuilder.AddScheme<AuthenticationSchemeOptions, ApiKeyAuthenticationHandler>(
+        ApiKeyAuthenticationHandler.SchemeName, _ => { });
+
+    // Default [Authorize] policy accepts EITHER the interactive scheme (Entra JWT / Dev)
+    // OR a personal API key — headless API clients send `Authorization: Bearer spk_…`.
+    builder.Services.AddAuthorization(options =>
+    {
+        options.DefaultPolicy = new Microsoft.AspNetCore.Authorization.AuthorizationPolicyBuilder()
+            .RequireAuthenticatedUser()
+            .AddAuthenticationSchemes(primaryScheme, ApiKeyAuthenticationHandler.SchemeName)
+            .Build();
+    });
 
     // Allow SignalR to read the access token from the query string (WebSockets/SSE don't support headers)
     if (!devAuthEnabled)

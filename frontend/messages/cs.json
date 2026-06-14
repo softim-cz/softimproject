@@ -79,7 +79,8 @@
       "board": "Kanban",
       "settings": "Nastavení",
       "tickets": "Úkoly"
-    }
+    },
+    "apiKeys": "API klíče"
   },
   "Timer": {
     "running": "Měření běží",
@@ -1153,5 +1154,38 @@
       "resources": "Zdroje",
       "admin": "Administrace"
     }
+  },
+  "ApiKeys": {
+    "title": "API klíče",
+    "subtitle": "Osobní klíče pro programový přístup k API (skripty, Postman, integrace). Volají API pod tvými oprávněními.",
+    "createdOnceWarning": "Zkopíruj si klíč teď — zobrazí se jen jednou a už ho znovu neuvidíš.",
+    "copy": "Kopírovat",
+    "copied": "Zkopírováno",
+    "dismiss": "Skrýt",
+    "newKey": "Nový klíč",
+    "nameLabel": "Název",
+    "namePlaceholder": "např. Postman, CI skript",
+    "expiryLabel": "Platnost",
+    "expiryNever": "Bez expirace",
+    "expiryDays": "{days} dní",
+    "generate": "Vygenerovat",
+    "creating": "Generuji…",
+    "usageHint": "Použití: hlavička Authorization: Bearer <klíč> (nebo X-Api-Key).",
+    "colName": "Název",
+    "colPrefix": "Prefix",
+    "colStatus": "Stav",
+    "colLastUsed": "Naposledy použit",
+    "colExpires": "Expirace",
+    "statusActive": "aktivní",
+    "statusRevoked": "zrušený",
+    "statusExpired": "expirovaný",
+    "revoke": "Zrušit",
+    "revokeConfirm": "Opravdu zrušit klíč „{name}\"? Tato akce je nevratná.",
+    "revoked": "Klíč zrušen.",
+    "revokeFailed": "Zrušení selhalo.",
+    "created": "Klíč vytvořen.",
+    "createFailed": "Vytvoření klíče selhalo.",
+    "copyFailed": "Kopírování selhalo.",
+    "empty": "Zatím žádné API klíče."
   }
 }
