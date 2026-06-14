@@ -79,7 +79,8 @@
       "board": "Board",
       "settings": "Settings",
       "tickets": "Tickets"
-    }
+    },
+    "apiKeys": "API keys"
   },
   "Timer": {
     "running": "Timer running",
@@ -1153,5 +1154,38 @@
       "resources": "Resources",
       "admin": "Admin"
     }
+  },
+  "ApiKeys": {
+    "title": "API keys",
+    "subtitle": "Personal keys for programmatic API access (scripts, Postman, integrations). They call the API with your permissions.",
+    "createdOnceWarning": "Copy your key now — it is shown only once and cannot be retrieved later.",
+    "copy": "Copy",
+    "copied": "Copied",
+    "dismiss": "Dismiss",
+    "newKey": "New key",
+    "nameLabel": "Name",
+    "namePlaceholder": "e.g. Postman, CI script",
+    "expiryLabel": "Expiry",
+    "expiryNever": "No expiry",
+    "expiryDays": "{days} days",
+    "generate": "Generate",
+    "creating": "Generating…",
+    "usageHint": "Usage: Authorization: Bearer <key> header (or X-Api-Key).",
+    "colName": "Name",
+    "colPrefix": "Prefix",
+    "colStatus": "Status",
+    "colLastUsed": "Last used",
+    "colExpires": "Expires",
+    "statusActive": "active",
+    "statusRevoked": "revoked",
+    "statusExpired": "expired",
+    "revoke": "Revoke",
+    "revokeConfirm": "Really revoke key \"{name}\"? This cannot be undone.",
+    "revoked": "Key revoked.",
+    "revokeFailed": "Revoke failed.",
+    "created": "Key created.",
+    "createFailed": "Failed to create key.",
+    "copyFailed": "Copy failed.",
+    "empty": "No API keys yet."
   }
 }

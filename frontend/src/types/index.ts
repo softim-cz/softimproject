@@ -422,6 +422,25 @@ export interface ProjectTemplate {
   allowedTaskTypeIds: string[];
 }
 
+export interface ApiKey {
+  id: string;
+  name: string;
+  prefix: string;
+  expiresAt?: string;
+  lastUsedAt?: string;
+  revokedAt?: string;
+  createdAt: string;
+}
+
+export interface GenerateApiKeyResult {
+  id: string;
+  name: string;
+  prefix: string;
+  plaintextKey: string;
+  expiresAt?: string;
+  createdAt: string;
+}
+
 export interface ProjectAllowedTaskTypes {
   // True when ticket creation/edit is limited to `effectiveTaskTypes`.
   isRestricted: boolean;
