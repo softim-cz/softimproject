@@ -1,27 +1,42 @@
+using System.ClientModel;
 using System.Text;
-using Microsoft.Extensions.AI;
+using Azure.AI.OpenAI;
 using Microsoft.Extensions.Configuration;
+using OpenAI.Chat;
 using SoftimProject.Application.Interfaces;
 
 namespace SoftimProject.Infrastructure.Services;
 
 public sealed class AiService : IAiService
 {
-    private readonly IChatClient? _chatClient;
+    // Null when no Azure OpenAI connection is configured (AzureOpenAI:Endpoint /
+    // ApiKey / DeploymentName). In that case every call returns an empty result
+    // and callers surface "AI not configured" instead of generating.
+    private readonly ChatClient? _chat;
 
-    public AiService(IConfiguration configuration, IChatClient? chatClient = null)
+    public AiService(IConfiguration configuration)
     {
-        _chatClient = chatClient;
+        var endpoint = configuration["AzureOpenAI:Endpoint"];
+        var apiKey = configuration["AzureOpenAI:ApiKey"];
+        var deployment = configuration["AzureOpenAI:DeploymentName"];
+
+        if (!string.IsNullOrWhiteSpace(endpoint)
+            && !string.IsNullOrWhiteSpace(apiKey)
+            && !string.IsNullOrWhiteSpace(deployment))
+        {
+            var client = new AzureOpenAIClient(new Uri(endpoint), new ApiKeyCredential(apiKey));
+            _chat = client.GetChatClient(deployment);
+        }
     }
 
     public async Task<(string Summary, AiTokenUsage Usage, string Prompt)> SummarizeTicketAsync(string title, string description, IEnumerable<string> comments, CancellationToken cancellationToken = default)
     {
         var prompt = BuildSummarizePrompt(title, description, comments);
-        if (_chatClient is null)
+        if (_chat is null)
             return (string.Empty, new AiTokenUsage(0, 0), prompt);
 
-        var response = await _chatClient.GetResponseAsync(prompt, cancellationToken: cancellationToken);
-        return (response.Text.Trim(), ExtractUsage(response), prompt);
+        var (text, usage) = await CompleteAsync(prompt, cancellationToken);
+        return (text, usage, prompt);
     }
 
     public async Task<(string Report, AiTokenUsage Usage, string Prompt)> GenerateReportAsync(string projectName, string reportType, string periodDescription, string data, CancellationToken cancellationToken = default)
@@ -33,25 +48,44 @@ public sealed class AiService : IAiService
             Data:
             {data}
             """;
-        if (_chatClient is null)
+        if (_chat is null)
             return (string.Empty, new AiTokenUsage(0, 0), prompt);
 
-        var response = await _chatClient.GetResponseAsync(prompt, cancellationToken: cancellationToken);
-        return (response.Text.Trim(), ExtractUsage(response), prompt);
+        var (text, usage) = await CompleteAsync(prompt, cancellationToken);
+        return (text, usage, prompt);
     }
 
-    // UsageDetails exposes Input/Output separately on Microsoft.Extensions.AI 10.x.
-    // Older providers may populate only total — in that case we assign it to output
-    // (the more expensive slot — conservative over-estimate for cost audit).
-    private static AiTokenUsage ExtractUsage(ChatResponse response)
+    public async Task<string?> SuggestStatusTransitionAsync(string ticketTitle, string currentStatus, string latestComment, CancellationToken cancellationToken = default)
     {
-        var usage = response.Usage;
-        if (usage is null) return new AiTokenUsage(0, 0);
-        var input = (int)(usage.InputTokenCount ?? 0);
-        var output = (int)(usage.OutputTokenCount ?? 0);
-        if (input == 0 && output == 0 && usage.TotalTokenCount is long total)
-            output = (int)total;
-        return new AiTokenUsage(input, output);
+        if (_chat is null)
+            return null;
+
+        var prompt = $"""
+            Based on the following ticket information, suggest if the status should be changed.
+            Only suggest a change if it's clearly implied. Valid statuses: Backlog, Todo, InProgress, Review, Done, Closed.
+
+            Ticket: {ticketTitle}
+            Current Status: {currentStatus}
+            Latest Comment: {latestComment}
+
+            Respond with ONLY the new status name, or "NO_CHANGE" if no change is needed.
+            """;
+
+        var (text, _) = await CompleteAsync(prompt, cancellationToken);
+        var suggestion = text.Trim();
+        return suggestion == "NO_CHANGE" || string.IsNullOrEmpty(suggestion) ? null : suggestion;
+    }
+
+    private async Task<(string Text, AiTokenUsage Usage)> CompleteAsync(string prompt, CancellationToken cancellationToken)
+    {
+        ChatCompletion completion = await _chat!.CompleteChatAsync(
+            [new UserChatMessage(prompt)], cancellationToken: cancellationToken);
+
+        var text = completion.Content.Count > 0 ? completion.Content[0].Text.Trim() : string.Empty;
+        var usage = completion.Usage is { } u
+            ? new AiTokenUsage(u.InputTokenCount, u.OutputTokenCount)
+            : new AiTokenUsage(0, 0);
+        return (text, usage);
     }
 
     internal static string BuildSummarizePrompt(string title, string description, IEnumerable<string> comments)
@@ -66,27 +100,5 @@ public sealed class AiService : IAiService
         foreach (var comment in comments)
             prompt.AppendLine($"- {comment}");
         return prompt.ToString();
-    }
-
-    public async Task<string?> SuggestStatusTransitionAsync(string ticketTitle, string currentStatus, string latestComment, CancellationToken cancellationToken = default)
-    {
-        if (_chatClient is null)
-            return null;
-
-        var prompt = $"""
-            Based on the following ticket information, suggest if the status should be changed.
-            Only suggest a change if it's clearly implied. Valid statuses: Backlog, Todo, InProgress, Review, Done, Closed.
-
-            Ticket: {ticketTitle}
-            Current Status: {currentStatus}
-            Latest Comment: {latestComment}
-
-            Respond with ONLY the new status name, or "NO_CHANGE" if no change is needed.
-            """;
-
-        var response = await _chatClient.GetResponseAsync(prompt, cancellationToken: cancellationToken);
-        var suggestion = response.Text.Trim();
-
-        return suggestion == "NO_CHANGE" ? null : suggestion;
     }
 }

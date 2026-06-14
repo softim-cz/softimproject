@@ -217,7 +217,10 @@ public sealed class AiAuditTests : IClassFixture<IntegrationTestFactory>
             $"/api/v1/projects/{projectId}/tickets/{ticketId}/ai/resummarize",
             new { reason = "user complained summary is stale" });
 
-        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        // No AI provider is configured in the test factory, so the summary comes back
+        // empty and the handler surfaces a clear error (#84) instead of silently saving
+        // an empty run. The manual-trigger invocation is still audited (asserted below).
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
 
         using var scope = _factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
