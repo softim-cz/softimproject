@@ -29,9 +29,9 @@ public sealed class AiService : IAiService
         }
     }
 
-    public async Task<(string Summary, AiTokenUsage Usage, string Prompt)> SummarizeTicketAsync(string title, string description, IEnumerable<string> comments, CancellationToken cancellationToken = default)
+    public async Task<(string Summary, AiTokenUsage Usage, string Prompt)> SummarizeTicketAsync(string title, string description, IEnumerable<string> comments, string? userInstruction = null, CancellationToken cancellationToken = default)
     {
-        var prompt = BuildSummarizePrompt(title, description, comments);
+        var prompt = BuildSummarizePrompt(title, description, comments, userInstruction);
         if (_chat is null)
             return (string.Empty, new AiTokenUsage(0, 0), prompt);
 
@@ -88,11 +88,27 @@ public sealed class AiService : IAiService
         return (text, usage);
     }
 
-    internal static string BuildSummarizePrompt(string title, string description, IEnumerable<string> comments)
+    internal static string BuildSummarizePrompt(string title, string description, IEnumerable<string> comments, string? userInstruction = null)
     {
         var prompt = new StringBuilder();
-        prompt.AppendLine("Summarize the following ticket concisely for a project manager. Include key points, current status, and any blockers.");
+        prompt.AppendLine("You write concise, factual summaries of project tickets for a project manager.");
         prompt.AppendLine();
+        prompt.AppendLine("Follow these rules exactly:");
+        prompt.AppendLine("1. Write the ENTIRE summary in the SAME LANGUAGE as the ticket content below (title, description, comments). Never translate to another language. If the ticket is in Czech, answer in Czech.");
+        prompt.AppendLine("2. Be factual and concise (about 120 words, max ~180). Do not invent anything that is not stated in the ticket.");
+        prompt.AppendLine("3. Use EXACTLY this Markdown structure, in this order, with the headings translated into the ticket's language. Omit a section only if it would be genuinely empty:");
+        prompt.AppendLine("   ## <Summary>  — one or two sentences of overview");
+        prompt.AppendLine("   ## <Key points>  — a bullet list (-) of the most important facts");
+        prompt.AppendLine("   ## <Status & blockers>  — current state and anything blocking progress");
+        prompt.AppendLine("   ## <Next steps>  — a short bullet list of what should happen next");
+        prompt.AppendLine("4. Do not add any text before the first heading or after the last section.");
+        if (!string.IsNullOrWhiteSpace(userInstruction))
+        {
+            prompt.AppendLine("5. Additional instruction from the user — follow it while keeping the structure and language rules above:");
+            prompt.AppendLine($"   {userInstruction.Trim()}");
+        }
+        prompt.AppendLine();
+        prompt.AppendLine("--- TICKET ---");
         prompt.AppendLine($"Title: {title}");
         prompt.AppendLine($"Description: {description}");
         prompt.AppendLine();

@@ -43,7 +43,7 @@ public sealed class AiSummarizeTicketReplayHandler(IServiceScopeFactory scopeFac
             async ct =>
             {
                 var (summary, usage, _) = await aiService.SummarizeTicketAsync(
-                    ticket.Title, ticket.Description ?? string.Empty, comments, ct);
+                    ticket.Title, ticket.Description ?? string.Empty, comments, userInstruction: null, ct);
                 return new AiInvocationCall<string>(summary, usage.PromptTokens, usage.CompletionTokens, summary);
             },
             cancellationToken);

@@ -49,7 +49,7 @@ public sealed class ResummarizeTicketCommandHandler(
             async ct =>
             {
                 var (summary, usage, _) = await aiService.SummarizeTicketAsync(
-                    ticket.Title, ticket.Description ?? string.Empty, comments, ct);
+                    ticket.Title, ticket.Description ?? string.Empty, comments, request.Reason, ct);
                 return new AiInvocationCall<string>(summary, usage.PromptTokens, usage.CompletionTokens, summary);
             },
             cancellationToken);
