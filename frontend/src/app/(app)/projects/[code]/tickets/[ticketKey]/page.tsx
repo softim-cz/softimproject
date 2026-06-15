@@ -57,7 +57,7 @@ import {
   ExternalLink,
   Plus,
 } from "lucide-react";
-import { useLinkedPullRequests, useCreateTicketBranch } from "@/queries/github";
+import { useLinkedPullRequests, useCreateTicketBranch, useLinkedCommits } from "@/queries/github";
 import { useTicketAiHistory, useResummarizeTicket, type AiInvocation } from "@/queries/ai";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
@@ -851,6 +851,7 @@ function LinkedPullRequestsSection({
 }) {
   const t = useTranslations("TicketDetail");
   const { data: prs, isLoading } = useLinkedPullRequests(projectId, ticketId);
+  const { data: commits } = useLinkedCommits(projectId, ticketId);
   const createBranch = useCreateTicketBranch(projectId, ticketId);
 
   const handleCreateBranch = async () => {
@@ -932,6 +933,33 @@ function LinkedPullRequestsSection({
             </li>
           ))}
         </ul>
+      )}
+
+      {commits && commits.length > 0 && (
+        <div className="space-y-1.5">
+          <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+            {t("linkedCommits")}
+          </h4>
+          <ul className="space-y-1">
+            {commits.map((c) => (
+              <li key={c.id} className="flex items-start gap-2 text-xs">
+                <a
+                  href={c.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="font-mono text-muted-foreground hover:underline shrink-0"
+                  title={c.sha}
+                >
+                  {c.sha.slice(0, 7)}
+                </a>
+                <span className="text-foreground truncate">{c.message.split("\n")[0]}</span>
+                {c.authorLogin && (
+                  <span className="text-muted-foreground shrink-0">@{c.authorLogin}</span>
+                )}
+              </li>
+            ))}
+          </ul>
+        </div>
       )}
     </div>
   );
