@@ -1,5 +1,7 @@
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using System.Threading.RateLimiting;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Identity.Web;
 using Microsoft.OpenApi;
@@ -68,6 +70,37 @@ try
             .RequireAuthenticatedUser()
             .AddAuthenticationSchemes(primaryScheme, ApiKeyAuthenticationHandler.SchemeName)
             .Build();
+    });
+
+    // Rate limiting — only throttles API-key (headless/script) traffic so it can't
+    // hammer the API; interactive (Entra/Dev) requests are not limited. 120 req/min
+    // per API-key user, then 429 + Retry-After.
+    builder.Services.AddRateLimiter(options =>
+    {
+        options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+        options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(httpContext =>
+        {
+            var isApiKey = httpContext.User?.FindFirst("auth_method")?.Value == "api_key";
+            if (!isApiKey)
+                return RateLimitPartition.GetNoLimiter("interactive");
+
+            var partitionKey = httpContext.User?.FindFirst("oid")?.Value ?? "api-key";
+            return RateLimitPartition.GetFixedWindowLimiter(partitionKey, _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 120,
+                Window = TimeSpan.FromMinutes(1),
+                QueueLimit = 0,
+            });
+        });
+        options.OnRejected = async (context, token) =>
+        {
+            if (context.Lease.TryGetMetadata(MetadataName.RetryAfter, out var retryAfter))
+                context.HttpContext.Response.Headers.RetryAfter =
+                    ((int)retryAfter.TotalSeconds).ToString();
+            context.HttpContext.Response.ContentType = "application/json";
+            await context.HttpContext.Response.WriteAsJsonAsync(
+                new { message = "Rate limit exceeded. Please slow down." }, token);
+        };
     });
 
     // Allow SignalR to read the access token from the query string (WebSockets/SSE don't support headers)
@@ -221,6 +254,7 @@ try
     app.UseCors();
     app.UseAuthentication();
     app.UseAuthorization();
+    app.UseRateLimiter();
     app.UseMiddleware<CurrentUserMiddleware>();
 
     app.MapControllers();
