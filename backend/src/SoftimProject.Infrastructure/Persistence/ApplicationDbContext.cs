@@ -40,6 +40,7 @@ public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> 
     public DbSet<JobRun> JobRuns => Set<JobRun>();
     public DbSet<DeadLetterEntry> DeadLetterEntries => Set<DeadLetterEntry>();
     public DbSet<LinkedPullRequest> LinkedPullRequests => Set<LinkedPullRequest>();
+    public DbSet<LinkedCommit> LinkedCommits => Set<LinkedCommit>();
     public DbSet<AiInvocation> AiInvocations => Set<AiInvocation>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)

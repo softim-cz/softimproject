@@ -106,6 +106,11 @@ public class TicketsController : ApiControllerBase
     public async Task<ActionResult<List<LinkedPullRequestDto>>> GetLinkedPullRequests(Guid projectId, Guid ticketId)
         => Ok(await Mediator.Send(new GetLinkedPullRequestsQuery(projectId, ticketId)));
 
+    /// <summary>Lists commits linked to a ticket (discovered from commit messages referencing the ticket key).</summary>
+    [HttpGet("{ticketId:guid}/github/commits")]
+    public async Task<ActionResult<List<LinkedCommitDto>>> GetLinkedCommits(Guid projectId, Guid ticketId)
+        => Ok(await Mediator.Send(new GetLinkedCommitsQuery(projectId, ticketId)));
+
     [HttpPost("{ticketId:guid}/github/create-branch")]
     public async Task<ActionResult<CreateTicketBranchResult>> CreateBranch(Guid projectId, Guid ticketId)
         => Ok(await Mediator.Send(new CreateTicketBranchCommand(projectId, ticketId)));

@@ -38,6 +38,7 @@ public interface IApplicationDbContext
     DbSet<JobRun> JobRuns { get; }
     DbSet<DeadLetterEntry> DeadLetterEntries { get; }
     DbSet<LinkedPullRequest> LinkedPullRequests { get; }
+    DbSet<LinkedCommit> LinkedCommits { get; }
     DbSet<AiInvocation> AiInvocations { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);

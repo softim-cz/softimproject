@@ -1,6 +1,7 @@
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -12,6 +13,7 @@ using DomainProject = SoftimProject.Domain.Entities.Project;
 using DomainTicket = SoftimProject.Domain.Entities.Ticket;
 using DomainComment = SoftimProject.Domain.Entities.Comment;
 using DomainLinkedPr = SoftimProject.Domain.Entities.LinkedPullRequest;
+using DomainLinkedCommit = SoftimProject.Domain.Entities.LinkedCommit;
 
 namespace SoftimProject.WebApi.Controllers;
 
@@ -99,12 +101,88 @@ public class WebhooksController(
             case "pull_request":
                 await HandlePullRequestEvent(root, project, fallbackAuthorId, ct);
                 break;
+            case "push":
+                await HandlePushEvent(root, project, closedStateId, ct);
+                break;
             default:
                 return Ok(new { message = $"Event '{eventType}' ignored" });
         }
 
         await dbContext.SaveChangesAsync(ct);
         return Ok(new { message = "Processed" });
+    }
+
+    // "fixes PROJ-42", "closes #5", "resolved …" — used to auto-close on default-branch push.
+    private static readonly Regex FixKeyword = new(
+        @"\b(close[sd]?|fix(e[sd])?|resolve[sd]?)\b",
+        RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+    private async Task HandlePushEvent(JsonElement root, DomainProject project, Guid closedStateId, CancellationToken ct)
+    {
+        if (!root.TryGetProperty("commits", out var commits) || commits.ValueKind != JsonValueKind.Array)
+            return;
+
+        var refName = root.TryGetProperty("ref", out var refEl) ? refEl.GetString() : null;
+        var defaultBranch = root.TryGetProperty("repository", out var repoEl)
+            && repoEl.TryGetProperty("default_branch", out var dbEl) ? dbEl.GetString() : null;
+        var onDefaultBranch = refName != null && defaultBranch != null
+            && string.Equals(refName, $"refs/heads/{defaultBranch}", StringComparison.Ordinal);
+
+        foreach (var commit in commits.EnumerateArray())
+        {
+            var sha = commit.TryGetProperty("id", out var idEl) ? idEl.GetString() ?? "" : "";
+            var message = commit.TryGetProperty("message", out var msgEl) ? msgEl.GetString() ?? "" : "";
+            if (string.IsNullOrEmpty(sha) || string.IsNullOrWhiteSpace(message))
+                continue;
+
+            var key = GitHubTicketResolver.TryResolve(message);
+            if (key is null || !string.Equals(key.ProjectCode, project.Code, StringComparison.OrdinalIgnoreCase))
+                continue;
+
+            var ticket = await dbContext.Tickets
+                .Include(t => t.TaskState)
+                .FirstOrDefaultAsync(t => t.ProjectId == project.Id && t.Number == key.TicketNumber, ct);
+            if (ticket is null)
+                continue;
+
+            var url = commit.TryGetProperty("url", out var urlEl) ? urlEl.GetString() ?? "" : "";
+            var author = commit.TryGetProperty("author", out var authEl) && authEl.TryGetProperty("username", out var unEl)
+                ? unEl.GetString() : null;
+            var committedAt = commit.TryGetProperty("timestamp", out var tsEl) && tsEl.TryGetDateTime(out var ts)
+                ? ts : DateTime.UtcNow;
+            var trimmedMessage = message.Length > 1000 ? message[..1000] : message;
+
+            var existing = await dbContext.LinkedCommits.FirstOrDefaultAsync(
+                c => c.Provider == "GitHub" && c.Sha == sha && c.TicketId == ticket.Id, ct);
+            if (existing is null)
+            {
+                dbContext.LinkedCommits.Add(new DomainLinkedCommit
+                {
+                    Id = Guid.NewGuid(),
+                    TicketId = ticket.Id,
+                    Provider = "GitHub",
+                    Sha = sha,
+                    Message = trimmedMessage,
+                    Url = url,
+                    AuthorLogin = author,
+                    CommittedAt = committedAt,
+                });
+            }
+            else
+            {
+                existing.Message = trimmedMessage;
+                existing.Url = url;
+                existing.AuthorLogin = author;
+            }
+
+            // "fixes/closes" on the default branch closes the ticket.
+            if (onDefaultBranch && closedStateId != Guid.Empty
+                && !ticket.TaskState.IsClosedState && FixKeyword.IsMatch(message))
+            {
+                ticket.TaskStateId = closedStateId;
+                ticket.UpdatedAt = DateTime.UtcNow;
+            }
+        }
     }
 
     private async Task HandleIssueEvent(JsonElement root, DomainProject project, Guid fallbackAuthorId,

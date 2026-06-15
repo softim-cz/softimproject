@@ -713,7 +713,8 @@
     "editDescriptionAriaLabel": "Edit description",
     "descriptionUpdated": "Description updated",
     "externalUserBadge": "{user} (external)",
-    "externalUserTitle": "Author from an external system"
+    "externalUserTitle": "Author from an external system",
+    "linkedCommits": "Linked commits"
   },
   "Board": {
     "groupBy": "Group by",

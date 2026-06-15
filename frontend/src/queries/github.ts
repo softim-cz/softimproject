@@ -22,6 +22,29 @@ export interface CreateBranchResult {
   branchUrl: string;
 }
 
+export interface LinkedCommit {
+  id: string;
+  provider: string;
+  sha: string;
+  message: string;
+  url: string;
+  authorLogin: string | null;
+  committedAt: string;
+}
+
+export function useLinkedCommits(projectId: string, ticketId: string) {
+  return useQuery({
+    queryKey: ["tickets", ticketId, "commits"],
+    queryFn: async () => {
+      const { data } = await apiClient.get<LinkedCommit[]>(
+        `/api/v1/projects/${projectId}/tickets/${ticketId}/github/commits`
+      );
+      return data;
+    },
+    enabled: !!projectId && !!ticketId,
+  });
+}
+
 export function useLinkedPullRequests(projectId: string, ticketId: string) {
   return useQuery({
     queryKey: ["tickets", ticketId, "pullRequests"],

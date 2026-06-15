@@ -713,7 +713,8 @@
     "editDescriptionAriaLabel": "Upravit popis",
     "descriptionUpdated": "Popis aktualizován",
     "externalUserBadge": "{user} (externí)",
-    "externalUserTitle": "Autor z externího systému"
+    "externalUserTitle": "Autor z externího systému",
+    "linkedCommits": "Napojené commity"
   },
   "Board": {
     "groupBy": "Seskupit podle",
