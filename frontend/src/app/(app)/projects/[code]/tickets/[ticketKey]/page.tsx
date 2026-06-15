@@ -840,6 +840,19 @@ function userPickerLabel(u: UserOption) {
   return u.displayName?.trim() ? u.displayName : u.email;
 }
 
+// Maps a GitHub checks/CI status to a colored badge (success → green, failure/error →
+// red, pending/queued/in_progress → amber, everything else neutral).
+function checksBadgeClass(status: string): string {
+  const s = status.toLowerCase();
+  if (s === "success")
+    return "bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300";
+  if (s === "failure" || s === "error" || s === "timed_out" || s === "cancelled")
+    return "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300";
+  if (s === "pending" || s === "queued" || s === "in_progress" || s === "action_required")
+    return "bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300";
+  return "bg-muted text-muted-foreground";
+}
+
 function LinkedPullRequestsSection({
   projectId,
   ticketId,
@@ -923,11 +936,23 @@ function LinkedPullRequestsSection({
                   </a>
                   <ExternalLink className="h-3 w-3 text-muted-foreground shrink-0" />
                 </div>
-                <div className="text-xs text-muted-foreground">
+                <div className="text-xs text-muted-foreground flex flex-wrap items-center gap-x-1">
                   <span className="font-mono">{pr.branch}</span>
-                  {pr.authorLogin && <> · by @{pr.authorLogin}</>}
-                  <> · {pr.state.toLowerCase()}</>
-                  {pr.mergedAt && <> · merged {format(new Date(pr.mergedAt), "MMM d")}</>}
+                  {pr.authorLogin && <span>· by @{pr.authorLogin}</span>}
+                  <span>· {pr.state.toLowerCase()}</span>
+                  {pr.commitsCount > 0 && <span>· {pr.commitsCount} commits</span>}
+                  {pr.mergedAt && <span>· merged {format(new Date(pr.mergedAt), "MMM d")}</span>}
+                  {pr.checksStatus && (
+                    <span
+                      className={`ml-1 inline-flex items-center gap-1 rounded px-1.5 py-0.5 font-medium ${checksBadgeClass(
+                        pr.checksStatus
+                      )}`}
+                      title={`CI: ${pr.checksStatus}`}
+                    >
+                      <span className="h-1.5 w-1.5 rounded-full bg-current" />
+                      {pr.checksStatus}
+                    </span>
+                  )}
                 </div>
               </div>
             </li>

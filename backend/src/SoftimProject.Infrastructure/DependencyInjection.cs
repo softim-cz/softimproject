@@ -68,12 +68,32 @@ public static class DependencyInjection
                 BackoffType = DelayBackoffType.Exponential,
                 Delay = TimeSpan.FromSeconds(2),
                 UseJitter = true,
+                // Respect GitHub's rate-limit windows instead of burning retries against a
+                // wall (#111). Primary limit → wait until Reset; secondary/abuse → Retry-After.
+                DelayGenerator = args =>
+                {
+                    switch (args.Outcome.Exception)
+                    {
+                        case Octokit.RateLimitExceededException rate:
+                            var wait = rate.Reset - DateTimeOffset.UtcNow;
+                            if (wait > TimeSpan.Zero && wait <= TimeSpan.FromMinutes(5))
+                                return ValueTask.FromResult<TimeSpan?>(wait);
+                            break;
+                        case Octokit.AbuseException abuse when abuse.RetryAfterSeconds is > 0:
+                            return ValueTask.FromResult<TimeSpan?>(TimeSpan.FromSeconds(abuse.RetryAfterSeconds!.Value));
+                    }
+                    return ValueTask.FromResult<TimeSpan?>(null); // fall back to exponential
+                }
             });
         });
         // Stateless — they all use IServiceScopeFactory to open their own DbContext scopes.
         services.AddSingleton<IDeadLetterQueue, DeadLetterQueue>();
         services.AddSingleton<IDeadLetterReplayer, DeadLetterReplayer>();
         services.AddSingleton<IDeadLetterReplayHandler, AiSummarizeTicketReplayHandler>();
+        services.AddSingleton<IDeadLetterReplayHandler, GitHubWebhookReplayHandler>();
+
+        // GitHub webhook processing — shared by the live endpoint and DLQ replay (#111).
+        services.AddSingleton<IGitHubWebhookProcessor, GitHubWebhookProcessor>();
 
         // AI audit + rate-limit (#16). Stateless — opens its own DbContext scopes.
         services.AddSingleton<IAiInvocationRecorder, AiInvocationRecorder>();

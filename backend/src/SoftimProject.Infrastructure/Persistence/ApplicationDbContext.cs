@@ -42,6 +42,7 @@ public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> 
     public DbSet<LinkedPullRequest> LinkedPullRequests => Set<LinkedPullRequest>();
     public DbSet<LinkedCommit> LinkedCommits => Set<LinkedCommit>();
     public DbSet<AiInvocation> AiInvocations => Set<AiInvocation>();
+    public DbSet<ProcessedWebhookDelivery> ProcessedWebhookDeliveries => Set<ProcessedWebhookDelivery>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

@@ -17,6 +17,8 @@ public sealed class LinkedPullRequestConfiguration : IEntityTypeConfiguration<Li
         builder.Property(x => x.Title).IsRequired().HasMaxLength(500);
         builder.Property(x => x.Branch).IsRequired().HasMaxLength(250);
         builder.Property(x => x.AuthorLogin).HasMaxLength(100);
+        builder.Property(x => x.Description).HasMaxLength(4000);
+        builder.Property(x => x.ChecksStatus).HasMaxLength(32);
         builder.Property(x => x.State).HasConversion<string>().HasMaxLength(16);
 
         // Upsert target on webhook replays — same (provider, external id) is always the same PR.

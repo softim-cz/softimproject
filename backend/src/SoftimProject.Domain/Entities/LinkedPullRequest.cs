@@ -19,6 +19,13 @@ public class LinkedPullRequest
     public string Branch { get; set; } = string.Empty;
     public string? AuthorLogin { get; set; }
 
+    // Enrichment (#111): PR body, commit count, and the aggregate CI/checks state.
+    public string? Description { get; set; }
+    public int CommitsCount { get; set; }
+    // Overall checks state, lower-cased: success / failure / pending / error / neutral …
+    // Sourced from check_suite (conclusion ?? status) or status events. Null = unknown.
+    public string? ChecksStatus { get; set; }
+
     public PullRequestState State { get; set; }
     public DateTime OpenedAt { get; set; }
     public DateTime? ClosedAt { get; set; }

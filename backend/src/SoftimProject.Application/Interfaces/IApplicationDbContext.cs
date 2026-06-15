@@ -40,6 +40,7 @@ public interface IApplicationDbContext
     DbSet<LinkedPullRequest> LinkedPullRequests { get; }
     DbSet<LinkedCommit> LinkedCommits { get; }
     DbSet<AiInvocation> AiInvocations { get; }
+    DbSet<ProcessedWebhookDelivery> ProcessedWebhookDeliveries { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }
