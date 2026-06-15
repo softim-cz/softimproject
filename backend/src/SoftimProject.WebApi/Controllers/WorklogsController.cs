@@ -9,6 +9,7 @@ namespace SoftimProject.WebApi.Controllers;
 
 public class WorklogsController : ApiControllerBase
 {
+    /// <summary>Lists worklogs (paged) filtered by project, ticket, user, date range; optionally includes sub-projects.</summary>
     [HttpGet]
     public async Task<IActionResult> GetAll(
         [FromQuery] Guid? projectId = null,
@@ -29,6 +30,7 @@ public class WorklogsController : ApiControllerBase
         return Ok(await Mediator.Send(new GetWorklogByIdQuery(worklogId)));
     }
 
+    /// <summary>Logs work on a ticket (date, hours, description, billable).</summary>
     [HttpPost]
     public async Task<ActionResult<Guid>> Create(CreateWorklogCommand command)
     {
@@ -36,6 +38,7 @@ public class WorklogsController : ApiControllerBase
         return Ok(id);
     }
 
+    /// <summary>Updates a worklog entry.</summary>
     [HttpPut("{worklogId:guid}")]
     public async Task<IActionResult> Update(Guid worklogId, UpdateWorklogCommand command)
     {
@@ -45,6 +48,7 @@ public class WorklogsController : ApiControllerBase
         return NoContent();
     }
 
+    /// <summary>Deletes a worklog entry.</summary>
     [HttpDelete("{worklogId:guid}")]
     public async Task<IActionResult> Delete(Guid worklogId, [FromQuery] Guid projectId)
     {

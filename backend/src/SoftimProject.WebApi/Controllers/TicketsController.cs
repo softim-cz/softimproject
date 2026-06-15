@@ -16,6 +16,7 @@ namespace SoftimProject.WebApi.Controllers;
 [Route("api/v{version:apiVersion}/projects/{projectId:guid}/tickets")]
 public class TicketsController : ApiControllerBase
 {
+    /// <summary>Lists tickets in a project (paged) with optional filters (state, priority, assignee, type, due date, text search).</summary>
     [HttpGet]
     public async Task<ActionResult<PagedResult<TicketListItemDto>>> GetAll(
         Guid projectId,
@@ -48,18 +49,21 @@ public class TicketsController : ApiControllerBase
             pageSize)));
     }
 
+    /// <summary>Gets a single ticket by its id, including full detail (comments, checklist, sub-tickets, …).</summary>
     [HttpGet("{ticketId:guid}")]
     public async Task<ActionResult<TicketDetailDto>> GetById(Guid projectId, Guid ticketId)
     {
         return Ok(await Mediator.Send(new GetTicketByIdQuery(projectId, ticketId)));
     }
 
+    /// <summary>Gets a ticket by its per-project number (the number in the ticket key, e.g. PRJ-42).</summary>
     [HttpGet("by-number/{number:int}")]
     public async Task<ActionResult<TicketDetailDto>> GetByNumber(Guid projectId, int number)
     {
         return Ok(await Mediator.Send(new GetTicketByNumberQuery(projectId, number)));
     }
 
+    /// <summary>Creates a ticket in the project. Returns the new ticket id.</summary>
     [HttpPost]
     public async Task<ActionResult<Guid>> Create(Guid projectId, CreateTicketCommand command)
     {
@@ -68,6 +72,7 @@ public class TicketsController : ApiControllerBase
         return CreatedAtAction(nameof(GetById), new { projectId, ticketId = id }, id);
     }
 
+    /// <summary>Updates a ticket's fields (title, description, state, priority, assignee, dates, external attributes, …).</summary>
     [HttpPut("{ticketId:guid}")]
     public async Task<IActionResult> Update(Guid projectId, Guid ticketId, UpdateTicketCommand command)
     {
@@ -77,6 +82,7 @@ public class TicketsController : ApiControllerBase
         return NoContent();
     }
 
+    /// <summary>Moves a ticket to a kanban column/position (also updates its state per the column mapping).</summary>
     [HttpPut("{ticketId:guid}/move")]
     public async Task<IActionResult> Move(Guid projectId, Guid ticketId, MoveTicketCommand command)
     {
@@ -86,6 +92,7 @@ public class TicketsController : ApiControllerBase
         return NoContent();
     }
 
+    /// <summary>Deletes a ticket.</summary>
     [HttpDelete("{ticketId:guid}")]
     public async Task<IActionResult> Delete(Guid projectId, Guid ticketId)
     {
