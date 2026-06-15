@@ -40,6 +40,9 @@ public class Project : BaseEntity
     public string? ExternalApiToken { get; set; }
     public string? WebhookSecret { get; set; }
     public Guid? GitHubConnectedByUserId { get; set; }
+    // GitHub App installation id — set when the repo is connected via the GitHub App,
+    // enabling server-to-server installation tokens independent of a user's OAuth token.
+    public long? GitHubInstallationId { get; set; }
 
     // Template — povinné. Projekt vždy patří do nějaké šablony (Default, nebo
     // některé z naklonovaných). Existující projekty bez šablony byly v EF

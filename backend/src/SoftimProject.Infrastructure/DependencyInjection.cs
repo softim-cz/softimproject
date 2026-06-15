@@ -32,6 +32,10 @@ public static class DependencyInjection
         services.AddScoped<ICurrentUserService, CurrentUserService>();
         services.AddScoped<IBlobStorageService, BlobStorageService>();
         services.AddScoped<IAiService, AiService>();
+
+        // GitHub App (server-to-server). Opt-in: no-ops when GitHubApp config is empty.
+        services.AddOptions<Options.GitHubAppOptions>().Bind(configuration.GetSection(Options.GitHubAppOptions.SectionName));
+        services.AddSingleton<IGitHubAppTokenService, GitHubAppTokenService>();
         services.AddScoped<INotificationService, NotificationService>();
 
         // Background job observability (#12). Singleton registry so TrackedBackgroundService
