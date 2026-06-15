@@ -383,7 +383,10 @@
     "allowedTaskTypesSaved": "Allowed task types saved.",
     "allowedTaskTypesSaveFailed": "Failed to save allowed task types.",
     "saveAllowedTaskTypes": "Save task types",
-    "inactiveTaskType": "inactive"
+    "inactiveTaskType": "inactive",
+    "webhookLabel": "Webhook",
+    "webhookActive": "active (auto-registered)",
+    "webhookInactive": "inactive"
   },
   "Resources": {
     "title": "Resources",

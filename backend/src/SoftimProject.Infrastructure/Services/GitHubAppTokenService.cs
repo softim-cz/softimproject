@@ -52,6 +52,28 @@ public sealed class GitHubAppTokenService(
         }
     }
 
+    public async Task<long?> GetRepositoryInstallationIdAsync(string owner, string repo, CancellationToken cancellationToken = default)
+    {
+        if (!IsConfigured)
+            return null;
+
+        try
+        {
+            var appJwt = CreateAppJwt(_options.AppId, _options.PrivateKey);
+            var appClient = new GitHubClient(new ProductHeaderValue("SoftimProject"))
+            {
+                Credentials = new Credentials(appJwt, AuthenticationType.Bearer),
+            };
+            var installation = await appClient.GitHubApps.GetRepositoryInstallationForCurrent(owner, repo);
+            return installation?.Id;
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Failed to resolve GitHub App installation for {Owner}/{Repo}", owner, repo);
+            return null;
+        }
+    }
+
     internal static string CreateAppJwt(string appId, string privateKeyPem)
     {
         var now = DateTimeOffset.UtcNow;

@@ -653,6 +653,7 @@ function GitHubIntegrationSection({
     externalSystem?: string;
     externalProjectId?: string;
     gitHubConnectedByUserId?: string;
+    gitHubWebhookActive?: boolean;
   };
 }) {
   const t = useTranslations("ProjectSettings");
@@ -862,6 +863,15 @@ function GitHubIntegrationSection({
               {t("githubDisconnect")}
             </button>
           </div>
+
+          <p className="text-xs text-muted-foreground">
+            {t("webhookLabel")}:{" "}
+            {project.gitHubWebhookActive ? (
+              <span className="text-green-600 font-medium">{t("webhookActive")}</span>
+            ) : (
+              <span className="text-muted-foreground">{t("webhookInactive")}</span>
+            )}
+          </p>
 
           <div className="flex items-center justify-between">
             <p className="text-sm text-foreground">

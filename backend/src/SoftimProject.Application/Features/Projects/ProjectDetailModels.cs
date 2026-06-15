@@ -49,6 +49,7 @@ public sealed record ProjectDetailDto(
     string? ExternalSystem,
     string? ExternalProjectId,
     Guid? GitHubConnectedByUserId,
+    bool GitHubWebhookActive,
     int MemberCount,
     int TicketCount,
     List<ProjectMemberDto> Members,
@@ -86,6 +87,7 @@ internal static class ProjectDetailProjections
         project.ExternalSystem,
         project.ExternalProjectId,
         project.GitHubConnectedByUserId,
+        project.GitHubWebhookId != null,
         project.Members.Count,
         project.Tickets.Count,
         project.Members
