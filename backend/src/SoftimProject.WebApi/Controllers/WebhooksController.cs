@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Octokit;
+using SoftimProject.Application.Features.Projects.GitHub;
 using SoftimProject.Application.Interfaces;
 using SoftimProject.Domain.Enums;
 using SoftimProject.Infrastructure.Services;
@@ -197,6 +198,23 @@ public class WebhooksController(
         var state = issue.GetProperty("state").GetString();
         var userLogin = issue.TryGetProperty("user", out var userEl) && userEl.TryGetProperty("login", out var loginEl) ? loginEl.GetString() : null;
 
+        // --- Metadata mapping (#110): label → priority/type, assignee → řešitel ---
+        var labelNames = new List<string>();
+        if (issue.TryGetProperty("labels", out var labelsEl) && labelsEl.ValueKind == JsonValueKind.Array)
+            foreach (var l in labelsEl.EnumerateArray())
+                if (l.TryGetProperty("name", out var nameEl) && nameEl.GetString() is { } ln)
+                    labelNames.Add(ln);
+
+        var assigneeLogins = new List<string>();
+        if (issue.TryGetProperty("assignees", out var assigneesEl) && assigneesEl.ValueKind == JsonValueKind.Array)
+            foreach (var a in assigneesEl.EnumerateArray())
+                if (a.TryGetProperty("login", out var alEl) && alEl.GetString() is { } al)
+                    assigneeLogins.Add(al);
+
+        var mappedAssignee = await GitHubMetadataMapper.ResolveAssigneeIdAsync(dbContext, assigneeLogins, ct);
+        var mappedPriority = await GitHubMetadataMapper.ResolvePriorityIdAsync(dbContext, project.ProjectTemplateId, labelNames, ct);
+        var mappedType = await GitHubMetadataMapper.ResolveTaskTypeIdAsync(dbContext, labelNames, ct);
+
         var existingTicket = await dbContext.Tickets
             .Include(t => t.TaskState)
             .FirstOrDefaultAsync(t => t.ProjectId == project.Id && t.ExternalId == issueNumber, ct);
@@ -210,7 +228,9 @@ public class WebhooksController(
                     ProjectId = project.Id,
                     Title = title,
                     Description = bodyText,
-                    TicketPriorityId = defaultPriorityId,
+                    TicketPriorityId = mappedPriority ?? defaultPriorityId,
+                    TaskTypeId = mappedType,
+                    AssigneeId = mappedAssignee,
                     TaskStateId = defaultStateId,
                     ReporterId = fallbackAuthorId,
                     ExternalId = issueNumber,
@@ -222,14 +242,23 @@ public class WebhooksController(
                 break;
 
             case "edited" when existingTicket != null:
+            case "labeled" when existingTicket != null:
+            case "unlabeled" when existingTicket != null:
+            case "assigned" when existingTicket != null:
+            case "unassigned" when existingTicket != null:
                 // Equality guard: only touch the ticket when something actually changed.
                 // Prevents a ping-pong loop with our own outbound ticket→issue sync.
-                if (existingTicket.Title != title || existingTicket.Description != bodyText)
-                {
-                    existingTicket.Title = title;
-                    existingTicket.Description = bodyText;
+                var changed = false;
+                if (existingTicket.Title != title) { existingTicket.Title = title; changed = true; }
+                if (existingTicket.Description != bodyText) { existingTicket.Description = bodyText; changed = true; }
+                if (mappedAssignee != null && existingTicket.AssigneeId != mappedAssignee)
+                { existingTicket.AssigneeId = mappedAssignee; changed = true; }
+                if (mappedPriority != null && existingTicket.TicketPriorityId != mappedPriority.Value)
+                { existingTicket.TicketPriorityId = mappedPriority.Value; changed = true; }
+                if (mappedType != null && existingTicket.TaskTypeId != mappedType)
+                { existingTicket.TaskTypeId = mappedType; changed = true; }
+                if (changed)
                     existingTicket.UpdatedAt = DateTime.UtcNow;
-                }
                 break;
 
             case "closed" when existingTicket != null:
