@@ -89,6 +89,36 @@ public static class GitHubSyncHelper
             }
         }
 
+        // --- Outbound: Push lifecycle changes of linked tickets to their issues ---
+        // Only tickets changed since the last successful sync, to avoid needless writes
+        // and ping-pong loops (the inbound pull / webhook are equality-guarded).
+        var changedLinkedTickets = await db.Tickets
+            .Include(t => t.TaskState)
+            .Where(t => t.ProjectId == project.Id
+                && t.ExternalId != null
+                && (lastSync == null || t.UpdatedAt > lastSync))
+            .ToListAsync(ct);
+
+        foreach (var ticket in changedLinkedTickets)
+        {
+            if (!int.TryParse(ticket.ExternalId, out var issueNumber)) continue;
+            try
+            {
+                await client.Issue.Update(owner, repo, issueNumber, new IssueUpdate
+                {
+                    Title = ticket.Title,
+                    Body = ticket.Description ?? "",
+                    State = ticket.TaskState.IsClosedState ? ItemState.Closed : ItemState.Open,
+                });
+                synced++;
+            }
+            catch (Exception ex)
+            {
+                logger.LogWarning(ex, "Failed to push ticket {TicketId} lifecycle to GitHub issue #{IssueNumber}", ticket.Id, issueNumber);
+                failed++;
+            }
+        }
+
         // --- Inbound: Pull issues from GitHub ---
         var request = new RepositoryIssueRequest
         {
@@ -123,15 +153,20 @@ public static class GitHubSyncHelper
 
                 if (existingTicket != null)
                 {
-                    existingTicket.Title = issue.Title;
-                    existingTicket.Description = issue.Body;
-                    existingTicket.ExternalUrl = issue.HtmlUrl;
-                    existingTicket.UpdatedAt = DateTime.UtcNow;
+                    // Equality guard: only mutate (and bump UpdatedAt) when values actually
+                    // differ, so the outbound push below doesn't re-fire every sync cycle.
+                    var changed = false;
+                    if (existingTicket.Title != issue.Title) { existingTicket.Title = issue.Title; changed = true; }
+                    if (existingTicket.Description != issue.Body) { existingTicket.Description = issue.Body; changed = true; }
+                    if (existingTicket.ExternalUrl != issue.HtmlUrl) { existingTicket.ExternalUrl = issue.HtmlUrl; changed = true; }
 
                     if (issue.State.Value == ItemState.Closed && !existingTicket.TaskState.IsClosedState)
-                        existingTicket.TaskStateId = closedStateId;
+                    { existingTicket.TaskStateId = closedStateId; changed = true; }
                     else if (issue.State.Value == ItemState.Open && existingTicket.TaskState.IsClosedState)
-                        existingTicket.TaskStateId = defaultStateId;
+                    { existingTicket.TaskStateId = defaultStateId; changed = true; }
+
+                    if (changed)
+                        existingTicket.UpdatedAt = DateTime.UtcNow;
                 }
                 else
                 {

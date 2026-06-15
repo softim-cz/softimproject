@@ -144,9 +144,14 @@ public class WebhooksController(
                 break;
 
             case "edited" when existingTicket != null:
-                existingTicket.Title = title;
-                existingTicket.Description = bodyText;
-                existingTicket.UpdatedAt = DateTime.UtcNow;
+                // Equality guard: only touch the ticket when something actually changed.
+                // Prevents a ping-pong loop with our own outbound ticket→issue sync.
+                if (existingTicket.Title != title || existingTicket.Description != bodyText)
+                {
+                    existingTicket.Title = title;
+                    existingTicket.Description = bodyText;
+                    existingTicket.UpdatedAt = DateTime.UtcNow;
+                }
                 break;
 
             case "closed" when existingTicket != null:
