@@ -112,14 +112,14 @@ public sealed class DeadLetterTests : IClassFixture<IntegrationTestFactory>
     [Fact]
     public async Task Replay_returns_400_for_operation_types_without_a_handler()
     {
-        // GitHubWebhook isn't wired to a replay handler — endpoint must refuse clearly.
+        // EasyProjectFetch isn't wired to a replay handler — endpoint must refuse clearly.
         using var scope = _factory.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
         var entry = new DeadLetterEntry
         {
             Id = Guid.NewGuid(),
-            OperationType = DeadLetterOperation.GitHubWebhook,
-            OperationKey = $"delivery-{Guid.NewGuid()}",
+            OperationType = DeadLetterOperation.EasyProjectFetch,
+            OperationKey = $"fetch-{Guid.NewGuid()}",
             Payload = "{}",
             AttemptCount = 1,
             LastError = "",
@@ -135,6 +135,6 @@ public sealed class DeadLetterTests : IClassFixture<IntegrationTestFactory>
 
         response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
         var body = await response.Content.ReadAsStringAsync();
-        body.Should().Contain("not supported", because: "the replayer has no handler registered for GitHubWebhook yet");
+        body.Should().Contain("not supported", because: "the replayer has no handler registered for EasyProjectFetch");
     }
 }

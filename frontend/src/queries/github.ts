@@ -11,6 +11,9 @@ export interface LinkedPullRequest {
   title: string;
   branch: string;
   authorLogin: string | null;
+  description: string | null;
+  commitsCount: number;
+  checksStatus: string | null;
   state: PullRequestState;
   openedAt: string;
   closedAt: string | null;
