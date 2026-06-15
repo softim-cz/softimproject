@@ -1,0 +1,71 @@
+### SoftimProject API — příklady (VS Code REST Client / JetBrains HTTP client)
+### Nastav @apiKey na svůj osobní klíč z /api-keys.
+
+@baseUrl = https://softimproject-api.azurewebsites.net
+@apiKey = spk_PASTE_YOUR_KEY_HERE
+@projectId = 00000000-0000-0000-0000-000000000000
+@ticketId = 00000000-0000-0000-0000-000000000000
+
+### Projekty (najdi projectId)
+GET {{baseUrl}}/api/v1/projects
+Authorization: Bearer {{apiKey}}
+
+### Tickety v projektu (stránkovaně, s filtry)
+GET {{baseUrl}}/api/v1/projects/{{projectId}}/tickets?page=1&pageSize=25
+Authorization: Bearer {{apiKey}}
+
+### Detail ticketu
+GET {{baseUrl}}/api/v1/projects/{{projectId}}/tickets/{{ticketId}}
+Authorization: Bearer {{apiKey}}
+
+### Založení ticketu
+POST {{baseUrl}}/api/v1/projects/{{projectId}}/tickets
+Authorization: Bearer {{apiKey}}
+Content-Type: application/json
+
+{
+  "projectId": "{{projectId}}",
+  "title": "Nový ticket z API",
+  "description": "Popis (Markdown).",
+  "ticketPriorityId": null
+}
+
+### Úprava ticketu
+PUT {{baseUrl}}/api/v1/projects/{{projectId}}/tickets/{{ticketId}}
+Authorization: Bearer {{apiKey}}
+Content-Type: application/json
+
+{
+  "projectId": "{{projectId}}",
+  "ticketId": "{{ticketId}}",
+  "title": "Upravený titulek",
+  "description": "Aktualizovaný popis.",
+  "ticketPriorityId": null,
+  "taskStateId": null
+}
+
+### Smazání ticketu
+DELETE {{baseUrl}}/api/v1/projects/{{projectId}}/tickets/{{ticketId}}
+Authorization: Bearer {{apiKey}}
+
+### Worklogy (filtr na projekt/ticket/období)
+GET {{baseUrl}}/api/v1/worklogs?projectId={{projectId}}&page=1&pageSize=50
+Authorization: Bearer {{apiKey}}
+
+### Jeden worklog
+GET {{baseUrl}}/api/v1/worklogs/00000000-0000-0000-0000-000000000000
+Authorization: Bearer {{apiKey}}
+
+### Založení worklogu
+POST {{baseUrl}}/api/v1/worklogs
+Authorization: Bearer {{apiKey}}
+Content-Type: application/json
+
+{
+  "projectId": "{{projectId}}",
+  "ticketId": "{{ticketId}}",
+  "date": "2026-06-15",
+  "hours": 1.5,
+  "description": "Práce vykázaná přes API (min. 16 znaků).",
+  "isBillable": true
+}
