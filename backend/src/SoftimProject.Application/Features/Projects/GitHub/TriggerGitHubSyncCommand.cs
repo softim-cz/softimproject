@@ -18,6 +18,7 @@ public sealed record TriggerGitHubSyncResult(int Synced, int Failed, string? Err
 
 public sealed class TriggerGitHubSyncCommandHandler(
     IApplicationDbContext dbContext,
+    IGitHubAppTokenService appTokenService,
     ILogger<TriggerGitHubSyncCommandHandler> logger) : IRequestHandler<TriggerGitHubSyncCommand, TriggerGitHubSyncResult>
 {
     public async Task<TriggerGitHubSyncResult> Handle(TriggerGitHubSyncCommand request, CancellationToken cancellationToken)
@@ -29,9 +30,13 @@ public sealed class TriggerGitHubSyncCommandHandler(
         if (project.ExternalSystem != "GitHub" || string.IsNullOrWhiteSpace(project.ExternalProjectId))
             return new TriggerGitHubSyncResult(0, 0, "GitHub integration not configured for this project");
 
-        // Resolve token: prefer OAuth token from connected user, fall back to legacy PAT
-        string? token = project.ExternalApiToken;
-        if (project.GitHubConnectedByUserId.HasValue)
+        // Resolve token: prefer a GitHub App installation token (server-to-server),
+        // then the connected user's OAuth token, then a legacy PAT.
+        string? token = null;
+        if (appTokenService.IsConfigured && project.GitHubInstallationId.HasValue)
+            token = await appTokenService.GetInstallationTokenAsync(project.GitHubInstallationId.Value, cancellationToken);
+        token ??= project.ExternalApiToken;
+        if (string.IsNullOrWhiteSpace(token) && project.GitHubConnectedByUserId.HasValue)
         {
             token = await dbContext.Users
                 .Where(u => u.Id == project.GitHubConnectedByUserId.Value)

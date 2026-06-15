@@ -25,6 +25,7 @@ public sealed class GitHubSyncService(
         var pipeline = services.GetRequiredService<ResiliencePipelineProvider<string>>()
             .GetPipeline(ResiliencePipelines.GitHubApi);
         var deadLetters = services.GetRequiredService<IDeadLetterQueue>();
+        var appTokenService = services.GetRequiredService<IGitHubAppTokenService>();
 
         var projects = await dbContext.Projects
             .Where(p => p.ExternalSystem == "GitHub" && p.ExternalProjectId != null && p.Status == ProjectStatus.Active)
@@ -60,8 +61,13 @@ public sealed class GitHubSyncService(
                 if (string.IsNullOrWhiteSpace(project.ExternalProjectId))
                     continue;
 
-                string? token = project.ExternalApiToken;
-                if (project.GitHubConnectedByUserId.HasValue)
+                // Prefer a GitHub App installation token (server-to-server, no user
+                // dependency); fall back to the connected user's OAuth token / legacy PAT.
+                string? token = null;
+                if (appTokenService.IsConfigured && project.GitHubInstallationId.HasValue)
+                    token = await appTokenService.GetInstallationTokenAsync(project.GitHubInstallationId.Value, cancellationToken);
+                token ??= project.ExternalApiToken;
+                if (string.IsNullOrWhiteSpace(token) && project.GitHubConnectedByUserId.HasValue)
                 {
                     token = await dbContext.Users
                         .Where(u => u.Id == project.GitHubConnectedByUserId.Value)
