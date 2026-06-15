@@ -112,6 +112,7 @@ export interface Project {
   externalSystem?: string;
   externalProjectId?: string;
   gitHubConnectedByUserId?: string;
+  gitHubWebhookActive?: boolean;
   projectTemplateId: string;
   projectTemplateName?: string;
   members?: ProjectMember[];

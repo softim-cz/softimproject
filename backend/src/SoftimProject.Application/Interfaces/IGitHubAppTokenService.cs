@@ -14,4 +14,10 @@ public interface IGitHubAppTokenService
     /// installation, or null when the app is not configured / minting fails.
     /// </summary>
     Task<string?> GetInstallationTokenAsync(long installationId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Resolves the App installation id covering the given repository, or null when
+    /// the app is not configured / not installed on that repo.
+    /// </summary>
+    Task<long?> GetRepositoryInstallationIdAsync(string owner, string repo, CancellationToken cancellationToken = default);
 }

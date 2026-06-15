@@ -383,7 +383,10 @@
     "allowedTaskTypesSaved": "Povolené typy úkolů uloženy.",
     "allowedTaskTypesSaveFailed": "Uložení povolených typů úkolů selhalo.",
     "saveAllowedTaskTypes": "Uložit typy úkolů",
-    "inactiveTaskType": "neaktivní"
+    "inactiveTaskType": "neaktivní",
+    "webhookLabel": "Webhook",
+    "webhookActive": "aktivní (automaticky zaregistrován)",
+    "webhookInactive": "neaktivní"
   },
   "Resources": {
     "title": "Zdroje",

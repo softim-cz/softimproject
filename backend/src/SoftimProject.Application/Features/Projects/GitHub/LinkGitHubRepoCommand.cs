@@ -14,6 +14,7 @@ public sealed record LinkGitHubRepoCommand(Guid ProjectId, string RepositoryFull
 
 public sealed class LinkGitHubRepoCommandHandler(
     IApplicationDbContext dbContext,
+    IGitHubProvisioningService provisioning,
     ICurrentUserService currentUser) : IRequestHandler<LinkGitHubRepoCommand>
 {
     public async Task Handle(LinkGitHubRepoCommand request, CancellationToken cancellationToken)
@@ -55,6 +56,15 @@ public sealed class LinkGitHubRepoCommandHandler(
         project.ExternalSystem = "GitHub";
         project.ExternalProjectId = request.RepositoryFullName;
         project.GitHubConnectedByUserId = currentUser.UserId.Value;
+
+        // Auto-register the webhook + resolve GitHub App installation (best-effort).
+        var provision = await provisioning.ProvisionRepoAsync(parts[0], parts[1], token, cancellationToken);
+        if (provision.WebhookId.HasValue)
+            project.GitHubWebhookId = provision.WebhookId;
+        if (!string.IsNullOrEmpty(provision.WebhookSecret))
+            project.WebhookSecret = provision.WebhookSecret;
+        if (provision.InstallationId.HasValue)
+            project.GitHubInstallationId = provision.InstallationId;
 
         await dbContext.SaveChangesAsync(cancellationToken);
     }
