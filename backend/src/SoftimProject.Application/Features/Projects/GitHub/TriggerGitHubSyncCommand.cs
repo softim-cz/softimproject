@@ -158,6 +158,9 @@ public sealed class TriggerGitHubSyncCommandHandler(
             // --- Outbound: Push lifecycle changes of linked tickets to their issues ---
             var changedLinkedTickets = await dbContext.Tickets
                 .Include(t => t.TaskState)
+                .Include(t => t.Assignee)
+                .Include(t => t.TicketPriority)
+                .Include(t => t.TaskType)
                 .Where(t => t.ProjectId == project.Id
                     && t.ExternalId != null
                     && (lastSync == null || t.UpdatedAt > lastSync))
@@ -168,12 +171,23 @@ public sealed class TriggerGitHubSyncCommandHandler(
                 if (!int.TryParse(ticket.ExternalId, out var issueNumber)) continue;
                 try
                 {
-                    await client.Issue.Update(owner, repo, issueNumber, new IssueUpdate
+                    var update = new IssueUpdate
                     {
                         Title = ticket.Title,
                         Body = ticket.Description ?? "",
                         State = ticket.TaskState.IsClosedState ? ItemState.Closed : ItemState.Open,
-                    });
+                    };
+
+                    // --- Metadata mapping (#110): push assignee + priority/type as labels ---
+                    var assigneeLogin = ticket.Assignee?.GitHubLogin;
+                    if (!string.IsNullOrWhiteSpace(assigneeLogin))
+                        update.AddAssignee(assigneeLogin);
+                    if (!string.IsNullOrWhiteSpace(ticket.TicketPriority?.Name))
+                        update.AddLabel(ticket.TicketPriority.Name);
+                    if (!string.IsNullOrWhiteSpace(ticket.TaskType?.Name))
+                        update.AddLabel(ticket.TaskType.Name);
+
+                    await client.Issue.Update(owner, repo, issueNumber, update);
                     synced++;
                 }
                 catch (Exception ex)
@@ -202,6 +216,14 @@ public sealed class TriggerGitHubSyncCommandHandler(
                 try
                 {
                     var externalId = issue.Number.ToString();
+
+                    // --- Metadata mapping (#110): label → priority/type, assignee → řešitel ---
+                    var labelNames = issue.Labels.Select(l => l.Name).ToList();
+                    var assigneeLogins = issue.Assignees.Select(a => a.Login).ToList();
+                    var mappedAssignee = await GitHubMetadataMapper.ResolveAssigneeIdAsync(dbContext, assigneeLogins, cancellationToken);
+                    var mappedPriority = await GitHubMetadataMapper.ResolvePriorityIdAsync(dbContext, project.ProjectTemplateId, labelNames, cancellationToken);
+                    var mappedType = await GitHubMetadataMapper.ResolveTaskTypeIdAsync(dbContext, labelNames, cancellationToken);
+
                     var existingTicket = await dbContext.Tickets
                         .Include(t => t.TaskState)
                         .FirstOrDefaultAsync(t => t.ProjectId == project.Id && t.ExternalId == externalId, cancellationToken);
@@ -213,6 +235,13 @@ public sealed class TriggerGitHubSyncCommandHandler(
                         if (existingTicket.Title != issue.Title) { existingTicket.Title = issue.Title; changed = true; }
                         if (existingTicket.Description != issue.Body) { existingTicket.Description = issue.Body; changed = true; }
                         if (existingTicket.ExternalUrl != issue.HtmlUrl) { existingTicket.ExternalUrl = issue.HtmlUrl; changed = true; }
+
+                        if (mappedAssignee != null && existingTicket.AssigneeId != mappedAssignee)
+                        { existingTicket.AssigneeId = mappedAssignee; changed = true; }
+                        if (mappedPriority != null && existingTicket.TicketPriorityId != mappedPriority.Value)
+                        { existingTicket.TicketPriorityId = mappedPriority.Value; changed = true; }
+                        if (mappedType != null && existingTicket.TaskTypeId != mappedType)
+                        { existingTicket.TaskTypeId = mappedType; changed = true; }
 
                         if (issue.State.Value == ItemState.Closed && !existingTicket.TaskState.IsClosedState)
                         { existingTicket.TaskStateId = closedStateId; changed = true; }
@@ -230,7 +259,9 @@ public sealed class TriggerGitHubSyncCommandHandler(
                             ProjectId = project.Id,
                             Title = issue.Title,
                             Description = issue.Body,
-                            TicketPriorityId = defaultPriorityId,
+                            TicketPriorityId = mappedPriority ?? defaultPriorityId,
+                            TaskTypeId = mappedType,
+                            AssigneeId = mappedAssignee,
                             TaskStateId = issue.State.Value == ItemState.Closed ? closedStateId : defaultStateId,
                             ReporterId = fallbackAuthorId,
                             ExternalId = externalId,
