@@ -321,7 +321,7 @@ function StepProjects() {
                   </span>
                 )}
                 {p.status === 9 && (
-                  <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-gray-100 text-gray-500">
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-muted text-muted-foreground">
                     Archived
                   </span>
                 )}
@@ -1016,9 +1016,9 @@ function StepProgress() {
             <p className="text-lg font-bold text-blue-700">{p.itemsUpdated}</p>
             <p className="text-xs text-blue-600">{t("progress.itemsTotal")}</p>
           </div>
-          <div className="text-center p-3 rounded-lg bg-gray-50 border border-gray-200">
-            <p className="text-lg font-bold text-gray-700">{p.itemsSkipped}</p>
-            <p className="text-xs text-gray-600">{t("users.skipUser")}</p>
+          <div className="text-center p-3 rounded-lg bg-muted border border-border">
+            <p className="text-lg font-bold text-foreground">{p.itemsSkipped}</p>
+            <p className="text-xs text-muted-foreground">{t("users.skipUser")}</p>
           </div>
           <div className="text-center p-3 rounded-lg bg-red-50 border border-red-200">
             <p className="text-lg font-bold text-red-700">{p.errorCount}</p>

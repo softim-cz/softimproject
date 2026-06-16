@@ -10,7 +10,7 @@ import { useTranslations } from "next-intl";
 import { cn } from "@/lib/utils";
 
 function getHeatColor(hours: number, maxHours: number = 8): string {
-  if (hours === 0) return "bg-gray-100";
+  if (hours === 0) return "bg-muted";
   const ratio = hours / maxHours;
   if (ratio <= 0.25) return "bg-green-100";
   if (ratio <= 0.5) return "bg-green-300";
@@ -97,7 +97,7 @@ export default function ResourcesPage() {
       <div className="flex items-center gap-4 text-xs text-muted-foreground">
         <span>{t("legend")}</span>
         <div className="flex items-center gap-1">
-          <div className="h-4 w-4 rounded bg-gray-100 border border-border" />
+          <div className="h-4 w-4 rounded bg-muted border border-border" />
           <span>0</span>
         </div>
         <div className="flex items-center gap-1">

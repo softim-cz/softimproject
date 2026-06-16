@@ -1057,7 +1057,7 @@ function AiHistorySection({ projectId, ticketId }: { projectId: string; ticketId
                     ? "bg-blue-100 text-blue-700"
                     : inv.trigger === "WeeklyReport"
                       ? "bg-purple-100 text-purple-700"
-                      : "bg-gray-100 text-gray-700"
+                      : "bg-muted text-muted-foreground"
                 )}
               >
                 {inv.trigger}

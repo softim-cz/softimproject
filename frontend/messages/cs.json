@@ -65,6 +65,10 @@
     "settings": "Nastavení",
     "signOut": "Odhlásit se",
     "switchLanguage": "Přepnout jazyk",
+    "switchTheme": "Přepnout vzhled",
+    "theme_light": "Světlý",
+    "theme_dark": "Tmavý",
+    "theme_system": "Podle systému",
     "collapseSidebar": "Sbalit boční panel",
     "expandSidebar": "Rozbalit boční panel",
     "breadcrumbs": {

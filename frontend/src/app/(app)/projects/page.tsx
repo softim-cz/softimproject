@@ -32,7 +32,7 @@ const statusColors: Record<ProjectStatus, string> = {
   [ProjectStatus.Active]: "bg-green-100 text-green-700",
   [ProjectStatus.OnHold]: "bg-yellow-100 text-yellow-700",
   [ProjectStatus.Completed]: "bg-blue-100 text-blue-700",
-  [ProjectStatus.Archived]: "bg-gray-100 text-gray-500",
+  [ProjectStatus.Archived]: "bg-muted text-muted-foreground",
 };
 
 function CreateProjectDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
