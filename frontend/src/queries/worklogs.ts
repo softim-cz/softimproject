@@ -91,6 +91,43 @@ export function useCreateWorklogsBatch() {
   });
 }
 
+export interface ImportWorklogIssue {
+  row: number;
+  type: "Duplicate" | "Error";
+  message: string;
+}
+
+export interface ImportWorklogsResult {
+  totalRows: number;
+  created: number;
+  duplicates: number;
+  errors: number;
+  issues: ImportWorklogIssue[];
+}
+
+export function useImportWorklogs() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      projectId,
+      file,
+      overrideUserId,
+    }: {
+      projectId: string;
+      file: File;
+      overrideUserId?: string;
+    }) => {
+      const form = new FormData();
+      form.append("projectId", projectId);
+      form.append("file", file);
+      if (overrideUserId) form.append("overrideUserId", overrideUserId);
+      const { data } = await apiClient.post<ImportWorklogsResult>("/api/v1/worklogs/import", form);
+      return data;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.worklogs.all() }),
+  });
+}
+
 export interface UpdateWorklogRequest {
   projectId: string;
   worklogId: string;

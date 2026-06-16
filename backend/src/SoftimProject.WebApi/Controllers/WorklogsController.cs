@@ -4,6 +4,7 @@ using SoftimProject.Application.Features.Worklogs.CreateWorklogsBatch;
 using SoftimProject.Application.Features.Worklogs.DeleteWorklog;
 using SoftimProject.Application.Features.Worklogs.GetWorklogById;
 using SoftimProject.Application.Features.Worklogs.GetWorklogs;
+using SoftimProject.Application.Features.Worklogs.ImportWorklogs;
 using SoftimProject.Application.Features.Worklogs.UpdateWorklog;
 
 namespace SoftimProject.WebApi.Controllers;
@@ -45,6 +46,26 @@ public class WorklogsController : ApiControllerBase
     {
         var ids = await Mediator.Send(command);
         return Ok(ids);
+    }
+
+    /// <summary>Imports worklogs from an .xlsx or .csv file; reports created, skipped duplicates and errors.</summary>
+    [HttpPost("import")]
+    [RequestSizeLimit(10 * 1024 * 1024)]
+    public async Task<ActionResult<ImportWorklogsResult>> Import(
+        [FromForm] Guid projectId,
+        IFormFile file,
+        [FromForm] Guid? overrideUserId = null,
+        CancellationToken cancellationToken = default)
+    {
+        if (file is null || file.Length == 0)
+            return BadRequest("No file uploaded.");
+
+        using var ms = new MemoryStream();
+        await file.CopyToAsync(ms, cancellationToken);
+
+        var result = await Mediator.Send(
+            new ImportWorklogsCommand(projectId, file.FileName, ms.ToArray(), overrideUserId));
+        return Ok(result);
     }
 
     /// <summary>Updates a worklog entry.</summary>
