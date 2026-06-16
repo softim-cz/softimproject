@@ -65,6 +65,31 @@ export function useCreateWorklog() {
   });
 }
 
+export interface CreateWorklogsBatchItem {
+  date: string;
+  hours: number;
+  description: string;
+  isBillable: boolean;
+}
+
+export interface CreateWorklogsBatchRequest {
+  projectId: string;
+  ticketId: string;
+  items: CreateWorklogsBatchItem[];
+  overrideUserId?: string;
+}
+
+export function useCreateWorklogsBatch() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (request: CreateWorklogsBatchRequest) => {
+      const { data } = await apiClient.post<string[]>("/api/v1/worklogs/batch", request);
+      return data;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.worklogs.all() }),
+  });
+}
+
 export interface UpdateWorklogRequest {
   projectId: string;
   worklogId: string;

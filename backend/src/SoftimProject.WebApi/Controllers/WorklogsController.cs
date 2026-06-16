@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using SoftimProject.Application.Features.Worklogs.CreateWorklog;
+using SoftimProject.Application.Features.Worklogs.CreateWorklogsBatch;
 using SoftimProject.Application.Features.Worklogs.DeleteWorklog;
 using SoftimProject.Application.Features.Worklogs.GetWorklogById;
 using SoftimProject.Application.Features.Worklogs.GetWorklogs;
@@ -36,6 +37,14 @@ public class WorklogsController : ApiControllerBase
     {
         var id = await Mediator.Send(command);
         return Ok(id);
+    }
+
+    /// <summary>Logs several worklog entries against one ticket in a single transaction (bulk entry).</summary>
+    [HttpPost("batch")]
+    public async Task<ActionResult<IReadOnlyList<Guid>>> CreateBatch(CreateWorklogsBatchCommand command)
+    {
+        var ids = await Mediator.Send(command);
+        return Ok(ids);
     }
 
     /// <summary>Updates a worklog entry.</summary>
