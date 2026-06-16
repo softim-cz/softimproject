@@ -481,6 +481,20 @@
   "ProjectWorklogs": {
     "subtitle": "Časové záznamy pro tento projekt",
     "totalSuffix": " — {count} celkem",
+    "import": {
+      "button": "Import",
+      "title": "Import výkazů ze souboru",
+      "help": "Nahrajte soubor .xlsx nebo .csv. Povinné sloupce: ID ticketu (klíč CODE-123 nebo číslo), datum, hodiny, popis. Duplicity (stejný ticket, datum, hodiny a popis) se přeskočí.",
+      "file": "Soubor (.xlsx / .csv)",
+      "selectFile": "Vyberte soubor.",
+      "run": "Importovat",
+      "importing": "Importuji…",
+      "done": "Importováno záznamů: {count}.",
+      "nothingImported": "Nebyl importován žádný záznam.",
+      "failed": "Import selhal.",
+      "summary": "Vytvořeno: {created} · Duplicity: {duplicates} · Chyby: {errors}",
+      "rowLabel": "Řádek {row}"
+    },
     "addWorklog": "Přidat výkaz",
     "addingWorklog": "Přidávám...",
     "ticket": "Ticket",

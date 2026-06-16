@@ -11,7 +11,13 @@ import {
   type VisibilityState,
   type ColumnSizingState,
 } from "@tanstack/react-table";
-import { useWorklogsPaged, useCreateWorklog, useDeleteWorklog } from "@/queries/worklogs";
+import {
+  useWorklogsPaged,
+  useCreateWorklog,
+  useDeleteWorklog,
+  useImportWorklogs,
+  type ImportWorklogsResult,
+} from "@/queries/worklogs";
 import { useProjectByCode } from "@/queries/projects";
 import { useTickets } from "@/queries/tickets";
 import { useAdminUsers } from "@/queries/admin";
@@ -31,6 +37,7 @@ import {
   ChevronRight,
   Settings2,
   Download,
+  Upload,
   ArrowUp,
   ArrowDown,
   ArrowUpDown,
@@ -382,6 +389,148 @@ function AddWorklogDialog({
   );
 }
 
+function ImportWorklogsDialog({
+  open,
+  onClose,
+  projectId,
+  isAdmin,
+}: {
+  open: boolean;
+  onClose: () => void;
+  projectId: string;
+  isAdmin: boolean;
+}) {
+  const t = useTranslations("ProjectWorklogs");
+  const tCommon = useTranslations("Common");
+  const importWorklogs = useImportWorklogs();
+  const { data: adminUsers } = useAdminUsers();
+  const [file, setFile] = useState<File | null>(null);
+  const [overrideUserId, setOverrideUserId] = useState("");
+  const [result, setResult] = useState<ImportWorklogsResult | null>(null);
+
+  if (!open) return null;
+
+  const handleClose = () => {
+    setFile(null);
+    setOverrideUserId("");
+    setResult(null);
+    onClose();
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!file) {
+      toast.error(t("import.selectFile"));
+      return;
+    }
+    try {
+      const res = await importWorklogs.mutateAsync({
+        projectId,
+        file,
+        overrideUserId: overrideUserId || undefined,
+      });
+      setResult(res);
+      if (res.created > 0) toast.success(t("import.done", { count: res.created }));
+      else toast.warning(t("import.nothingImported"));
+    } catch {
+      toast.error(t("import.failed"));
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center">
+      <div className="absolute inset-0 bg-black/50" onClick={handleClose} />
+      <div className="relative bg-card rounded-xl shadow-xl border border-border w-full max-w-lg mx-4 p-6 max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-semibold text-card-foreground">{t("import.title")}</h2>
+          <button onClick={handleClose} className="p-1 rounded hover:bg-muted transition-colors">
+            <X className="h-5 w-5 text-muted-foreground" />
+          </button>
+        </div>
+
+        <p className="text-xs text-muted-foreground mb-4">{t("import.help")}</p>
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-card-foreground mb-1">
+              {t("import.file")}
+            </label>
+            <input
+              type="file"
+              accept=".xlsx,.csv"
+              onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+              className="w-full text-sm text-foreground file:mr-3 file:rounded-lg file:border-0 file:bg-primary file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-primary-foreground hover:file:opacity-90"
+            />
+          </div>
+
+          {isAdmin && (
+            <div>
+              <label className="block text-sm font-medium text-card-foreground mb-1">
+                {t("logOnBehalf")}
+              </label>
+              <select
+                value={overrideUserId}
+                onChange={(e) => setOverrideUserId(e.target.value)}
+                className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+              >
+                <option value="">{t("logAsMyself")}</option>
+                {(adminUsers ?? [])
+                  .filter((u) => u.isActive)
+                  .map((u) => (
+                    <option key={u.id} value={u.id}>
+                      {u.displayName} ({u.email})
+                    </option>
+                  ))}
+              </select>
+            </div>
+          )}
+
+          {result && (
+            <div className="rounded-lg border border-border p-3 space-y-2">
+              <p className="text-sm font-medium text-card-foreground">
+                {t("import.summary", {
+                  created: result.created,
+                  duplicates: result.duplicates,
+                  errors: result.errors,
+                })}
+              </p>
+              {result.issues.length > 0 && (
+                <div className="max-h-48 overflow-y-auto space-y-1">
+                  {result.issues.map((issue, idx) => (
+                    <div
+                      key={`${issue.row}-${idx}`}
+                      className={`text-xs ${issue.type === "Error" ? "text-destructive" : "text-warning"}`}
+                    >
+                      {t("import.rowLabel", { row: issue.row })}: {issue.message}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          <div className="flex justify-end gap-3 pt-2">
+            <button
+              type="button"
+              onClick={handleClose}
+              className="px-4 py-2 rounded-lg border border-border text-sm font-medium hover:bg-muted transition-colors"
+            >
+              {result ? tCommon("close") : tCommon("cancel")}
+            </button>
+            <button
+              type="submit"
+              disabled={importWorklogs.isPending || !file}
+              className="px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:opacity-90 transition-opacity disabled:opacity-50"
+            >
+              {importWorklogs.isPending ? t("import.importing") : t("import.run")}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
 export default function ProjectWorklogsPage({ params }: { params: Promise<{ code: string }> }) {
   const t = useTranslations("ProjectWorklogs");
   const { code } = use(params);
@@ -399,6 +548,7 @@ export default function ProjectWorklogsPage({ params }: { params: Promise<{ code
   const { data: currentUser } = useCurrentUser();
   const deleteWorklog = useDeleteWorklog();
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
   const [editingWorklog, setEditingWorklog] = useState<Worklog | null>(null);
   const [showColumnSettings, setShowColumnSettings] = useState(false);
 
@@ -599,6 +749,13 @@ export default function ProjectWorklogsPage({ params }: { params: Promise<{ code
             <Download className="h-4 w-4" />
             {t("export")}
           </button>
+          <button
+            onClick={() => setImportOpen(true)}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground border border-border rounded-lg hover:bg-muted transition-colors"
+          >
+            <Upload className="h-4 w-4" />
+            {t("import.button")}
+          </button>
           <div className="relative">
             <button
               onClick={() => setShowColumnSettings((v) => !v)}
@@ -752,6 +909,12 @@ export default function ProjectWorklogsPage({ params }: { params: Promise<{ code
       <AddWorklogDialog
         open={dialogOpen}
         onClose={() => setDialogOpen(false)}
+        projectId={projectId}
+        isAdmin={currentUser?.globalRole === GlobalRole.Admin}
+      />
+      <ImportWorklogsDialog
+        open={importOpen}
+        onClose={() => setImportOpen(false)}
         projectId={projectId}
         isAdmin={currentUser?.globalRole === GlobalRole.Admin}
       />

@@ -481,6 +481,20 @@
   "ProjectWorklogs": {
     "subtitle": "Time entries for this project",
     "totalSuffix": " — {count} total",
+    "import": {
+      "button": "Import",
+      "title": "Import worklogs from file",
+      "help": "Upload an .xlsx or .csv file. Required columns: ticket id (CODE-123 key or number), date, hours, description. Duplicates (same ticket, date, hours and description) are skipped.",
+      "file": "File (.xlsx / .csv)",
+      "selectFile": "Select a file.",
+      "run": "Import",
+      "importing": "Importing…",
+      "done": "Entries imported: {count}.",
+      "nothingImported": "No entries were imported.",
+      "failed": "Import failed.",
+      "summary": "Created: {created} · Duplicates: {duplicates} · Errors: {errors}",
+      "rowLabel": "Row {row}"
+    },
     "addWorklog": "Add Worklog",
     "addingWorklog": "Adding...",
     "ticket": "Ticket",
