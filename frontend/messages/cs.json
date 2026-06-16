@@ -207,6 +207,28 @@
     "title": "Výkazy",
     "subtitle": "Sledování a správa zaznamenaného času",
     "quickLog": "Rychlý záznam",
+    "views": {
+      "list": "Seznam",
+      "calendar": "Kalendář"
+    },
+    "calendar": {
+      "weekdays": "Po,Út,St,Čt,Pá,So,Ne",
+      "prevMonth": "Předchozí měsíc",
+      "nextMonth": "Další měsíc",
+      "allProjects": "Všechny projekty",
+      "allTickets": "Všechny tickety",
+      "hoursShort": "{hours} h",
+      "hint": "Klikněte na den pro zadání výkazů. Lze zvolit aktuální měsíc a jeden měsíc zpět.",
+      "existingForDay": "Již zadáno: {count} záznamů · {hours} h",
+      "multiTitle": "Záznamy pro tento den",
+      "dayTotal": "Den celkem: {hours} / {max} h",
+      "dayHoursExceeded": "Maximální součet hodin pro jeden den je {max}.",
+      "dayItemsExceeded": "Maximální počet záznamů pro jeden den je {max}.",
+      "dayAdded": "Přidáno záznamů: {count}.",
+      "addRow": "Přidat řádek",
+      "removeRow": "Odebrat řádek",
+      "saveDay": "Uložit"
+    },
     "timer": "Časovač",
     "timerRunning": "Časovač běží...",
     "timerSavedFromTimer": "Výkaz byl uložen z časovače",
