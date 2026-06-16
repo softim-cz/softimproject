@@ -79,7 +79,7 @@ export default function ApiKeysPage() {
         <div className="rounded-lg border border-green-300 bg-green-50 p-4 space-y-2">
           <p className="text-sm font-medium text-green-900">{t("createdOnceWarning")}</p>
           <div className="flex items-center gap-2">
-            <code className="flex-1 rounded bg-white border border-green-200 px-3 py-2 text-sm font-mono break-all">
+            <code className="flex-1 rounded bg-card border border-green-200 dark:border-green-800 px-3 py-2 text-sm font-mono break-all">
               {plaintext}
             </code>
             <button

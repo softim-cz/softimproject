@@ -11,6 +11,7 @@ import { HubConnectionState } from "@microsoft/signalr";
 import { useState, useRef, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { LocaleSwitcher } from "./locale-switcher";
+import { ThemeSwitcher } from "./theme-switcher";
 import { CommandPalette } from "./command-palette";
 
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -235,6 +236,7 @@ export function Topbar() {
         <CommandPalette open={paletteOpen} onOpenChange={setPaletteOpen} />
 
         <ConnectionIndicator />
+        <ThemeSwitcher />
         <LocaleSwitcher />
         <NotificationBell />
         <UserMenu />

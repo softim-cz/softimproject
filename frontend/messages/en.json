@@ -65,6 +65,10 @@
     "settings": "Settings",
     "signOut": "Sign out",
     "switchLanguage": "Switch language",
+    "switchTheme": "Switch theme",
+    "theme_light": "Light",
+    "theme_dark": "Dark",
+    "theme_system": "System",
     "collapseSidebar": "Collapse sidebar",
     "expandSidebar": "Expand sidebar",
     "breadcrumbs": {
