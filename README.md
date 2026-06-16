@@ -7,6 +7,16 @@ Interní nástroj pro řízení projektů a servisních aktivit firmy Softim. Ce
 
 Vývojové standardy a onboarding: [CONTRIBUTING.md](./CONTRIBUTING.md)
 
+## Produkční prostředí
+
+| Část | URL |
+|---|---|
+| Webová aplikace | <https://projectman.softim.cz> |
+| API | <https://softimproject-api.azurewebsites.net> |
+| Swagger UI | <https://softimproject-api.azurewebsites.net/swagger> |
+
+Web běží na vlastní doméně `projectman.softim.cz` (Azure App Service `softimproject-web` + custom domain). API zůstává na `softimproject-api.azurewebsites.net`. Po změně domény webu je potřeba mít na API nastaveno `Frontend__BaseUrl` na novou adresu (CORS + odkazy v notifikacích) a v Entra app registraci doplnit redirect URI `https://projectman.softim.cz`.
+
 ## Tech stack
 
 **Backend** (`backend/`)
@@ -79,7 +89,7 @@ Pro lokální vývoj vytvořte `appsettings.Development.json` nebo použijte Use
 | `ConnectionStrings` | `DefaultConnection` | SQL connection string |
 | `AzureBlobStorage` | `ConnectionString`, `ContainerName` | Blob storage pro přílohy |
 | `AzureOpenAI` | `Endpoint`, `DeploymentName`, `ApiKey` | Azure OpenAI pro AI vrstvu |
-| `Frontend` | `BaseUrl` | URL frontendu (CORS, odkazy v notifikacích) |
+| `Frontend` | `BaseUrl` | URL(y) webu pro CORS a odkazy v notifikacích. Lze uvést více originů oddělených `,`/`;` (např. při přechodu na novou doménu); první je kanonická adresa pro odkazy. Produkce: `https://projectman.softim.cz` |
 | `GitHub` | `ClientId`, `ClientSecret`, `CallbackUrl` | GitHub OAuth pro sync |
 
 ### Frontend – `frontend/.env.local`

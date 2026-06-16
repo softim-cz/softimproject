@@ -4,6 +4,7 @@ API umožňuje programový přístup k projektům, **ticketům** a **worklogům*
 
 - **Base URL (cloud):** `https://softimproject-api.azurewebsites.net`
 - **Swagger UI:** `https://softimproject-api.azurewebsites.net/swagger`
+- **Webová aplikace:** `https://projectman.softim.cz`
 - **Verzování:** cesty mají prefix `/api/v1/…`
 
 ## Autentizace
