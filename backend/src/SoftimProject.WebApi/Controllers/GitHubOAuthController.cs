@@ -55,7 +55,11 @@ public class GitHubOAuthController : ApiControllerBase
             return BadRequest("Missing code or state");
 
         var gitHub = options.Value;
-        var frontendUrl = configuration["Frontend:BaseUrl"] ?? "http://localhost:3000";
+        // Frontend:BaseUrl may carry several CORS origins (',' / ';' separated); the first
+        // is the canonical web URL to redirect back to after the OAuth handshake.
+        var frontendUrl = (configuration["Frontend:BaseUrl"] ?? "http://localhost:3000")
+            .Split(new[] { ',', ';' }, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .FirstOrDefault() ?? "http://localhost:3000";
 
         // Decrypt and validate state
         OAuthState oauthState;

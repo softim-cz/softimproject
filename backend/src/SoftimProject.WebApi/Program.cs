@@ -189,13 +189,17 @@ try
     builder.Services.AddSignalR();
     builder.Services.AddSingleton<SoftimProject.Application.Interfaces.IMigrationNotifier, SoftimProject.WebApi.Services.MigrationNotifier>();
 
-    // CORS
-    var frontendUrl = builder.Configuration["Frontend:BaseUrl"] ?? "http://localhost:3000";
+    // CORS. Frontend:BaseUrl may list several origins separated by ',' or ';' so the web
+    // app can be reached under more than one host at once (e.g. a custom domain plus the
+    // azurewebsites.net fallback during a domain cutover). The first entry is also used as
+    // the canonical base for notification/email links (see Frontend:BaseUrl consumers).
+    var frontendOrigins = (builder.Configuration["Frontend:BaseUrl"] ?? "http://localhost:3000")
+        .Split(new[] { ',', ';' }, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
     builder.Services.AddCors(options =>
     {
         options.AddDefaultPolicy(policy =>
         {
-            policy.WithOrigins(frontendUrl)
+            policy.WithOrigins(frontendOrigins)
                 .AllowAnyHeader()
                 .AllowAnyMethod()
                 .AllowCredentials();
