@@ -207,6 +207,28 @@
     "title": "Worklogs",
     "subtitle": "Track and manage your time entries",
     "quickLog": "Quick log",
+    "views": {
+      "list": "List",
+      "calendar": "Calendar"
+    },
+    "calendar": {
+      "weekdays": "Mon,Tue,Wed,Thu,Fri,Sat,Sun",
+      "prevMonth": "Previous month",
+      "nextMonth": "Next month",
+      "allProjects": "All projects",
+      "allTickets": "All tickets",
+      "hoursShort": "{hours} h",
+      "hint": "Click a day to log work. The current month and one month back are available.",
+      "existingForDay": "Already logged: {count} entries · {hours} h",
+      "multiTitle": "Entries for this day",
+      "dayTotal": "Day total: {hours} / {max} h",
+      "dayHoursExceeded": "The maximum total per day is {max} hours.",
+      "dayItemsExceeded": "The maximum number of entries per day is {max}.",
+      "dayAdded": "Entries added: {count}.",
+      "addRow": "Add row",
+      "removeRow": "Remove row",
+      "saveDay": "Save"
+    },
     "timer": "Timer",
     "timerRunning": "Timer running...",
     "timerSavedFromTimer": "Worklog saved from timer",

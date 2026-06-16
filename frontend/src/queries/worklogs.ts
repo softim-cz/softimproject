@@ -7,6 +7,7 @@ import type { PagedResult } from "./tickets";
 interface WorklogQueryParams extends QueryParams {
   projectId?: string;
   ticketId?: string;
+  userId?: string;
   from?: string;
   to?: string;
   includeSubprojects?: boolean;

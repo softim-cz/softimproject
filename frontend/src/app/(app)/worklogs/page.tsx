@@ -10,7 +10,19 @@ import { useTimerStore } from "@/stores/timer-store";
 import { TableSkeleton } from "@/components/shared/loading-skeleton";
 import { EmptyState } from "@/components/shared/empty-state";
 import { EditWorklogDialog } from "@/components/shared/edit-worklog-dialog";
-import { Clock, Plus, X, Play, Square, Timer, Pencil, Trash2 } from "lucide-react";
+import {
+  Clock,
+  Plus,
+  X,
+  Play,
+  Square,
+  Timer,
+  Pencil,
+  Trash2,
+  List,
+  CalendarDays,
+} from "lucide-react";
+import { WorklogCalendar } from "@/components/worklogs/worklog-calendar";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { createWorklogSchema, type CreateWorklogInput } from "@/schemas/worklog";
@@ -344,6 +356,7 @@ export default function WorklogsPage() {
   const deleteWorklog = useDeleteWorklog();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingWorklog, setEditingWorklog] = useState<Worklog | null>(null);
+  const [view, setView] = useState<"list" | "calendar">("list");
 
   const isProjectManager = (projectId: string) =>
     !!currentUser &&
@@ -393,149 +406,180 @@ export default function WorklogsPage() {
         </button>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-1">
-          <TimerDisplay />
-        </div>
+      <div className="flex items-center gap-1 border-b border-border">
+        <button
+          type="button"
+          onClick={() => setView("list")}
+          className={`inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${
+            view === "list"
+              ? "border-accent-orange text-foreground"
+              : "border-transparent text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          <List className="h-4 w-4" />
+          {t("views.list")}
+        </button>
+        <button
+          type="button"
+          onClick={() => setView("calendar")}
+          className={`inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${
+            view === "calendar"
+              ? "border-accent-orange text-foreground"
+              : "border-transparent text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          <CalendarDays className="h-4 w-4" />
+          {t("views.calendar")}
+        </button>
+      </div>
 
-        <div className="lg:col-span-2">
-          <div className="rounded-lg border border-border bg-card p-5">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold text-card-foreground">{t("timeEntries")}</h2>
-              <p className="text-lg font-bold text-accent-orange">
-                {t("totalHours", { hours: totalHours })}
-              </p>
-            </div>
+      {view === "calendar" && <WorklogCalendar />}
 
-            <div className="flex gap-3 mb-4">
-              <div>
-                <label className="block text-xs text-muted-foreground mb-1">{t("from")}</label>
-                <input
-                  type="date"
-                  value={from}
-                  onChange={(e) => setFrom(e.target.value)}
-                  className="rounded-lg border border-input bg-background px-3 py-1.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+      {view === "list" && (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-1">
+            <TimerDisplay />
+          </div>
+
+          <div className="lg:col-span-2">
+            <div className="rounded-lg border border-border bg-card p-5">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-semibold text-card-foreground">{t("timeEntries")}</h2>
+                <p className="text-lg font-bold text-accent-orange">
+                  {t("totalHours", { hours: totalHours })}
+                </p>
+              </div>
+
+              <div className="flex gap-3 mb-4">
+                <div>
+                  <label className="block text-xs text-muted-foreground mb-1">{t("from")}</label>
+                  <input
+                    type="date"
+                    value={from}
+                    onChange={(e) => setFrom(e.target.value)}
+                    className="rounded-lg border border-input bg-background px-3 py-1.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs text-muted-foreground mb-1">{t("to")}</label>
+                  <input
+                    type="date"
+                    value={to}
+                    onChange={(e) => setTo(e.target.value)}
+                    className="rounded-lg border border-input bg-background px-3 py-1.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                  />
+                </div>
+              </div>
+
+              {isLoading && <TableSkeleton rows={5} />}
+
+              {error && (
+                <div className="rounded-lg border border-destructive/50 bg-destructive/5 p-4 text-sm text-destructive">
+                  {t("loadFailed")}
+                </div>
+              )}
+
+              {worklogs && worklogs.length === 0 && (
+                <EmptyState
+                  icon={<Clock className="h-10 w-10" />}
+                  title={t("noWorklogsInRange")}
+                  description={t("tryDifferentRange")}
                 />
-              </div>
-              <div>
-                <label className="block text-xs text-muted-foreground mb-1">{t("to")}</label>
-                <input
-                  type="date"
-                  value={to}
-                  onChange={(e) => setTo(e.target.value)}
-                  className="rounded-lg border border-input bg-background px-3 py-1.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-                />
-              </div>
-            </div>
+              )}
 
-            {isLoading && <TableSkeleton rows={5} />}
-
-            {error && (
-              <div className="rounded-lg border border-destructive/50 bg-destructive/5 p-4 text-sm text-destructive">
-                {t("loadFailed")}
-              </div>
-            )}
-
-            {worklogs && worklogs.length === 0 && (
-              <EmptyState
-                icon={<Clock className="h-10 w-10" />}
-                title={t("noWorklogsInRange")}
-                description={t("tryDifferentRange")}
-              />
-            )}
-
-            {worklogs && worklogs.length > 0 && (
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="border-b border-border">
-                      <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground uppercase">
-                        {t("columns.date")}
-                      </th>
-                      <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground uppercase">
-                        {t("columns.ticket")}
-                      </th>
-                      <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground uppercase">
-                        {t("columns.user")}
-                      </th>
-                      <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground uppercase">
-                        {t("columns.hours")}
-                      </th>
-                      <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground uppercase">
-                        {t("columns.description")}
-                      </th>
-                      <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground uppercase">
-                        {t("columns.source")}
-                      </th>
-                      <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground uppercase">
-                        {t("columns.aiSummary")}
-                      </th>
-                      <th className="px-3 py-2 text-right text-xs font-medium text-muted-foreground uppercase w-20">
-                        {t("columns.actions")}
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-border">
-                    {worklogs.map((worklog: Worklog) => (
-                      <tr key={worklog.id} className="hover:bg-muted/30">
-                        <td className="px-3 py-2 text-sm text-foreground">
-                          {format(new Date(worklog.date), "MMM d")}
-                        </td>
-                        <td className="px-3 py-2 text-sm text-muted-foreground truncate max-w-[14rem]">
-                          {worklog.ticketTitle ? `${worklog.ticketTitle}` : "-"}
-                        </td>
-                        <td className="px-3 py-2 text-sm text-foreground">
-                          {worklog.user.displayName}
-                        </td>
-                        <td className="px-3 py-2 text-sm font-medium text-foreground">
-                          {worklog.hours.toFixed(2)}h
-                        </td>
-                        <td className="px-3 py-2 text-sm text-muted-foreground truncate max-w-xs">
-                          {worklog.description || "-"}
-                        </td>
-                        <td className="px-3 py-2 text-sm text-muted-foreground">
-                          {worklog.source}
-                        </td>
-                        <td
-                          className="px-3 py-2 text-sm text-muted-foreground truncate max-w-xs"
-                          title={worklog.aiSummary || undefined}
-                        >
-                          {worklog.aiSummary || "-"}
-                        </td>
-                        <td className="px-3 py-2 text-sm">
-                          <div className="flex items-center justify-end gap-1">
-                            {canEdit(worklog) && (
-                              <button
-                                onClick={() => setEditingWorklog(worklog)}
-                                className="p-1 text-muted-foreground hover:text-foreground rounded"
-                                title={t("editAriaLabel")}
-                                aria-label={t("editAriaLabel")}
-                              >
-                                <Pencil className="h-3.5 w-3.5" />
-                              </button>
-                            )}
-                            {canDelete(worklog) && (
-                              <button
-                                onClick={() => handleDelete(worklog)}
-                                disabled={deleteWorklog.isPending}
-                                className="p-1 text-muted-foreground hover:text-destructive rounded disabled:opacity-50"
-                                title={t("deleteAriaLabel")}
-                                aria-label={t("deleteAriaLabel")}
-                              >
-                                <Trash2 className="h-3.5 w-3.5" />
-                              </button>
-                            )}
-                          </div>
-                        </td>
+              {worklogs && worklogs.length > 0 && (
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="border-b border-border">
+                        <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground uppercase">
+                          {t("columns.date")}
+                        </th>
+                        <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground uppercase">
+                          {t("columns.ticket")}
+                        </th>
+                        <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground uppercase">
+                          {t("columns.user")}
+                        </th>
+                        <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground uppercase">
+                          {t("columns.hours")}
+                        </th>
+                        <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground uppercase">
+                          {t("columns.description")}
+                        </th>
+                        <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground uppercase">
+                          {t("columns.source")}
+                        </th>
+                        <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground uppercase">
+                          {t("columns.aiSummary")}
+                        </th>
+                        <th className="px-3 py-2 text-right text-xs font-medium text-muted-foreground uppercase w-20">
+                          {t("columns.actions")}
+                        </th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
+                    </thead>
+                    <tbody className="divide-y divide-border">
+                      {worklogs.map((worklog: Worklog) => (
+                        <tr key={worklog.id} className="hover:bg-muted/30">
+                          <td className="px-3 py-2 text-sm text-foreground">
+                            {format(new Date(worklog.date), "MMM d")}
+                          </td>
+                          <td className="px-3 py-2 text-sm text-muted-foreground truncate max-w-[14rem]">
+                            {worklog.ticketTitle ? `${worklog.ticketTitle}` : "-"}
+                          </td>
+                          <td className="px-3 py-2 text-sm text-foreground">
+                            {worklog.user.displayName}
+                          </td>
+                          <td className="px-3 py-2 text-sm font-medium text-foreground">
+                            {worklog.hours.toFixed(2)}h
+                          </td>
+                          <td className="px-3 py-2 text-sm text-muted-foreground truncate max-w-xs">
+                            {worklog.description || "-"}
+                          </td>
+                          <td className="px-3 py-2 text-sm text-muted-foreground">
+                            {worklog.source}
+                          </td>
+                          <td
+                            className="px-3 py-2 text-sm text-muted-foreground truncate max-w-xs"
+                            title={worklog.aiSummary || undefined}
+                          >
+                            {worklog.aiSummary || "-"}
+                          </td>
+                          <td className="px-3 py-2 text-sm">
+                            <div className="flex items-center justify-end gap-1">
+                              {canEdit(worklog) && (
+                                <button
+                                  onClick={() => setEditingWorklog(worklog)}
+                                  className="p-1 text-muted-foreground hover:text-foreground rounded"
+                                  title={t("editAriaLabel")}
+                                  aria-label={t("editAriaLabel")}
+                                >
+                                  <Pencil className="h-3.5 w-3.5" />
+                                </button>
+                              )}
+                              {canDelete(worklog) && (
+                                <button
+                                  onClick={() => handleDelete(worklog)}
+                                  disabled={deleteWorklog.isPending}
+                                  className="p-1 text-muted-foreground hover:text-destructive rounded disabled:opacity-50"
+                                  title={t("deleteAriaLabel")}
+                                  aria-label={t("deleteAriaLabel")}
+                                >
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </button>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       <QuickLogDialog open={dialogOpen} onClose={() => setDialogOpen(false)} />
       <EditWorklogDialog
