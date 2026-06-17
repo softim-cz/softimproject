@@ -75,6 +75,15 @@ import type {
   TicketPriorityLookup,
 } from "@/types";
 import { CustomFieldType } from "@/types";
+import { useInlineCrudState } from "@/hooks/use-inline-crud-state";
+import {
+  InlineCrudTable,
+  NameTrioInputs,
+  type CrudColumn,
+} from "@/components/admin/inline-crud-table";
+
+const inputClass = "w-full px-2 py-1 text-sm border rounded";
+const inputClassXs = "w-full px-2 py-1 text-xs border rounded";
 
 const tabConfig = [
   { key: "companies", labelKey: "tabCompanies", icon: Building2 },
@@ -91,6 +100,8 @@ type TabKey = (typeof tabConfig)[number]["key"];
 
 // === Generic inline-edit table for simple lookups ===
 
+type CompanyForm = { name: string; description: string };
+
 function CompaniesTab() {
   const t = useTranslations("Lookups");
   const tCommon = useTranslations("Common");
@@ -98,187 +109,87 @@ function CompaniesTab() {
   const createMutation = useCreateCompany();
   const updateMutation = useUpdateCompany();
   const deleteMutation = useDeleteCompany();
-  const [adding, setAdding] = useState(false);
-  const [editId, setEditId] = useState<string | null>(null);
-  const [form, setForm] = useState({ name: "", description: "" });
+
+  const crud = useInlineCrudState<Company, CompanyForm>({
+    data,
+    emptyForm: { name: "", description: "" },
+    toForm: (item) => ({ name: item.name, description: item.description || "" }),
+    create: (form) =>
+      createMutation.mutateAsync({ name: form.name, description: form.description || undefined }),
+    update: (item, form) =>
+      updateMutation.mutateAsync({
+        ...item,
+        name: form.name,
+        description: form.description || undefined,
+      }),
+    remove: (id) => deleteMutation.mutate(id),
+    canSave: (form) => !!form.name,
+  });
+
+  const columns: CrudColumn<Company, CompanyForm>[] = [
+    {
+      header: t("common.name"),
+      edit: ({ form, set, mode }) => (
+        <input
+          value={form.name}
+          onChange={(e) => set({ name: e.target.value })}
+          className={inputClass}
+          placeholder={t("common.name")}
+          autoFocus={mode === "add"}
+        />
+      ),
+      display: (item) => <span className="font-medium">{item.name}</span>,
+    },
+    {
+      header: t("common.description"),
+      edit: ({ form, set }) => (
+        <input
+          value={form.description}
+          onChange={(e) => set({ description: e.target.value })}
+          className={inputClass}
+          placeholder={t("common.description")}
+        />
+      ),
+      display: (item) => <span className="text-muted-foreground">{item.description || "—"}</span>,
+    },
+    {
+      header: t("common.isActive"),
+      edit: ({ mode, item }) =>
+        mode === "add" ? (
+          <span className="text-green-600">{tCommon("yes")}</span>
+        ) : (
+          <span>{item?.isActive ? tCommon("yes") : tCommon("no")}</span>
+        ),
+      display: (item) =>
+        item.isActive ? (
+          <span className="text-green-600">{tCommon("yes")}</span>
+        ) : (
+          <span className="text-muted-foreground">{tCommon("no")}</span>
+        ),
+    },
+  ];
 
   if (isLoading) return <TableSkeleton rows={4} />;
   if (!data)
     return <EmptyState icon={<Building2 className="h-10 w-10" />} title={t("common.empty")} />;
 
-  const startAdd = () => {
-    setAdding(true);
-    setEditId(null);
-    setForm({ name: "", description: "" });
-  };
-
-  const startEdit = (item: Company) => {
-    setEditId(item.id);
-    setAdding(false);
-    setForm({ name: item.name, description: item.description || "" });
-  };
-
-  const save = async () => {
-    if (editId) {
-      const existing = data.find((c) => c.id === editId)!;
-      await updateMutation.mutateAsync({
-        ...existing,
-        name: form.name,
-        description: form.description || undefined,
-      });
-      setEditId(null);
-    } else {
-      await createMutation.mutateAsync({
-        name: form.name,
-        description: form.description || undefined,
-      });
-      setAdding(false);
-    }
-  };
-
-  const cancel = () => {
-    setAdding(false);
-    setEditId(null);
-  };
-
   return (
-    <div>
-      <div className="flex justify-end mb-3">
-        <button
-          onClick={startAdd}
-          className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium bg-accent-orange text-white rounded-lg hover:bg-accent-orange/90"
-        >
-          <Plus className="h-4 w-4" /> {t("company.newCompany")}
-        </button>
-      </div>
-      <div className="rounded-lg border border-border overflow-hidden">
-        <table className="w-full">
-          <thead>
-            <tr className="bg-muted/50">
-              <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
-                {t("common.name")}
-              </th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
-                {t("common.description")}
-              </th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
-                {t("common.isActive")}
-              </th>
-              <th className="px-4 py-3 text-right text-xs font-medium text-muted-foreground uppercase w-24">
-                {t("common.actions")}
-              </th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-border">
-            {adding && (
-              <tr className="bg-accent-orange/5">
-                <td className="px-4 py-2">
-                  <input
-                    value={form.name}
-                    onChange={(e) => setForm({ ...form, name: e.target.value })}
-                    className="w-full px-2 py-1 text-sm border rounded"
-                    placeholder={t("common.name")}
-                    autoFocus
-                  />
-                </td>
-                <td className="px-4 py-2">
-                  <input
-                    value={form.description}
-                    onChange={(e) => setForm({ ...form, description: e.target.value })}
-                    className="w-full px-2 py-1 text-sm border rounded"
-                    placeholder={t("common.description")}
-                  />
-                </td>
-                <td className="px-4 py-2 text-sm text-green-600">{tCommon("yes")}</td>
-                <td className="px-4 py-2 text-right">
-                  <button
-                    onClick={save}
-                    disabled={!form.name}
-                    className="p-1 text-green-600 hover:bg-green-50 rounded disabled:opacity-30"
-                  >
-                    <Check className="h-4 w-4" />
-                  </button>
-                  <button
-                    onClick={cancel}
-                    className="p-1 text-muted-foreground hover:bg-muted/50 rounded"
-                  >
-                    <X className="h-4 w-4" />
-                  </button>
-                </td>
-              </tr>
-            )}
-            {data.map((item) =>
-              editId === item.id ? (
-                <tr key={item.id} className="bg-accent-orange/5">
-                  <td className="px-4 py-2">
-                    <input
-                      value={form.name}
-                      onChange={(e) => setForm({ ...form, name: e.target.value })}
-                      className="w-full px-2 py-1 text-sm border rounded"
-                    />
-                  </td>
-                  <td className="px-4 py-2">
-                    <input
-                      value={form.description}
-                      onChange={(e) => setForm({ ...form, description: e.target.value })}
-                      className="w-full px-2 py-1 text-sm border rounded"
-                    />
-                  </td>
-                  <td className="px-4 py-2 text-sm">
-                    {item.isActive ? tCommon("yes") : tCommon("no")}
-                  </td>
-                  <td className="px-4 py-2 text-right">
-                    <button
-                      onClick={save}
-                      disabled={!form.name}
-                      className="p-1 text-green-600 hover:bg-green-50 rounded disabled:opacity-30"
-                    >
-                      <Check className="h-4 w-4" />
-                    </button>
-                    <button
-                      onClick={cancel}
-                      className="p-1 text-muted-foreground hover:bg-muted/50 rounded"
-                    >
-                      <X className="h-4 w-4" />
-                    </button>
-                  </td>
-                </tr>
-              ) : (
-                <tr key={item.id} className="hover:bg-muted/30">
-                  <td className="px-4 py-3 text-sm font-medium">{item.name}</td>
-                  <td className="px-4 py-3 text-sm text-muted-foreground">
-                    {item.description || "—"}
-                  </td>
-                  <td className="px-4 py-3 text-sm">
-                    {item.isActive ? (
-                      <span className="text-green-600">{tCommon("yes")}</span>
-                    ) : (
-                      <span className="text-muted-foreground">{tCommon("no")}</span>
-                    )}
-                  </td>
-                  <td className="px-4 py-3 text-right">
-                    <button
-                      onClick={() => startEdit(item)}
-                      className="p-1 text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded"
-                    >
-                      <Pencil className="h-3.5 w-3.5" />
-                    </button>
-                    <button
-                      onClick={() => deleteMutation.mutate(item.id)}
-                      className="p-1 text-muted-foreground hover:text-red-600 hover:bg-red-50 rounded"
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </button>
-                  </td>
-                </tr>
-              )
-            )}
-          </tbody>
-        </table>
-      </div>
-    </div>
+    <InlineCrudTable
+      crud={crud}
+      columns={columns}
+      addLabel={t("company.newCompany")}
+      actionsLabel={t("common.actions")}
+    />
   );
 }
+
+type ProjectTypeForm = {
+  name: string;
+  nameCs: string;
+  nameEn: string;
+  description: string;
+  sortOrder: number;
+};
 
 function ProjectTypesTab() {
   const t = useTranslations("Lookups");
@@ -288,259 +199,121 @@ function ProjectTypesTab() {
   const createMutation = useCreateProjectType();
   const updateMutation = useUpdateProjectType();
   const deleteMutation = useDeleteProjectType();
-  const [adding, setAdding] = useState(false);
-  const [editId, setEditId] = useState<string | null>(null);
-  const [form, setForm] = useState({
-    name: "",
-    nameCs: "",
-    nameEn: "",
-    description: "",
-    sortOrder: 0,
-  });
 
-  if (isLoading) return <TableSkeleton rows={4} />;
-  if (!data)
-    return <EmptyState icon={<FolderTree className="h-10 w-10" />} title={t("common.empty")} />;
-
-  const startAdd = () => {
-    setAdding(true);
-    setEditId(null);
-    setForm({
+  const crud = useInlineCrudState<ProjectType, ProjectTypeForm>({
+    data,
+    emptyForm: (items) => ({
       name: "",
       nameCs: "",
       nameEn: "",
       description: "",
-      sortOrder: (data.length + 1) * 10,
-    });
-  };
-  const startEdit = (item: ProjectType) => {
-    setEditId(item.id);
-    setAdding(false);
-    setForm({
+      sortOrder: (items.length + 1) * 10,
+    }),
+    toForm: (item) => ({
       name: item.name,
       nameCs: item.nameCs || "",
       nameEn: item.nameEn || "",
       description: item.description || "",
       sortOrder: item.sortOrder,
-    });
-  };
-
-  const save = async () => {
-    if (editId) {
-      const existing = data.find((c) => c.id === editId)!;
-      await updateMutation.mutateAsync({
-        ...existing,
+    }),
+    create: (form) =>
+      createMutation.mutateAsync({
         name: form.name,
         nameCs: form.nameCs || undefined,
         nameEn: form.nameEn || undefined,
         description: form.description || undefined,
         sortOrder: form.sortOrder,
-      });
-      setEditId(null);
-    } else {
-      await createMutation.mutateAsync({
+      }),
+    update: (item, form) =>
+      updateMutation.mutateAsync({
+        ...item,
         name: form.name,
         nameCs: form.nameCs || undefined,
         nameEn: form.nameEn || undefined,
         description: form.description || undefined,
         sortOrder: form.sortOrder,
-      });
-      setAdding(false);
-    }
+      }),
+    remove: (id) => deleteMutation.mutate(id),
+    canSave: (form) => !!form.name,
+  });
+
+  const namePlaceholders = {
+    name: t("common.name"),
+    cs: t("common.nameCs"),
+    en: t("common.nameEn"),
   };
 
-  const cancel = () => {
-    setAdding(false);
-    setEditId(null);
-  };
+  const columns: CrudColumn<ProjectType, ProjectTypeForm>[] = [
+    {
+      header: t("common.name"),
+      edit: (ctx) => <NameTrioInputs {...ctx} placeholders={namePlaceholders} />,
+      display: (item) => <span className="font-medium">{localizedName(item, locale)}</span>,
+    },
+    {
+      header: t("common.description"),
+      edit: ({ form, set }) => (
+        <input
+          value={form.description}
+          onChange={(e) => set({ description: e.target.value })}
+          className={inputClass}
+          placeholder={t("common.description")}
+        />
+      ),
+      display: (item) => <span className="text-muted-foreground">{item.description || "—"}</span>,
+    },
+    {
+      header: t("common.sortOrder"),
+      thClassName: "w-20",
+      edit: ({ form, set }) => (
+        <input
+          type="number"
+          value={form.sortOrder}
+          onChange={(e) => set({ sortOrder: +e.target.value })}
+          className={inputClass}
+        />
+      ),
+      display: (item) => item.sortOrder,
+    },
+    {
+      header: t("common.isActive"),
+      thClassName: "w-20",
+      edit: ({ mode, item }) =>
+        mode === "add" ? (
+          <span className="text-green-600">{tCommon("yes")}</span>
+        ) : (
+          <span>{item?.isActive ? tCommon("yes") : tCommon("no")}</span>
+        ),
+      display: (item) =>
+        item.isActive ? (
+          <span className="text-green-600">{tCommon("yes")}</span>
+        ) : (
+          <span className="text-muted-foreground">{tCommon("no")}</span>
+        ),
+    },
+  ];
+
+  if (isLoading) return <TableSkeleton rows={4} />;
+  if (!data)
+    return <EmptyState icon={<FolderTree className="h-10 w-10" />} title={t("common.empty")} />;
 
   return (
-    <div>
-      <div className="flex justify-end mb-3">
-        <button
-          onClick={startAdd}
-          className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium bg-accent-orange text-white rounded-lg hover:bg-accent-orange/90"
-        >
-          <Plus className="h-4 w-4" /> {t("projectType.newType")}
-        </button>
-      </div>
-      <div className="rounded-lg border border-border overflow-hidden">
-        <table className="w-full">
-          <thead>
-            <tr className="bg-muted/50">
-              <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
-                {t("common.name")}
-              </th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
-                {t("common.description")}
-              </th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase w-20">
-                {t("common.sortOrder")}
-              </th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase w-20">
-                {t("common.isActive")}
-              </th>
-              <th className="px-4 py-3 text-right text-xs font-medium text-muted-foreground uppercase w-24">
-                {t("common.actions")}
-              </th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-border">
-            {adding && (
-              <tr className="bg-accent-orange/5">
-                <td className="px-4 py-2">
-                  <div className="flex gap-1.5">
-                    <input
-                      value={form.name}
-                      onChange={(e) => setForm({ ...form, name: e.target.value })}
-                      className="w-full px-2 py-1 text-sm border rounded"
-                      placeholder={t("common.name")}
-                      autoFocus
-                    />
-                    <input
-                      value={form.nameCs}
-                      onChange={(e) => setForm({ ...form, nameCs: e.target.value })}
-                      className="w-full px-2 py-1 text-sm border rounded"
-                      placeholder={t("common.nameCs")}
-                    />
-                    <input
-                      value={form.nameEn}
-                      onChange={(e) => setForm({ ...form, nameEn: e.target.value })}
-                      className="w-full px-2 py-1 text-sm border rounded"
-                      placeholder={t("common.nameEn")}
-                    />
-                  </div>
-                </td>
-                <td className="px-4 py-2">
-                  <input
-                    value={form.description}
-                    onChange={(e) => setForm({ ...form, description: e.target.value })}
-                    className="w-full px-2 py-1 text-sm border rounded"
-                    placeholder={t("common.description")}
-                  />
-                </td>
-                <td className="px-4 py-2">
-                  <input
-                    type="number"
-                    value={form.sortOrder}
-                    onChange={(e) => setForm({ ...form, sortOrder: +e.target.value })}
-                    className="w-full px-2 py-1 text-sm border rounded"
-                  />
-                </td>
-                <td className="px-4 py-2 text-sm text-green-600">{tCommon("yes")}</td>
-                <td className="px-4 py-2 text-right">
-                  <button
-                    onClick={save}
-                    disabled={!form.name}
-                    className="p-1 text-green-600 hover:bg-green-50 rounded disabled:opacity-30"
-                  >
-                    <Check className="h-4 w-4" />
-                  </button>
-                  <button
-                    onClick={cancel}
-                    className="p-1 text-muted-foreground hover:bg-muted/50 rounded"
-                  >
-                    <X className="h-4 w-4" />
-                  </button>
-                </td>
-              </tr>
-            )}
-            {data.map((item) =>
-              editId === item.id ? (
-                <tr key={item.id} className="bg-accent-orange/5">
-                  <td className="px-4 py-2">
-                    <div className="flex gap-1.5">
-                      <input
-                        value={form.name}
-                        onChange={(e) => setForm({ ...form, name: e.target.value })}
-                        className="w-full px-2 py-1 text-sm border rounded"
-                        placeholder={t("common.name")}
-                      />
-                      <input
-                        value={form.nameCs}
-                        onChange={(e) => setForm({ ...form, nameCs: e.target.value })}
-                        className="w-full px-2 py-1 text-sm border rounded"
-                        placeholder={t("common.nameCs")}
-                      />
-                      <input
-                        value={form.nameEn}
-                        onChange={(e) => setForm({ ...form, nameEn: e.target.value })}
-                        className="w-full px-2 py-1 text-sm border rounded"
-                        placeholder={t("common.nameEn")}
-                      />
-                    </div>
-                  </td>
-                  <td className="px-4 py-2">
-                    <input
-                      value={form.description}
-                      onChange={(e) => setForm({ ...form, description: e.target.value })}
-                      className="w-full px-2 py-1 text-sm border rounded"
-                    />
-                  </td>
-                  <td className="px-4 py-2">
-                    <input
-                      type="number"
-                      value={form.sortOrder}
-                      onChange={(e) => setForm({ ...form, sortOrder: +e.target.value })}
-                      className="w-full px-2 py-1 text-sm border rounded"
-                    />
-                  </td>
-                  <td className="px-4 py-2 text-sm">
-                    {item.isActive ? tCommon("yes") : tCommon("no")}
-                  </td>
-                  <td className="px-4 py-2 text-right">
-                    <button
-                      onClick={save}
-                      disabled={!form.name}
-                      className="p-1 text-green-600 hover:bg-green-50 rounded disabled:opacity-30"
-                    >
-                      <Check className="h-4 w-4" />
-                    </button>
-                    <button
-                      onClick={cancel}
-                      className="p-1 text-muted-foreground hover:bg-muted/50 rounded"
-                    >
-                      <X className="h-4 w-4" />
-                    </button>
-                  </td>
-                </tr>
-              ) : (
-                <tr key={item.id} className="hover:bg-muted/30">
-                  <td className="px-4 py-3 text-sm font-medium">{localizedName(item, locale)}</td>
-                  <td className="px-4 py-3 text-sm text-muted-foreground">
-                    {item.description || "—"}
-                  </td>
-                  <td className="px-4 py-3 text-sm">{item.sortOrder}</td>
-                  <td className="px-4 py-3 text-sm">
-                    {item.isActive ? (
-                      <span className="text-green-600">{tCommon("yes")}</span>
-                    ) : (
-                      <span className="text-muted-foreground">{tCommon("no")}</span>
-                    )}
-                  </td>
-                  <td className="px-4 py-3 text-right">
-                    <button
-                      onClick={() => startEdit(item)}
-                      className="p-1 text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded"
-                    >
-                      <Pencil className="h-3.5 w-3.5" />
-                    </button>
-                    <button
-                      onClick={() => deleteMutation.mutate(item.id)}
-                      className="p-1 text-muted-foreground hover:text-red-600 hover:bg-red-50 rounded"
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </button>
-                  </td>
-                </tr>
-              )
-            )}
-          </tbody>
-        </table>
-      </div>
-    </div>
+    <InlineCrudTable
+      crud={crud}
+      columns={columns}
+      addLabel={t("projectType.newType")}
+      actionsLabel={t("common.actions")}
+    />
   );
 }
+
+type ProjectStateForm = {
+  name: string;
+  nameCs: string;
+  nameEn: string;
+  color: string;
+  sortOrder: number;
+  isDefault: boolean;
+};
 
 function StateTable() {
   const t = useTranslations("Lookups");
@@ -551,291 +324,137 @@ function StateTable() {
   const updatePS = useUpdateProjectState();
   const deletePS = useDeleteProjectState();
 
-  const [adding, setAdding] = useState(false);
-  const [editId, setEditId] = useState<string | null>(null);
-  const [form, setForm] = useState({
-    name: "",
-    nameCs: "",
-    nameEn: "",
-    color: "#3b82f6",
-    sortOrder: 0,
-    isDefault: false,
-  });
-
-  if (isLoading) return <TableSkeleton rows={4} />;
-  if (!data)
-    return <EmptyState icon={<CircleDot className="h-10 w-10" />} title={t("common.empty")} />;
-
-  const startAdd = () => {
-    setAdding(true);
-    setEditId(null);
-    setForm({
+  const crud = useInlineCrudState<ProjectState, ProjectStateForm>({
+    data,
+    emptyForm: (items) => ({
       name: "",
       nameCs: "",
       nameEn: "",
       color: "#3b82f6",
-      sortOrder: (data.length + 1) * 10,
+      sortOrder: (items.length + 1) * 10,
       isDefault: false,
-    });
-  };
-  const startEdit = (item: ProjectState) => {
-    setEditId(item.id);
-    setAdding(false);
-    setForm({
+    }),
+    toForm: (item) => ({
       name: item.name,
       nameCs: item.nameCs || "",
       nameEn: item.nameEn || "",
       color: item.color,
       sortOrder: item.sortOrder,
       isDefault: item.isDefault,
-    });
-  };
-
-  const save = async () => {
-    if (editId) {
-      const existing = data.find((c) => c.id === editId)!;
-      await updatePS.mutateAsync({
-        ...existing,
+    }),
+    create: (form) =>
+      createPS.mutateAsync({
         name: form.name,
         nameCs: form.nameCs || undefined,
         nameEn: form.nameEn || undefined,
         color: form.color,
         sortOrder: form.sortOrder,
         isDefault: form.isDefault,
-      } as ProjectState);
-      setEditId(null);
-    } else {
-      await createPS.mutateAsync({
+      }),
+    update: (item, form) =>
+      updatePS.mutateAsync({
+        ...item,
         name: form.name,
         nameCs: form.nameCs || undefined,
         nameEn: form.nameEn || undefined,
         color: form.color,
         sortOrder: form.sortOrder,
         isDefault: form.isDefault,
-      });
-      setAdding(false);
-    }
+      } as ProjectState),
+    remove: (id) => deletePS.mutate(id),
+    canSave: (form) => !!form.name,
+  });
+
+  const namePlaceholders = {
+    name: t("common.name"),
+    cs: t("common.nameCs"),
+    en: t("common.nameEn"),
   };
 
-  const handleDelete = (id: string) => {
-    deletePS.mutate(id);
-  };
-  const cancel = () => {
-    setAdding(false);
-    setEditId(null);
-  };
+  const columns: CrudColumn<ProjectState, ProjectStateForm>[] = [
+    {
+      header: t("common.color"),
+      edit: ({ form, set }) => (
+        <input
+          type="color"
+          value={form.color}
+          onChange={(e) => set({ color: e.target.value })}
+          className="w-8 h-8 rounded cursor-pointer"
+        />
+      ),
+      display: (item) => (
+        <div className="w-6 h-6 rounded-full border" style={{ backgroundColor: item.color }} />
+      ),
+    },
+    {
+      header: t("common.name"),
+      edit: (ctx) => <NameTrioInputs {...ctx} placeholders={namePlaceholders} />,
+      display: (item) => <span className="font-medium">{localizedName(item, locale)}</span>,
+    },
+    {
+      header: t("common.sortOrder"),
+      thClassName: "w-20",
+      edit: ({ form, set }) => (
+        <input
+          type="number"
+          value={form.sortOrder}
+          onChange={(e) => set({ sortOrder: +e.target.value })}
+          className={inputClass}
+        />
+      ),
+      display: (item) => item.sortOrder,
+    },
+    {
+      header: t("common.isDefault"),
+      thClassName: "w-20",
+      edit: ({ form, set }) => (
+        <input
+          type="checkbox"
+          checked={form.isDefault}
+          onChange={(e) => set({ isDefault: e.target.checked })}
+        />
+      ),
+      display: (item) => (item.isDefault ? <Check className="h-4 w-4 text-green-600" /> : null),
+    },
+    {
+      header: t("common.isActive"),
+      thClassName: "w-20",
+      edit: ({ mode, item }) =>
+        mode === "add" ? (
+          <span className="text-green-600">{tCommon("yes")}</span>
+        ) : (
+          <span>{item?.isActive ? tCommon("yes") : tCommon("no")}</span>
+        ),
+      display: (item) =>
+        item.isActive ? (
+          <span className="text-green-600">{tCommon("yes")}</span>
+        ) : (
+          <span className="text-muted-foreground">{tCommon("no")}</span>
+        ),
+    },
+  ];
+
+  if (isLoading) return <TableSkeleton rows={4} />;
+  if (!data)
+    return <EmptyState icon={<CircleDot className="h-10 w-10" />} title={t("common.empty")} />;
 
   return (
-    <div>
-      <div className="flex justify-end mb-3">
-        <button
-          onClick={startAdd}
-          className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium bg-accent-orange text-white rounded-lg hover:bg-accent-orange/90"
-        >
-          <Plus className="h-4 w-4" /> {t("projectState.newState")}
-        </button>
-      </div>
-      <div className="rounded-lg border border-border overflow-hidden">
-        <table className="w-full">
-          <thead>
-            <tr className="bg-muted/50">
-              <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
-                {t("common.color")}
-              </th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
-                {t("common.name")}
-              </th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase w-20">
-                {t("common.sortOrder")}
-              </th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase w-20">
-                {t("common.isDefault")}
-              </th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase w-20">
-                {t("common.isActive")}
-              </th>
-              <th className="px-4 py-3 text-right text-xs font-medium text-muted-foreground uppercase w-24">
-                {t("common.actions")}
-              </th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-border">
-            {adding && (
-              <tr className="bg-accent-orange/5">
-                <td className="px-4 py-2">
-                  <input
-                    type="color"
-                    value={form.color}
-                    onChange={(e) => setForm({ ...form, color: e.target.value })}
-                    className="w-8 h-8 rounded cursor-pointer"
-                  />
-                </td>
-                <td className="px-4 py-2">
-                  <div className="flex gap-1.5">
-                    <input
-                      value={form.name}
-                      onChange={(e) => setForm({ ...form, name: e.target.value })}
-                      className="w-full px-2 py-1 text-sm border rounded"
-                      placeholder={t("common.name")}
-                      autoFocus
-                    />
-                    <input
-                      value={form.nameCs}
-                      onChange={(e) => setForm({ ...form, nameCs: e.target.value })}
-                      className="w-full px-2 py-1 text-sm border rounded"
-                      placeholder={t("common.nameCs")}
-                    />
-                    <input
-                      value={form.nameEn}
-                      onChange={(e) => setForm({ ...form, nameEn: e.target.value })}
-                      className="w-full px-2 py-1 text-sm border rounded"
-                      placeholder={t("common.nameEn")}
-                    />
-                  </div>
-                </td>
-                <td className="px-4 py-2">
-                  <input
-                    type="number"
-                    value={form.sortOrder}
-                    onChange={(e) => setForm({ ...form, sortOrder: +e.target.value })}
-                    className="w-full px-2 py-1 text-sm border rounded"
-                  />
-                </td>
-                <td className="px-4 py-2">
-                  <input
-                    type="checkbox"
-                    checked={form.isDefault}
-                    onChange={(e) => setForm({ ...form, isDefault: e.target.checked })}
-                  />
-                </td>
-                <td className="px-4 py-2 text-sm text-green-600">{tCommon("yes")}</td>
-                <td className="px-4 py-2 text-right">
-                  <button
-                    onClick={save}
-                    disabled={!form.name}
-                    className="p-1 text-green-600 hover:bg-green-50 rounded disabled:opacity-30"
-                  >
-                    <Check className="h-4 w-4" />
-                  </button>
-                  <button
-                    onClick={cancel}
-                    className="p-1 text-muted-foreground hover:bg-muted/50 rounded"
-                  >
-                    <X className="h-4 w-4" />
-                  </button>
-                </td>
-              </tr>
-            )}
-            {data.map((item) =>
-              editId === item.id ? (
-                <tr key={item.id} className="bg-accent-orange/5">
-                  <td className="px-4 py-2">
-                    <input
-                      type="color"
-                      value={form.color}
-                      onChange={(e) => setForm({ ...form, color: e.target.value })}
-                      className="w-8 h-8 rounded cursor-pointer"
-                    />
-                  </td>
-                  <td className="px-4 py-2">
-                    <div className="flex gap-1.5">
-                      <input
-                        value={form.name}
-                        onChange={(e) => setForm({ ...form, name: e.target.value })}
-                        className="w-full px-2 py-1 text-sm border rounded"
-                        placeholder={t("common.name")}
-                      />
-                      <input
-                        value={form.nameCs}
-                        onChange={(e) => setForm({ ...form, nameCs: e.target.value })}
-                        className="w-full px-2 py-1 text-sm border rounded"
-                        placeholder={t("common.nameCs")}
-                      />
-                      <input
-                        value={form.nameEn}
-                        onChange={(e) => setForm({ ...form, nameEn: e.target.value })}
-                        className="w-full px-2 py-1 text-sm border rounded"
-                        placeholder={t("common.nameEn")}
-                      />
-                    </div>
-                  </td>
-                  <td className="px-4 py-2">
-                    <input
-                      type="number"
-                      value={form.sortOrder}
-                      onChange={(e) => setForm({ ...form, sortOrder: +e.target.value })}
-                      className="w-full px-2 py-1 text-sm border rounded"
-                    />
-                  </td>
-                  <td className="px-4 py-2">
-                    <input
-                      type="checkbox"
-                      checked={form.isDefault}
-                      onChange={(e) => setForm({ ...form, isDefault: e.target.checked })}
-                    />
-                  </td>
-                  <td className="px-4 py-2 text-sm">
-                    {item.isActive ? tCommon("yes") : tCommon("no")}
-                  </td>
-                  <td className="px-4 py-2 text-right">
-                    <button
-                      onClick={save}
-                      disabled={!form.name}
-                      className="p-1 text-green-600 hover:bg-green-50 rounded disabled:opacity-30"
-                    >
-                      <Check className="h-4 w-4" />
-                    </button>
-                    <button
-                      onClick={cancel}
-                      className="p-1 text-muted-foreground hover:bg-muted/50 rounded"
-                    >
-                      <X className="h-4 w-4" />
-                    </button>
-                  </td>
-                </tr>
-              ) : (
-                <tr key={item.id} className="hover:bg-muted/30">
-                  <td className="px-4 py-3">
-                    <div
-                      className="w-6 h-6 rounded-full border"
-                      style={{ backgroundColor: item.color }}
-                    />
-                  </td>
-                  <td className="px-4 py-3 text-sm font-medium">{localizedName(item, locale)}</td>
-                  <td className="px-4 py-3 text-sm">{item.sortOrder}</td>
-                  <td className="px-4 py-3 text-sm">
-                    {item.isDefault ? <Check className="h-4 w-4 text-green-600" /> : null}
-                  </td>
-                  <td className="px-4 py-3 text-sm">
-                    {item.isActive ? (
-                      <span className="text-green-600">{tCommon("yes")}</span>
-                    ) : (
-                      <span className="text-muted-foreground">{tCommon("no")}</span>
-                    )}
-                  </td>
-                  <td className="px-4 py-3 text-right">
-                    <button
-                      onClick={() => startEdit(item)}
-                      className="p-1 text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded"
-                    >
-                      <Pencil className="h-3.5 w-3.5" />
-                    </button>
-                    <button
-                      onClick={() => handleDelete(item.id)}
-                      className="p-1 text-muted-foreground hover:text-red-600 hover:bg-red-50 rounded"
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </button>
-                  </td>
-                </tr>
-              )
-            )}
-          </tbody>
-        </table>
-      </div>
-    </div>
+    <InlineCrudTable
+      crud={crud}
+      columns={columns}
+      addLabel={t("projectState.newState")}
+      actionsLabel={t("common.actions")}
+    />
   );
 }
+
+type TaskTypeForm = {
+  name: string;
+  nameCs: string;
+  nameEn: string;
+  icon: string;
+  sortOrder: number;
+};
 
 function TaskTypesTab() {
   const t = useTranslations("Lookups");
@@ -845,248 +464,109 @@ function TaskTypesTab() {
   const createMutation = useCreateTaskType();
   const updateMutation = useUpdateTaskType();
   const deleteMutation = useDeleteTaskType();
-  const [adding, setAdding] = useState(false);
-  const [editId, setEditId] = useState<string | null>(null);
-  const [form, setForm] = useState({
-    name: "",
-    nameCs: "",
-    nameEn: "",
-    icon: "",
-    sortOrder: 0,
-  });
 
-  if (isLoading) return <TableSkeleton rows={4} />;
-  if (!data) return <EmptyState icon={<Tag className="h-10 w-10" />} title={t("common.empty")} />;
-
-  const startAdd = () => {
-    setAdding(true);
-    setEditId(null);
-    setForm({ name: "", nameCs: "", nameEn: "", icon: "", sortOrder: (data.length + 1) * 10 });
-  };
-  const startEdit = (item: TaskType) => {
-    setEditId(item.id);
-    setAdding(false);
-    setForm({
+  const crud = useInlineCrudState<TaskType, TaskTypeForm>({
+    data,
+    emptyForm: (items) => ({
+      name: "",
+      nameCs: "",
+      nameEn: "",
+      icon: "",
+      sortOrder: (items.length + 1) * 10,
+    }),
+    toForm: (item) => ({
       name: item.name,
       nameCs: item.nameCs || "",
       nameEn: item.nameEn || "",
       icon: item.icon || "",
       sortOrder: item.sortOrder,
-    });
-  };
-
-  const save = async () => {
-    if (editId) {
-      const existing = data.find((c) => c.id === editId)!;
-      await updateMutation.mutateAsync({
-        ...existing,
+    }),
+    create: (form) =>
+      createMutation.mutateAsync({
         name: form.name,
         nameCs: form.nameCs || undefined,
         nameEn: form.nameEn || undefined,
         icon: form.icon || undefined,
         sortOrder: form.sortOrder,
-      });
-      setEditId(null);
-    } else {
-      await createMutation.mutateAsync({
+      }),
+    update: (item, form) =>
+      updateMutation.mutateAsync({
+        ...item,
         name: form.name,
         nameCs: form.nameCs || undefined,
         nameEn: form.nameEn || undefined,
         icon: form.icon || undefined,
         sortOrder: form.sortOrder,
-      });
-      setAdding(false);
-    }
+      }),
+    remove: (id) => deleteMutation.mutate(id),
+    canSave: (form) => !!form.name,
+  });
+
+  const namePlaceholders = {
+    name: t("common.name"),
+    cs: t("common.nameCs"),
+    en: t("common.nameEn"),
   };
 
-  const cancel = () => {
-    setAdding(false);
-    setEditId(null);
-  };
+  const columns: CrudColumn<TaskType, TaskTypeForm>[] = [
+    {
+      header: t("common.name"),
+      edit: (ctx) => <NameTrioInputs {...ctx} placeholders={namePlaceholders} />,
+      display: (item) => <span className="font-medium">{localizedName(item, locale)}</span>,
+    },
+    {
+      header: t("common.icon"),
+      edit: ({ form, set }) => (
+        <input
+          value={form.icon}
+          onChange={(e) => set({ icon: e.target.value })}
+          className={inputClass}
+          placeholder={t("common.iconPlaceholder")}
+        />
+      ),
+      display: (item) => <span className="text-muted-foreground">{item.icon || "—"}</span>,
+    },
+    {
+      header: t("common.sortOrder"),
+      thClassName: "w-20",
+      edit: ({ form, set }) => (
+        <input
+          type="number"
+          value={form.sortOrder}
+          onChange={(e) => set({ sortOrder: +e.target.value })}
+          className={inputClass}
+        />
+      ),
+      display: (item) => item.sortOrder,
+    },
+    {
+      header: t("common.isActive"),
+      thClassName: "w-20",
+      edit: ({ mode, item }) =>
+        mode === "add" ? (
+          <span className="text-green-600">{tCommon("yes")}</span>
+        ) : (
+          <span>{item?.isActive ? tCommon("yes") : tCommon("no")}</span>
+        ),
+      display: (item) =>
+        item.isActive ? (
+          <span className="text-green-600">{tCommon("yes")}</span>
+        ) : (
+          <span className="text-muted-foreground">{tCommon("no")}</span>
+        ),
+    },
+  ];
+
+  if (isLoading) return <TableSkeleton rows={4} />;
+  if (!data) return <EmptyState icon={<Tag className="h-10 w-10" />} title={t("common.empty")} />;
 
   return (
-    <div>
-      <div className="flex justify-end mb-3">
-        <button
-          onClick={startAdd}
-          className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium bg-accent-orange text-white rounded-lg hover:bg-accent-orange/90"
-        >
-          <Plus className="h-4 w-4" /> {t("taskType.newType")}
-        </button>
-      </div>
-      <div className="rounded-lg border border-border overflow-hidden">
-        <table className="w-full">
-          <thead>
-            <tr className="bg-muted/50">
-              <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
-                {t("common.name")}
-              </th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
-                {t("common.icon")}
-              </th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase w-20">
-                {t("common.sortOrder")}
-              </th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase w-20">
-                {t("common.isActive")}
-              </th>
-              <th className="px-4 py-3 text-right text-xs font-medium text-muted-foreground uppercase w-24">
-                {t("common.actions")}
-              </th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-border">
-            {adding && (
-              <tr className="bg-accent-orange/5">
-                <td className="px-4 py-2">
-                  <div className="flex gap-1.5">
-                    <input
-                      value={form.name}
-                      onChange={(e) => setForm({ ...form, name: e.target.value })}
-                      className="w-full px-2 py-1 text-sm border rounded"
-                      placeholder={t("common.name")}
-                      autoFocus
-                    />
-                    <input
-                      value={form.nameCs}
-                      onChange={(e) => setForm({ ...form, nameCs: e.target.value })}
-                      className="w-full px-2 py-1 text-sm border rounded"
-                      placeholder={t("common.nameCs")}
-                    />
-                    <input
-                      value={form.nameEn}
-                      onChange={(e) => setForm({ ...form, nameEn: e.target.value })}
-                      className="w-full px-2 py-1 text-sm border rounded"
-                      placeholder={t("common.nameEn")}
-                    />
-                  </div>
-                </td>
-                <td className="px-4 py-2">
-                  <input
-                    value={form.icon}
-                    onChange={(e) => setForm({ ...form, icon: e.target.value })}
-                    className="w-full px-2 py-1 text-sm border rounded"
-                    placeholder={t("common.iconPlaceholder")}
-                  />
-                </td>
-                <td className="px-4 py-2">
-                  <input
-                    type="number"
-                    value={form.sortOrder}
-                    onChange={(e) => setForm({ ...form, sortOrder: +e.target.value })}
-                    className="w-full px-2 py-1 text-sm border rounded"
-                  />
-                </td>
-                <td className="px-4 py-2 text-sm text-green-600">{tCommon("yes")}</td>
-                <td className="px-4 py-2 text-right">
-                  <button
-                    onClick={save}
-                    disabled={!form.name}
-                    className="p-1 text-green-600 hover:bg-green-50 rounded disabled:opacity-30"
-                  >
-                    <Check className="h-4 w-4" />
-                  </button>
-                  <button
-                    onClick={cancel}
-                    className="p-1 text-muted-foreground hover:bg-muted/50 rounded"
-                  >
-                    <X className="h-4 w-4" />
-                  </button>
-                </td>
-              </tr>
-            )}
-            {data.map((item) =>
-              editId === item.id ? (
-                <tr key={item.id} className="bg-accent-orange/5">
-                  <td className="px-4 py-2">
-                    <div className="flex gap-1.5">
-                      <input
-                        value={form.name}
-                        onChange={(e) => setForm({ ...form, name: e.target.value })}
-                        className="w-full px-2 py-1 text-sm border rounded"
-                        placeholder={t("common.name")}
-                      />
-                      <input
-                        value={form.nameCs}
-                        onChange={(e) => setForm({ ...form, nameCs: e.target.value })}
-                        className="w-full px-2 py-1 text-sm border rounded"
-                        placeholder={t("common.nameCs")}
-                      />
-                      <input
-                        value={form.nameEn}
-                        onChange={(e) => setForm({ ...form, nameEn: e.target.value })}
-                        className="w-full px-2 py-1 text-sm border rounded"
-                        placeholder={t("common.nameEn")}
-                      />
-                    </div>
-                  </td>
-                  <td className="px-4 py-2">
-                    <input
-                      value={form.icon}
-                      onChange={(e) => setForm({ ...form, icon: e.target.value })}
-                      className="w-full px-2 py-1 text-sm border rounded"
-                    />
-                  </td>
-                  <td className="px-4 py-2">
-                    <input
-                      type="number"
-                      value={form.sortOrder}
-                      onChange={(e) => setForm({ ...form, sortOrder: +e.target.value })}
-                      className="w-full px-2 py-1 text-sm border rounded"
-                    />
-                  </td>
-                  <td className="px-4 py-2 text-sm">
-                    {item.isActive ? tCommon("yes") : tCommon("no")}
-                  </td>
-                  <td className="px-4 py-2 text-right">
-                    <button
-                      onClick={save}
-                      disabled={!form.name}
-                      className="p-1 text-green-600 hover:bg-green-50 rounded disabled:opacity-30"
-                    >
-                      <Check className="h-4 w-4" />
-                    </button>
-                    <button
-                      onClick={cancel}
-                      className="p-1 text-muted-foreground hover:bg-muted/50 rounded"
-                    >
-                      <X className="h-4 w-4" />
-                    </button>
-                  </td>
-                </tr>
-              ) : (
-                <tr key={item.id} className="hover:bg-muted/30">
-                  <td className="px-4 py-3 text-sm font-medium">{localizedName(item, locale)}</td>
-                  <td className="px-4 py-3 text-sm text-muted-foreground">{item.icon || "—"}</td>
-                  <td className="px-4 py-3 text-sm">{item.sortOrder}</td>
-                  <td className="px-4 py-3 text-sm">
-                    {item.isActive ? (
-                      <span className="text-green-600">{tCommon("yes")}</span>
-                    ) : (
-                      <span className="text-muted-foreground">{tCommon("no")}</span>
-                    )}
-                  </td>
-                  <td className="px-4 py-3 text-right">
-                    <button
-                      onClick={() => startEdit(item)}
-                      className="p-1 text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded"
-                    >
-                      <Pencil className="h-3.5 w-3.5" />
-                    </button>
-                    <button
-                      onClick={() => deleteMutation.mutate(item.id)}
-                      className="p-1 text-muted-foreground hover:text-red-600 hover:bg-red-50 rounded"
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </button>
-                  </td>
-                </tr>
-              )
-            )}
-          </tbody>
-        </table>
-      </div>
-    </div>
+    <InlineCrudTable
+      crud={crud}
+      columns={columns}
+      addLabel={t("taskType.newType")}
+      actionsLabel={t("common.actions")}
+    />
   );
 }
 
@@ -1426,6 +906,15 @@ function ApplicationRolesTab() {
   );
 }
 
+type CustomFieldForm = {
+  name: string;
+  description: string;
+  fieldType: string;
+  isRequired: boolean;
+  options: string;
+  sortOrder: number;
+};
+
 function CustomFieldDefinitionsTab() {
   const t = useTranslations("Lookups");
   const tCommon = useTranslations("Common");
@@ -1433,16 +922,153 @@ function CustomFieldDefinitionsTab() {
   const createMutation = useCreateCustomFieldDefinition();
   const updateMutation = useUpdateCustomFieldDefinition();
   const deleteMutation = useDeleteCustomFieldDefinition();
-  const [adding, setAdding] = useState(false);
-  const [editId, setEditId] = useState<string | null>(null);
-  const [form, setForm] = useState({
-    name: "",
-    description: "",
-    fieldType: "Text",
-    isRequired: false,
-    options: "",
-    sortOrder: 0,
+
+  const crud = useInlineCrudState<CustomFieldDefinition, CustomFieldForm>({
+    data,
+    emptyForm: (items) => ({
+      name: "",
+      description: "",
+      fieldType: "Text",
+      isRequired: false,
+      options: "",
+      sortOrder: (items.length + 1) * 10,
+    }),
+    toForm: (item) => ({
+      name: item.name,
+      description: item.description || "",
+      fieldType: item.fieldType,
+      isRequired: item.isRequired,
+      options: item.options || "",
+      sortOrder: item.sortOrder,
+    }),
+    create: (form) =>
+      createMutation.mutateAsync({
+        name: form.name,
+        description: form.description || undefined,
+        fieldType: form.fieldType,
+        isRequired: form.isRequired,
+        options: form.options || undefined,
+        sortOrder: form.sortOrder,
+      }),
+    update: (item, form) =>
+      updateMutation.mutateAsync({
+        ...item,
+        name: form.name,
+        description: form.description || undefined,
+        fieldType: form.fieldType,
+        isRequired: form.isRequired,
+        options: form.options || undefined,
+        sortOrder: form.sortOrder,
+      }),
+    remove: (id) => deleteMutation.mutate(id),
+    canSave: (form) => !!form.name,
   });
+
+  const fieldTypeOptions = Object.values(CustomFieldType);
+
+  const columns: CrudColumn<CustomFieldDefinition, CustomFieldForm>[] = [
+    {
+      header: t("common.name"),
+      edit: ({ form, set, mode }) => (
+        <input
+          value={form.name}
+          onChange={(e) => set({ name: e.target.value })}
+          className={inputClass}
+          placeholder={t("common.name")}
+          autoFocus={mode === "add"}
+        />
+      ),
+      display: (item) => <span className="font-medium">{item.name}</span>,
+    },
+    {
+      header: t("common.description"),
+      edit: ({ form, set }) => (
+        <input
+          value={form.description}
+          onChange={(e) => set({ description: e.target.value })}
+          className={inputClass}
+          placeholder={t("common.description")}
+        />
+      ),
+      display: (item) => <span className="text-muted-foreground">{item.description || "—"}</span>,
+    },
+    {
+      header: t("customField.fieldType"),
+      thClassName: "w-24",
+      edit: ({ form, set }) => (
+        <select
+          value={form.fieldType}
+          onChange={(e) => set({ fieldType: e.target.value })}
+          className={inputClass}
+        >
+          {fieldTypeOptions.map((ft) => (
+            <option key={ft} value={ft}>
+              {t(`customField.types.${ft}` as "customField.types.Text")}
+            </option>
+          ))}
+        </select>
+      ),
+      display: (item) => t(`customField.types.${item.fieldType}` as "customField.types.Text"),
+    },
+    {
+      header: t("customField.required"),
+      thClassName: "w-20",
+      edit: ({ form, set }) => (
+        <input
+          type="checkbox"
+          checked={form.isRequired}
+          onChange={(e) => set({ isRequired: e.target.checked })}
+        />
+      ),
+      display: (item) => (item.isRequired ? <Check className="h-4 w-4 text-green-600" /> : null),
+    },
+    {
+      header: t("customField.options"),
+      edit: ({ form, set }) => (
+        <input
+          value={form.options}
+          onChange={(e) => set({ options: e.target.value })}
+          className={inputClass}
+          placeholder={t("customField.optionsPlaceholder")}
+          disabled={form.fieldType !== "Select"}
+        />
+      ),
+      display: (item) => (
+        <span className="text-muted-foreground">
+          {item.fieldType === "Select" ? item.options || "—" : "—"}
+        </span>
+      ),
+    },
+    {
+      header: t("common.sortOrder"),
+      thClassName: "w-20",
+      edit: ({ form, set }) => (
+        <input
+          type="number"
+          value={form.sortOrder}
+          onChange={(e) => set({ sortOrder: +e.target.value })}
+          className={inputClass}
+        />
+      ),
+      display: (item) => item.sortOrder,
+    },
+    {
+      header: t("common.isActive"),
+      thClassName: "w-20",
+      edit: ({ mode, item }) =>
+        mode === "add" ? (
+          <span className="text-green-600">{tCommon("yes")}</span>
+        ) : (
+          <span>{item?.isActive ? tCommon("yes") : tCommon("no")}</span>
+        ),
+      display: (item) =>
+        item.isActive ? (
+          <span className="text-green-600">{tCommon("yes")}</span>
+        ) : (
+          <span className="text-muted-foreground">{tCommon("no")}</span>
+        ),
+    },
+  ];
 
   if (isLoading) return <TableSkeleton rows={4} />;
   if (!data)
@@ -1450,299 +1076,27 @@ function CustomFieldDefinitionsTab() {
       <EmptyState icon={<SlidersHorizontal className="h-10 w-10" />} title={t("common.empty")} />
     );
 
-  const startAdd = () => {
-    setAdding(true);
-    setEditId(null);
-    setForm({
-      name: "",
-      description: "",
-      fieldType: "Text",
-      isRequired: false,
-      options: "",
-      sortOrder: (data.length + 1) * 10,
-    });
-  };
-  const startEdit = (item: CustomFieldDefinition) => {
-    setEditId(item.id);
-    setAdding(false);
-    setForm({
-      name: item.name,
-      description: item.description || "",
-      fieldType: item.fieldType,
-      isRequired: item.isRequired,
-      options: item.options || "",
-      sortOrder: item.sortOrder,
-    });
-  };
-
-  const save = async () => {
-    if (editId) {
-      const existing = data.find((c) => c.id === editId)!;
-      await updateMutation.mutateAsync({
-        ...existing,
-        name: form.name,
-        description: form.description || undefined,
-        fieldType: form.fieldType,
-        isRequired: form.isRequired,
-        options: form.options || undefined,
-        sortOrder: form.sortOrder,
-      });
-      setEditId(null);
-    } else {
-      await createMutation.mutateAsync({
-        name: form.name,
-        description: form.description || undefined,
-        fieldType: form.fieldType,
-        isRequired: form.isRequired,
-        options: form.options || undefined,
-        sortOrder: form.sortOrder,
-      });
-      setAdding(false);
-    }
-  };
-
-  const cancel = () => {
-    setAdding(false);
-    setEditId(null);
-  };
-
-  const fieldTypeOptions = Object.values(CustomFieldType);
-
   return (
-    <div>
-      <div className="flex justify-end mb-3">
-        <button
-          onClick={startAdd}
-          className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium bg-accent-orange text-white rounded-lg hover:bg-accent-orange/90"
-        >
-          <Plus className="h-4 w-4" /> {t("customField.newField")}
-        </button>
-      </div>
-      <div className="rounded-lg border border-border overflow-hidden">
-        <table className="w-full">
-          <thead>
-            <tr className="bg-muted/50">
-              <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
-                {t("common.name")}
-              </th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
-                {t("common.description")}
-              </th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase w-24">
-                {t("customField.fieldType")}
-              </th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase w-20">
-                {t("customField.required")}
-              </th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase">
-                {t("customField.options")}
-              </th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase w-20">
-                {t("common.sortOrder")}
-              </th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-muted-foreground uppercase w-20">
-                {t("common.isActive")}
-              </th>
-              <th className="px-4 py-3 text-right text-xs font-medium text-muted-foreground uppercase w-24">
-                {t("common.actions")}
-              </th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-border">
-            {adding && (
-              <tr className="bg-accent-orange/5">
-                <td className="px-4 py-2">
-                  <input
-                    value={form.name}
-                    onChange={(e) => setForm({ ...form, name: e.target.value })}
-                    className="w-full px-2 py-1 text-sm border rounded"
-                    placeholder={t("common.name")}
-                    autoFocus
-                  />
-                </td>
-                <td className="px-4 py-2">
-                  <input
-                    value={form.description}
-                    onChange={(e) => setForm({ ...form, description: e.target.value })}
-                    className="w-full px-2 py-1 text-sm border rounded"
-                    placeholder={t("common.description")}
-                  />
-                </td>
-                <td className="px-4 py-2">
-                  <select
-                    value={form.fieldType}
-                    onChange={(e) => setForm({ ...form, fieldType: e.target.value })}
-                    className="w-full px-2 py-1 text-sm border rounded"
-                  >
-                    {fieldTypeOptions.map((ft) => (
-                      <option key={ft} value={ft}>
-                        {t(`customField.types.${ft}` as "customField.types.Text")}
-                      </option>
-                    ))}
-                  </select>
-                </td>
-                <td className="px-4 py-2">
-                  <input
-                    type="checkbox"
-                    checked={form.isRequired}
-                    onChange={(e) => setForm({ ...form, isRequired: e.target.checked })}
-                  />
-                </td>
-                <td className="px-4 py-2">
-                  <input
-                    value={form.options}
-                    onChange={(e) => setForm({ ...form, options: e.target.value })}
-                    className="w-full px-2 py-1 text-sm border rounded"
-                    placeholder={t("customField.optionsPlaceholder")}
-                    disabled={form.fieldType !== "Select"}
-                  />
-                </td>
-                <td className="px-4 py-2">
-                  <input
-                    type="number"
-                    value={form.sortOrder}
-                    onChange={(e) => setForm({ ...form, sortOrder: +e.target.value })}
-                    className="w-full px-2 py-1 text-sm border rounded"
-                  />
-                </td>
-                <td className="px-4 py-2 text-sm text-green-600">{tCommon("yes")}</td>
-                <td className="px-4 py-2 text-right">
-                  <button
-                    onClick={save}
-                    disabled={!form.name}
-                    className="p-1 text-green-600 hover:bg-green-50 rounded disabled:opacity-30"
-                  >
-                    <Check className="h-4 w-4" />
-                  </button>
-                  <button
-                    onClick={cancel}
-                    className="p-1 text-muted-foreground hover:bg-muted/50 rounded"
-                  >
-                    <X className="h-4 w-4" />
-                  </button>
-                </td>
-              </tr>
-            )}
-            {data.map((item) =>
-              editId === item.id ? (
-                <tr key={item.id} className="bg-accent-orange/5">
-                  <td className="px-4 py-2">
-                    <input
-                      value={form.name}
-                      onChange={(e) => setForm({ ...form, name: e.target.value })}
-                      className="w-full px-2 py-1 text-sm border rounded"
-                    />
-                  </td>
-                  <td className="px-4 py-2">
-                    <input
-                      value={form.description}
-                      onChange={(e) => setForm({ ...form, description: e.target.value })}
-                      className="w-full px-2 py-1 text-sm border rounded"
-                    />
-                  </td>
-                  <td className="px-4 py-2">
-                    <select
-                      value={form.fieldType}
-                      onChange={(e) => setForm({ ...form, fieldType: e.target.value })}
-                      className="w-full px-2 py-1 text-sm border rounded"
-                    >
-                      {fieldTypeOptions.map((ft) => (
-                        <option key={ft} value={ft}>
-                          {t(`customField.types.${ft}` as "customField.types.Text")}
-                        </option>
-                      ))}
-                    </select>
-                  </td>
-                  <td className="px-4 py-2">
-                    <input
-                      type="checkbox"
-                      checked={form.isRequired}
-                      onChange={(e) => setForm({ ...form, isRequired: e.target.checked })}
-                    />
-                  </td>
-                  <td className="px-4 py-2">
-                    <input
-                      value={form.options}
-                      onChange={(e) => setForm({ ...form, options: e.target.value })}
-                      className="w-full px-2 py-1 text-sm border rounded"
-                      disabled={form.fieldType !== "Select"}
-                    />
-                  </td>
-                  <td className="px-4 py-2">
-                    <input
-                      type="number"
-                      value={form.sortOrder}
-                      onChange={(e) => setForm({ ...form, sortOrder: +e.target.value })}
-                      className="w-full px-2 py-1 text-sm border rounded"
-                    />
-                  </td>
-                  <td className="px-4 py-2 text-sm">
-                    {item.isActive ? tCommon("yes") : tCommon("no")}
-                  </td>
-                  <td className="px-4 py-2 text-right">
-                    <button
-                      onClick={save}
-                      disabled={!form.name}
-                      className="p-1 text-green-600 hover:bg-green-50 rounded disabled:opacity-30"
-                    >
-                      <Check className="h-4 w-4" />
-                    </button>
-                    <button
-                      onClick={cancel}
-                      className="p-1 text-muted-foreground hover:bg-muted/50 rounded"
-                    >
-                      <X className="h-4 w-4" />
-                    </button>
-                  </td>
-                </tr>
-              ) : (
-                <tr key={item.id} className="hover:bg-muted/30">
-                  <td className="px-4 py-3 text-sm font-medium">{item.name}</td>
-                  <td className="px-4 py-3 text-sm text-muted-foreground">
-                    {item.description || "—"}
-                  </td>
-                  <td className="px-4 py-3 text-sm">
-                    {t(`customField.types.${item.fieldType}` as "customField.types.Text")}
-                  </td>
-                  <td className="px-4 py-3 text-sm">
-                    {item.isRequired ? <Check className="h-4 w-4 text-green-600" /> : null}
-                  </td>
-                  <td className="px-4 py-3 text-sm text-muted-foreground">
-                    {item.fieldType === "Select" ? item.options || "—" : "—"}
-                  </td>
-                  <td className="px-4 py-3 text-sm">{item.sortOrder}</td>
-                  <td className="px-4 py-3 text-sm">
-                    {item.isActive ? (
-                      <span className="text-green-600">{tCommon("yes")}</span>
-                    ) : (
-                      <span className="text-muted-foreground">{tCommon("no")}</span>
-                    )}
-                  </td>
-                  <td className="px-4 py-3 text-right">
-                    <button
-                      onClick={() => startEdit(item)}
-                      className="p-1 text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded"
-                    >
-                      <Pencil className="h-3.5 w-3.5" />
-                    </button>
-                    <button
-                      onClick={() => deleteMutation.mutate(item.id)}
-                      className="p-1 text-muted-foreground hover:text-red-600 hover:bg-red-50 rounded"
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </button>
-                  </td>
-                </tr>
-              )
-            )}
-          </tbody>
-        </table>
-      </div>
-    </div>
+    <InlineCrudTable
+      crud={crud}
+      columns={columns}
+      addLabel={t("customField.newField")}
+      actionsLabel={t("common.actions")}
+    />
   );
 }
 
 // === Inline sub-table for task states / ticket priorities within a template ===
+
+type TemplateTaskStateForm = {
+  name: string;
+  nameCs: string;
+  nameEn: string;
+  color: string;
+  sortOrder: number;
+  isDefault: boolean;
+  isClosedState: boolean;
+};
 
 function TemplateTaskStatesSection({
   templateId,
@@ -1756,35 +1110,19 @@ function TemplateTaskStatesSection({
   const createTS = useCreateTaskState();
   const updateTS = useUpdateTaskState();
   const deleteTS = useDeleteTaskState();
-  const [adding, setAdding] = useState(false);
-  const [editId, setEditId] = useState<string | null>(null);
-  const [form, setForm] = useState({
-    name: "",
-    nameCs: "",
-    nameEn: "",
-    color: "#3b82f6",
-    sortOrder: 0,
-    isDefault: false,
-    isClosedState: false,
-  });
 
-  const startAdd = () => {
-    setAdding(true);
-    setEditId(null);
-    setForm({
+  const crud = useInlineCrudState<TaskState, TemplateTaskStateForm>({
+    data: taskStates,
+    emptyForm: (items) => ({
       name: "",
       nameCs: "",
       nameEn: "",
       color: "#3b82f6",
-      sortOrder: (taskStates.length + 1) * 10,
+      sortOrder: (items.length + 1) * 10,
       isDefault: false,
       isClosedState: false,
-    });
-  };
-  const startEdit = (item: TaskState) => {
-    setEditId(item.id);
-    setAdding(false);
-    setForm({
+    }),
+    toForm: (item) => ({
       name: item.name,
       nameCs: item.nameCs || "",
       nameEn: item.nameEn || "",
@@ -1792,25 +1130,9 @@ function TemplateTaskStatesSection({
       sortOrder: item.sortOrder,
       isDefault: item.isDefault,
       isClosedState: item.isClosedState,
-    });
-  };
-
-  const save = async () => {
-    if (editId) {
-      const existing = taskStates.find((c) => c.id === editId)!;
-      await updateTS.mutateAsync({
-        ...existing,
-        name: form.name,
-        nameCs: form.nameCs || undefined,
-        nameEn: form.nameEn || undefined,
-        color: form.color,
-        sortOrder: form.sortOrder,
-        isDefault: form.isDefault,
-        isClosedState: form.isClosedState,
-      });
-      setEditId(null);
-    } else {
-      await createTS.mutateAsync({
+    }),
+    create: (form) =>
+      createTS.mutateAsync({
         name: form.name,
         nameCs: form.nameCs || undefined,
         nameEn: form.nameEn || undefined,
@@ -1819,243 +1141,109 @@ function TemplateTaskStatesSection({
         isDefault: form.isDefault,
         isClosedState: form.isClosedState,
         projectTemplateId: templateId,
-      });
-      setAdding(false);
-    }
+      }),
+    update: (item, form) =>
+      updateTS.mutateAsync({
+        ...item,
+        name: form.name,
+        nameCs: form.nameCs || undefined,
+        nameEn: form.nameEn || undefined,
+        color: form.color,
+        sortOrder: form.sortOrder,
+        isDefault: form.isDefault,
+        isClosedState: form.isClosedState,
+      }),
+    remove: (id) => deleteTS.mutate(id),
+    canSave: (form) => !!form.name,
+  });
+
+  const namePlaceholders = {
+    name: t("common.name"),
+    cs: t("common.nameCs"),
+    en: t("common.nameEn"),
   };
 
-  const cancel = () => {
-    setAdding(false);
-    setEditId(null);
-  };
+  const columns: CrudColumn<TaskState, TemplateTaskStateForm>[] = [
+    {
+      header: t("common.color"),
+      edit: ({ form, set }) => (
+        <input
+          type="color"
+          value={form.color}
+          onChange={(e) => set({ color: e.target.value })}
+          className="w-7 h-7 rounded cursor-pointer"
+        />
+      ),
+      display: (item) => (
+        <div className="w-5 h-5 rounded-full border" style={{ backgroundColor: item.color }} />
+      ),
+    },
+    {
+      header: t("common.name"),
+      edit: (ctx) => <NameTrioInputs {...ctx} placeholders={namePlaceholders} compact />,
+      display: (item) => <span className="font-medium">{localizedName(item, locale)}</span>,
+    },
+    {
+      header: t("common.sortOrder"),
+      thClassName: "w-16",
+      edit: ({ form, set }) => (
+        <input
+          type="number"
+          value={form.sortOrder}
+          onChange={(e) => set({ sortOrder: +e.target.value })}
+          className={inputClassXs}
+        />
+      ),
+      display: (item) => item.sortOrder,
+    },
+    {
+      header: t("common.isDefault"),
+      thClassName: "w-16",
+      edit: ({ form, set }) => (
+        <input
+          type="checkbox"
+          checked={form.isDefault}
+          onChange={(e) => set({ isDefault: e.target.checked })}
+        />
+      ),
+      display: (item) => (item.isDefault ? <Check className="h-3.5 w-3.5 text-green-600" /> : null),
+    },
+    {
+      header: t("common.isClosed"),
+      thClassName: "w-16",
+      edit: ({ form, set }) => (
+        <input
+          type="checkbox"
+          checked={form.isClosedState}
+          onChange={(e) => set({ isClosedState: e.target.checked })}
+        />
+      ),
+      display: (item) =>
+        item.isClosedState ? <Check className="h-3.5 w-3.5 text-red-500" /> : null,
+    },
+  ];
 
   return (
-    <div>
-      <div className="flex items-center justify-between mb-2">
-        <p className="text-xs font-medium text-muted-foreground uppercase">
-          {t("template.taskStates")}
-        </p>
-        <button
-          onClick={startAdd}
-          className="flex items-center gap-1 px-2 py-1 text-xs font-medium text-accent-orange hover:bg-accent-orange/10 rounded"
-        >
-          <Plus className="h-3 w-3" /> {t("template.addTaskState")}
-        </button>
-      </div>
-      <div className="rounded-lg border border-border overflow-hidden">
-        <table className="w-full">
-          <thead>
-            <tr className="bg-muted/50">
-              <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground uppercase">
-                {t("common.color")}
-              </th>
-              <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground uppercase">
-                {t("common.name")}
-              </th>
-              <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground uppercase w-16">
-                {t("common.sortOrder")}
-              </th>
-              <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground uppercase w-16">
-                {t("common.isDefault")}
-              </th>
-              <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground uppercase w-16">
-                {t("common.isClosed")}
-              </th>
-              <th className="px-3 py-2 text-right text-xs font-medium text-muted-foreground uppercase w-20">
-                {t("common.actions")}
-              </th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-border">
-            {adding && (
-              <tr className="bg-accent-orange/5">
-                <td className="px-3 py-1.5">
-                  <input
-                    type="color"
-                    value={form.color}
-                    onChange={(e) => setForm({ ...form, color: e.target.value })}
-                    className="w-7 h-7 rounded cursor-pointer"
-                  />
-                </td>
-                <td className="px-3 py-1.5">
-                  <div className="flex gap-1.5">
-                    <input
-                      value={form.name}
-                      onChange={(e) => setForm({ ...form, name: e.target.value })}
-                      className="w-full px-2 py-1 text-xs border rounded"
-                      placeholder={t("common.name")}
-                      autoFocus
-                    />
-                    <input
-                      value={form.nameCs}
-                      onChange={(e) => setForm({ ...form, nameCs: e.target.value })}
-                      className="w-full px-2 py-1 text-xs border rounded"
-                      placeholder={t("common.nameCs")}
-                    />
-                    <input
-                      value={form.nameEn}
-                      onChange={(e) => setForm({ ...form, nameEn: e.target.value })}
-                      className="w-full px-2 py-1 text-xs border rounded"
-                      placeholder={t("common.nameEn")}
-                    />
-                  </div>
-                </td>
-                <td className="px-3 py-1.5">
-                  <input
-                    type="number"
-                    value={form.sortOrder}
-                    onChange={(e) => setForm({ ...form, sortOrder: +e.target.value })}
-                    className="w-full px-2 py-1 text-xs border rounded"
-                  />
-                </td>
-                <td className="px-3 py-1.5">
-                  <input
-                    type="checkbox"
-                    checked={form.isDefault}
-                    onChange={(e) => setForm({ ...form, isDefault: e.target.checked })}
-                  />
-                </td>
-                <td className="px-3 py-1.5">
-                  <input
-                    type="checkbox"
-                    checked={form.isClosedState}
-                    onChange={(e) => setForm({ ...form, isClosedState: e.target.checked })}
-                  />
-                </td>
-                <td className="px-3 py-1.5 text-right">
-                  <button
-                    onClick={save}
-                    disabled={!form.name}
-                    className="p-1 text-green-600 hover:bg-green-50 rounded disabled:opacity-30"
-                  >
-                    <Check className="h-3.5 w-3.5" />
-                  </button>
-                  <button
-                    onClick={cancel}
-                    className="p-1 text-muted-foreground hover:bg-muted/50 rounded"
-                  >
-                    <X className="h-3.5 w-3.5" />
-                  </button>
-                </td>
-              </tr>
-            )}
-            {taskStates.length === 0 && !adding && (
-              <tr>
-                <td colSpan={6} className="px-3 py-3 text-xs text-center text-muted-foreground">
-                  {t("common.empty")}
-                </td>
-              </tr>
-            )}
-            {taskStates.map((item) =>
-              editId === item.id ? (
-                <tr key={item.id} className="bg-accent-orange/5">
-                  <td className="px-3 py-1.5">
-                    <input
-                      type="color"
-                      value={form.color}
-                      onChange={(e) => setForm({ ...form, color: e.target.value })}
-                      className="w-7 h-7 rounded cursor-pointer"
-                    />
-                  </td>
-                  <td className="px-3 py-1.5">
-                    <div className="flex gap-1.5">
-                      <input
-                        value={form.name}
-                        onChange={(e) => setForm({ ...form, name: e.target.value })}
-                        className="w-full px-2 py-1 text-xs border rounded"
-                        placeholder={t("common.name")}
-                      />
-                      <input
-                        value={form.nameCs}
-                        onChange={(e) => setForm({ ...form, nameCs: e.target.value })}
-                        className="w-full px-2 py-1 text-xs border rounded"
-                        placeholder={t("common.nameCs")}
-                      />
-                      <input
-                        value={form.nameEn}
-                        onChange={(e) => setForm({ ...form, nameEn: e.target.value })}
-                        className="w-full px-2 py-1 text-xs border rounded"
-                        placeholder={t("common.nameEn")}
-                      />
-                    </div>
-                  </td>
-                  <td className="px-3 py-1.5">
-                    <input
-                      type="number"
-                      value={form.sortOrder}
-                      onChange={(e) => setForm({ ...form, sortOrder: +e.target.value })}
-                      className="w-full px-2 py-1 text-xs border rounded"
-                    />
-                  </td>
-                  <td className="px-3 py-1.5">
-                    <input
-                      type="checkbox"
-                      checked={form.isDefault}
-                      onChange={(e) => setForm({ ...form, isDefault: e.target.checked })}
-                    />
-                  </td>
-                  <td className="px-3 py-1.5">
-                    <input
-                      type="checkbox"
-                      checked={form.isClosedState}
-                      onChange={(e) => setForm({ ...form, isClosedState: e.target.checked })}
-                    />
-                  </td>
-                  <td className="px-3 py-1.5 text-right">
-                    <button
-                      onClick={save}
-                      disabled={!form.name}
-                      className="p-1 text-green-600 hover:bg-green-50 rounded disabled:opacity-30"
-                    >
-                      <Check className="h-3.5 w-3.5" />
-                    </button>
-                    <button
-                      onClick={cancel}
-                      className="p-1 text-muted-foreground hover:bg-muted/50 rounded"
-                    >
-                      <X className="h-3.5 w-3.5" />
-                    </button>
-                  </td>
-                </tr>
-              ) : (
-                <tr key={item.id} className="hover:bg-muted/30">
-                  <td className="px-3 py-2">
-                    <div
-                      className="w-5 h-5 rounded-full border"
-                      style={{ backgroundColor: item.color }}
-                    />
-                  </td>
-                  <td className="px-3 py-2 text-xs font-medium">{localizedName(item, locale)}</td>
-                  <td className="px-3 py-2 text-xs">{item.sortOrder}</td>
-                  <td className="px-3 py-2 text-xs">
-                    {item.isDefault ? <Check className="h-3.5 w-3.5 text-green-600" /> : null}
-                  </td>
-                  <td className="px-3 py-2 text-xs">
-                    {item.isClosedState ? <Check className="h-3.5 w-3.5 text-red-500" /> : null}
-                  </td>
-                  <td className="px-3 py-2 text-right">
-                    <button
-                      onClick={() => startEdit(item)}
-                      className="p-0.5 text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded"
-                    >
-                      <Pencil className="h-3 w-3" />
-                    </button>
-                    <button
-                      onClick={() => deleteTS.mutate(item.id)}
-                      className="p-0.5 text-muted-foreground hover:text-red-600 hover:bg-red-50 rounded"
-                    >
-                      <Trash2 className="h-3 w-3" />
-                    </button>
-                  </td>
-                </tr>
-              )
-            )}
-          </tbody>
-        </table>
-      </div>
-    </div>
+    <InlineCrudTable
+      crud={crud}
+      columns={columns}
+      compact
+      title={t("template.taskStates")}
+      addLabel={t("template.addTaskState")}
+      actionsLabel={t("common.actions")}
+      emptyLabel={t("common.empty")}
+    />
   );
 }
+
+type TemplatePriorityForm = {
+  name: string;
+  nameCs: string;
+  nameEn: string;
+  color: string;
+  sortOrder: number;
+  isDefault: boolean;
+};
 
 function TemplateTicketPrioritiesSection({
   templateId,
@@ -2069,57 +1257,27 @@ function TemplateTicketPrioritiesSection({
   const createTP = useCreateTicketPriority();
   const updateTP = useUpdateTicketPriority();
   const deleteTP = useDeleteTicketPriority();
-  const [adding, setAdding] = useState(false);
-  const [editId, setEditId] = useState<string | null>(null);
-  const [form, setForm] = useState({
-    name: "",
-    nameCs: "",
-    nameEn: "",
-    color: "#f59e0b",
-    sortOrder: 0,
-    isDefault: false,
-  });
 
-  const startAdd = () => {
-    setAdding(true);
-    setEditId(null);
-    setForm({
+  const crud = useInlineCrudState<TicketPriorityLookup, TemplatePriorityForm>({
+    data: ticketPriorities,
+    emptyForm: (items) => ({
       name: "",
       nameCs: "",
       nameEn: "",
       color: "#f59e0b",
-      sortOrder: (ticketPriorities.length + 1) * 10,
+      sortOrder: (items.length + 1) * 10,
       isDefault: false,
-    });
-  };
-  const startEdit = (item: TicketPriorityLookup) => {
-    setEditId(item.id);
-    setAdding(false);
-    setForm({
+    }),
+    toForm: (item) => ({
       name: item.name,
       nameCs: item.nameCs || "",
       nameEn: item.nameEn || "",
       color: item.color,
       sortOrder: item.sortOrder,
       isDefault: item.isDefault,
-    });
-  };
-
-  const save = async () => {
-    if (editId) {
-      const existing = ticketPriorities.find((c) => c.id === editId)!;
-      await updateTP.mutateAsync({
-        ...existing,
-        name: form.name,
-        nameCs: form.nameCs || undefined,
-        nameEn: form.nameEn || undefined,
-        color: form.color,
-        sortOrder: form.sortOrder,
-        isDefault: form.isDefault,
-      });
-      setEditId(null);
-    } else {
-      await createTP.mutateAsync({
+    }),
+    create: (form) =>
+      createTP.mutateAsync({
         name: form.name,
         nameCs: form.nameCs || undefined,
         nameEn: form.nameEn || undefined,
@@ -2127,221 +1285,84 @@ function TemplateTicketPrioritiesSection({
         sortOrder: form.sortOrder,
         isDefault: form.isDefault,
         projectTemplateId: templateId,
-      });
-      setAdding(false);
-    }
+      }),
+    update: (item, form) =>
+      updateTP.mutateAsync({
+        ...item,
+        name: form.name,
+        nameCs: form.nameCs || undefined,
+        nameEn: form.nameEn || undefined,
+        color: form.color,
+        sortOrder: form.sortOrder,
+        isDefault: form.isDefault,
+      }),
+    remove: (id) => deleteTP.mutate(id),
+    canSave: (form) => !!form.name,
+  });
+
+  const namePlaceholders = {
+    name: t("common.name"),
+    cs: t("common.nameCs"),
+    en: t("common.nameEn"),
   };
 
-  const cancel = () => {
-    setAdding(false);
-    setEditId(null);
-  };
+  const columns: CrudColumn<TicketPriorityLookup, TemplatePriorityForm>[] = [
+    {
+      header: t("common.color"),
+      edit: ({ form, set }) => (
+        <input
+          type="color"
+          value={form.color}
+          onChange={(e) => set({ color: e.target.value })}
+          className="w-7 h-7 rounded cursor-pointer"
+        />
+      ),
+      display: (item) => (
+        <div className="w-5 h-5 rounded-full border" style={{ backgroundColor: item.color }} />
+      ),
+    },
+    {
+      header: t("common.name"),
+      edit: (ctx) => <NameTrioInputs {...ctx} placeholders={namePlaceholders} compact />,
+      display: (item) => <span className="font-medium">{localizedName(item, locale)}</span>,
+    },
+    {
+      header: t("common.sortOrder"),
+      thClassName: "w-16",
+      edit: ({ form, set }) => (
+        <input
+          type="number"
+          value={form.sortOrder}
+          onChange={(e) => set({ sortOrder: +e.target.value })}
+          className={inputClassXs}
+        />
+      ),
+      display: (item) => item.sortOrder,
+    },
+    {
+      header: t("common.isDefault"),
+      thClassName: "w-16",
+      edit: ({ form, set }) => (
+        <input
+          type="checkbox"
+          checked={form.isDefault}
+          onChange={(e) => set({ isDefault: e.target.checked })}
+        />
+      ),
+      display: (item) => (item.isDefault ? <Check className="h-3.5 w-3.5 text-green-600" /> : null),
+    },
+  ];
 
   return (
-    <div>
-      <div className="flex items-center justify-between mb-2">
-        <p className="text-xs font-medium text-muted-foreground uppercase">
-          {t("template.ticketPriorities")}
-        </p>
-        <button
-          onClick={startAdd}
-          className="flex items-center gap-1 px-2 py-1 text-xs font-medium text-accent-orange hover:bg-accent-orange/10 rounded"
-        >
-          <Plus className="h-3 w-3" /> {t("template.addPriority")}
-        </button>
-      </div>
-      <div className="rounded-lg border border-border overflow-hidden">
-        <table className="w-full">
-          <thead>
-            <tr className="bg-muted/50">
-              <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground uppercase">
-                {t("common.color")}
-              </th>
-              <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground uppercase">
-                {t("common.name")}
-              </th>
-              <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground uppercase w-16">
-                {t("common.sortOrder")}
-              </th>
-              <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground uppercase w-16">
-                {t("common.isDefault")}
-              </th>
-              <th className="px-3 py-2 text-right text-xs font-medium text-muted-foreground uppercase w-20">
-                {t("common.actions")}
-              </th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-border">
-            {adding && (
-              <tr className="bg-accent-orange/5">
-                <td className="px-3 py-1.5">
-                  <input
-                    type="color"
-                    value={form.color}
-                    onChange={(e) => setForm({ ...form, color: e.target.value })}
-                    className="w-7 h-7 rounded cursor-pointer"
-                  />
-                </td>
-                <td className="px-3 py-1.5">
-                  <div className="flex gap-1.5">
-                    <input
-                      value={form.name}
-                      onChange={(e) => setForm({ ...form, name: e.target.value })}
-                      className="w-full px-2 py-1 text-xs border rounded"
-                      placeholder={t("common.name")}
-                      autoFocus
-                    />
-                    <input
-                      value={form.nameCs}
-                      onChange={(e) => setForm({ ...form, nameCs: e.target.value })}
-                      className="w-full px-2 py-1 text-xs border rounded"
-                      placeholder={t("common.nameCs")}
-                    />
-                    <input
-                      value={form.nameEn}
-                      onChange={(e) => setForm({ ...form, nameEn: e.target.value })}
-                      className="w-full px-2 py-1 text-xs border rounded"
-                      placeholder={t("common.nameEn")}
-                    />
-                  </div>
-                </td>
-                <td className="px-3 py-1.5">
-                  <input
-                    type="number"
-                    value={form.sortOrder}
-                    onChange={(e) => setForm({ ...form, sortOrder: +e.target.value })}
-                    className="w-full px-2 py-1 text-xs border rounded"
-                  />
-                </td>
-                <td className="px-3 py-1.5">
-                  <input
-                    type="checkbox"
-                    checked={form.isDefault}
-                    onChange={(e) => setForm({ ...form, isDefault: e.target.checked })}
-                  />
-                </td>
-                <td className="px-3 py-1.5 text-right">
-                  <button
-                    onClick={save}
-                    disabled={!form.name}
-                    className="p-1 text-green-600 hover:bg-green-50 rounded disabled:opacity-30"
-                  >
-                    <Check className="h-3.5 w-3.5" />
-                  </button>
-                  <button
-                    onClick={cancel}
-                    className="p-1 text-muted-foreground hover:bg-muted/50 rounded"
-                  >
-                    <X className="h-3.5 w-3.5" />
-                  </button>
-                </td>
-              </tr>
-            )}
-            {ticketPriorities.length === 0 && !adding && (
-              <tr>
-                <td colSpan={5} className="px-3 py-3 text-xs text-center text-muted-foreground">
-                  {t("common.empty")}
-                </td>
-              </tr>
-            )}
-            {ticketPriorities.map((item) =>
-              editId === item.id ? (
-                <tr key={item.id} className="bg-accent-orange/5">
-                  <td className="px-3 py-1.5">
-                    <input
-                      type="color"
-                      value={form.color}
-                      onChange={(e) => setForm({ ...form, color: e.target.value })}
-                      className="w-7 h-7 rounded cursor-pointer"
-                    />
-                  </td>
-                  <td className="px-3 py-1.5">
-                    <div className="flex gap-1.5">
-                      <input
-                        value={form.name}
-                        onChange={(e) => setForm({ ...form, name: e.target.value })}
-                        className="w-full px-2 py-1 text-xs border rounded"
-                        placeholder={t("common.name")}
-                      />
-                      <input
-                        value={form.nameCs}
-                        onChange={(e) => setForm({ ...form, nameCs: e.target.value })}
-                        className="w-full px-2 py-1 text-xs border rounded"
-                        placeholder={t("common.nameCs")}
-                      />
-                      <input
-                        value={form.nameEn}
-                        onChange={(e) => setForm({ ...form, nameEn: e.target.value })}
-                        className="w-full px-2 py-1 text-xs border rounded"
-                        placeholder={t("common.nameEn")}
-                      />
-                    </div>
-                  </td>
-                  <td className="px-3 py-1.5">
-                    <input
-                      type="number"
-                      value={form.sortOrder}
-                      onChange={(e) => setForm({ ...form, sortOrder: +e.target.value })}
-                      className="w-full px-2 py-1 text-xs border rounded"
-                    />
-                  </td>
-                  <td className="px-3 py-1.5">
-                    <input
-                      type="checkbox"
-                      checked={form.isDefault}
-                      onChange={(e) => setForm({ ...form, isDefault: e.target.checked })}
-                    />
-                  </td>
-                  <td className="px-3 py-1.5 text-right">
-                    <button
-                      onClick={save}
-                      disabled={!form.name}
-                      className="p-1 text-green-600 hover:bg-green-50 rounded disabled:opacity-30"
-                    >
-                      <Check className="h-3.5 w-3.5" />
-                    </button>
-                    <button
-                      onClick={cancel}
-                      className="p-1 text-muted-foreground hover:bg-muted/50 rounded"
-                    >
-                      <X className="h-3.5 w-3.5" />
-                    </button>
-                  </td>
-                </tr>
-              ) : (
-                <tr key={item.id} className="hover:bg-muted/30">
-                  <td className="px-3 py-2">
-                    <div
-                      className="w-5 h-5 rounded-full border"
-                      style={{ backgroundColor: item.color }}
-                    />
-                  </td>
-                  <td className="px-3 py-2 text-xs font-medium">{localizedName(item, locale)}</td>
-                  <td className="px-3 py-2 text-xs">{item.sortOrder}</td>
-                  <td className="px-3 py-2 text-xs">
-                    {item.isDefault ? <Check className="h-3.5 w-3.5 text-green-600" /> : null}
-                  </td>
-                  <td className="px-3 py-2 text-right">
-                    <button
-                      onClick={() => startEdit(item)}
-                      className="p-0.5 text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded"
-                    >
-                      <Pencil className="h-3 w-3" />
-                    </button>
-                    <button
-                      onClick={() => deleteTP.mutate(item.id)}
-                      className="p-0.5 text-muted-foreground hover:text-red-600 hover:bg-red-50 rounded"
-                    >
-                      <Trash2 className="h-3 w-3" />
-                    </button>
-                  </td>
-                </tr>
-              )
-            )}
-          </tbody>
-        </table>
-      </div>
-    </div>
+    <InlineCrudTable
+      crud={crud}
+      columns={columns}
+      compact
+      title={t("template.ticketPriorities")}
+      addLabel={t("template.addPriority")}
+      actionsLabel={t("common.actions")}
+      emptyLabel={t("common.empty")}
+    />
   );
 }
 
