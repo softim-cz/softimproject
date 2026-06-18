@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { Bell, Search, LogOut, Wifi, WifiOff, ChevronRight, KeyRound } from "lucide-react";
 import { useAuth } from "@/lib/auth/use-auth";
+import { Avatar } from "@/components/shared/avatar";
 import { useNotifications } from "@/queries/notifications";
 import { useSignalR } from "@/lib/signalr/signalr-provider";
 import { HubConnectionState } from "@microsoft/signalr";
@@ -133,12 +134,6 @@ function UserMenu() {
   }, []);
 
   const displayName = user?.name || user?.username || "User";
-  const initials = displayName
-    .split(" ")
-    .map((n: string) => n[0])
-    .join("")
-    .toUpperCase()
-    .slice(0, 2);
 
   return (
     <div className="relative" ref={menuRef}>
@@ -146,9 +141,7 @@ function UserMenu() {
         onClick={() => setOpen(!open)}
         className="flex items-center gap-2 p-1.5 rounded-lg hover:bg-muted transition-colors"
       >
-        <div className="h-8 w-8 rounded-full bg-primary-navy text-white flex items-center justify-center text-xs font-bold">
-          {initials}
-        </div>
+        <Avatar name={displayName} size="lg" />
       </button>
 
       {open && (

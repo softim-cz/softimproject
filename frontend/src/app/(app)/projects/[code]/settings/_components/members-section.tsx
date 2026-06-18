@@ -11,6 +11,7 @@ import {
   useRemoveProjectMember,
 } from "@/queries/projects";
 import { ProjectRole } from "@/types";
+import { Avatar } from "@/components/shared/avatar";
 import type { ProjectMember } from "@/types";
 
 export function MembersSection({
@@ -99,14 +100,12 @@ export function MembersSection({
                 <tr key={member.id} className="border-b border-border/50">
                   <td className="py-3">
                     <div className="flex items-center gap-2">
-                      {member.avatarUrl ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img src={member.avatarUrl} alt="" className="h-7 w-7 rounded-full" />
-                      ) : (
-                        <div className="h-7 w-7 rounded-full bg-muted flex items-center justify-center text-xs font-medium text-muted-foreground">
-                          {member.displayName.charAt(0).toUpperCase()}
-                        </div>
-                      )}
+                      <Avatar
+                        name={member.displayName}
+                        src={member.avatarUrl}
+                        size="md"
+                        variant="muted"
+                      />
                       <span className="font-medium text-foreground">{member.displayName}</span>
                     </div>
                   </td>

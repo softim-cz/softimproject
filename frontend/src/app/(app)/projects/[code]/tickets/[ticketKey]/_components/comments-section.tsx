@@ -11,6 +11,7 @@ import { useCurrentUser } from "@/queries/auth";
 import { GlobalRole, ProjectRole } from "@/types";
 import { Skeleton } from "@/components/shared/loading-skeleton";
 import { MarkdownContent } from "@/components/shared/markdown-content";
+import { Avatar } from "@/components/shared/avatar";
 import { MarkdownEditor } from "@/components/shared/markdown-editor";
 import { MessageSquare, Send, Trash2, Pencil, X } from "lucide-react";
 import { Controller, useForm } from "react-hook-form";
@@ -74,13 +75,7 @@ export function CommentCard({
     <div className="rounded-lg border border-border p-4">
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-2">
-          <div className="h-6 w-6 rounded-full bg-primary-navy text-white flex items-center justify-center text-[10px] font-bold">
-            {comment.author.displayName
-              .split(" ")
-              .map((n) => n[0])
-              .join("")
-              .slice(0, 2)}
-          </div>
+          <Avatar name={comment.author.displayName} size="sm" />
           <span className="text-sm font-medium text-foreground">{comment.author.displayName}</span>
           {comment.externalUser && (
             <span
