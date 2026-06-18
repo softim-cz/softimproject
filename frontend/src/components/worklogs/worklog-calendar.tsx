@@ -13,7 +13,7 @@ import {
   startOfWeek,
   subMonths,
 } from "date-fns";
-import { useForm, useFieldArray } from "react-hook-form";
+import { useForm, useFieldArray, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
@@ -52,7 +52,7 @@ export function WorklogCalendar() {
   const [filterProjectId, setFilterProjectId] = useState("");
   const [filterTicketId, setFilterTicketId] = useState("");
   const { data: filterTicketsPage } = useTickets(filterProjectId || "", { pageSize: 200 });
-  const filterTickets = filterTicketsPage?.items ?? [];
+  const filterTickets = useMemo(() => filterTicketsPage?.items ?? [], [filterTicketsPage]);
 
   const [selectedDay, setSelectedDay] = useState<Date | null>(null);
 
@@ -340,13 +340,13 @@ function SingleDayForm({
   const {
     register,
     handleSubmit,
-    watch,
+    control,
     formState: { errors, isSubmitting },
   } = useForm<SingleDayWorklogInput>({
     resolver: zodResolver(singleDayWorklogSchema),
     defaultValues: { hours: 1, description: "", isBillable: true },
   });
-  const hours = Number(watch("hours")) || 0;
+  const hours = Number(useWatch({ control, name: "hours" })) || 0;
   const wouldExceed = existingHours + hours > MAX_DAY_HOURS;
 
   const onSubmit = async (data: SingleDayWorklogInput) => {
@@ -441,7 +441,6 @@ function MultiDayForm({
     register,
     handleSubmit,
     control,
-    watch,
     setValue,
     formState: { errors, isSubmitting },
   } = useForm<DayWorklogInput>({
@@ -450,7 +449,7 @@ function MultiDayForm({
   });
   const { fields, append, remove } = useFieldArray({ control, name: "items" });
 
-  const items = watch("items");
+  const items = useWatch({ control, name: "items" });
   const newHours = (items ?? []).reduce((sum, i) => sum + (Number(i.hours) || 0), 0);
   const projectedHours = existingHours + newHours;
   const projectedCount = existingCount + (items?.length ?? 0);

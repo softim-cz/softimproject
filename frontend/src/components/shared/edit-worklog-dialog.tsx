@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { useTranslations } from "next-intl";
@@ -35,12 +35,12 @@ export function EditWorklogDialog({
     register,
     handleSubmit,
     reset,
-    watch,
+    control,
     formState: { errors, isSubmitting },
   } = useForm<UpdateWorklogInput>({
     resolver: zodResolver(updateWorklogSchema),
   });
-  const description = watch("description") ?? "";
+  const description = useWatch({ control, name: "description" }) ?? "";
 
   useEffect(() => {
     if (worklog && open) {

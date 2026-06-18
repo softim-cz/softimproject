@@ -18,8 +18,8 @@ export function MarkdownContent({ content, className }: { content: string; class
         remarkPlugins={[remarkGfm]}
         components={{
           a: ({ ...props }) => <a {...props} target="_blank" rel="noopener noreferrer" />,
-          // eslint-disable-next-line @next/next/no-img-element
           img: ({ alt, ...props }) => (
+            // eslint-disable-next-line @next/next/no-img-element
             <img
               {...props}
               alt={alt ?? ""}

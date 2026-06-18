@@ -18,7 +18,7 @@ import {
 import { GlobalRole, ProjectRole, type Worklog } from "@/types";
 import { Skeleton } from "@/components/shared/loading-skeleton";
 import { Clock, Trash2, Pencil, Send, Plus, Layers, AlertTriangle } from "lucide-react";
-import { useForm, useFieldArray } from "react-hook-form";
+import { useForm, useFieldArray, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { useTranslations } from "next-intl";
@@ -51,7 +51,6 @@ export function BulkWorklogForm({
     register,
     handleSubmit,
     control,
-    watch,
     formState: { errors, isSubmitting },
   } = useForm<WorklogBatchInput>({
     resolver: zodResolver(worklogBatchSchema),
@@ -59,7 +58,7 @@ export function BulkWorklogForm({
   });
   const { fields, append, remove } = useFieldArray({ control, name: "items" });
 
-  const items = watch("items");
+  const items = useWatch({ control, name: "items" });
   const batchHours = (items ?? []).reduce((sum, i) => sum + (Number(i.hours) || 0), 0);
   const projectedTotal = currentTotalHours + batchHours;
   const hasBudget = typeof estimatedHours === "number" && estimatedHours > 0;
@@ -223,7 +222,7 @@ export function WorklogsSection({
     register,
     handleSubmit,
     reset,
-    watch,
+    control,
     formState: { errors, isSubmitting },
   } = useForm<CreateWorklogInput>({
     resolver: zodResolver(createWorklogSchema),
@@ -236,7 +235,7 @@ export function WorklogsSection({
       isBillable: true,
     },
   });
-  const description = watch("description") ?? "";
+  const description = useWatch({ control, name: "description" }) ?? "";
 
   const canManage = (w: Worklog) =>
     !!currentUser &&
