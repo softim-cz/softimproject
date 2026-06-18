@@ -141,6 +141,7 @@ function buildAllColumns(t: (key: string) => string) {
     columnHelper.accessor("commentsCount", {
       header: t("commentsCol"),
       size: 90,
+      enableSorting: false,
       cell: ({ row }) => (
         <span className="text-sm text-muted-foreground">{row.original.commentsCount}</span>
       ),
@@ -267,12 +268,6 @@ export default function TaskListPage({ params }: { params: Promise<{ code: strin
     setPage(1);
   }, [activeFilters]);
 
-  const {
-    data: tickets,
-    isLoading,
-    error,
-  } = useTickets(projectId, { ...serverParams, page, pageSize: 25 });
-
   const savedConfig = useMemo<TaskListConfig>(() => {
     if (!viewConfig?.configurationJson) return {};
     try {
@@ -291,6 +286,19 @@ export default function TaskListPage({ params }: { params: Promise<{ code: strin
     setColumnVisibility(savedConfig.columnVisibility ?? {});
     setColumnSizing(savedConfig.columnSizing ?? {});
   }, [savedConfig]);
+
+  // Sorting is done server-side over the whole result set (not just the current
+  // page); translate the active TanStack sort column into the API parameters.
+  const serverSort = useMemo(() => {
+    const sort = sorting[0];
+    return sort ? { sortField: sort.id, sortDirection: sort.desc ? "desc" : "asc" } : {};
+  }, [sorting]);
+
+  const {
+    data: tickets,
+    isLoading,
+    error,
+  } = useTickets(projectId, { ...serverParams, ...serverSort, page, pageSize: 25 });
 
   const filteredTickets = useMemo(() => {
     const items = tickets?.items ?? [];
@@ -348,6 +356,8 @@ export default function TaskListPage({ params }: { params: Promise<{ code: strin
         persistConfig({ sorting: next, columnVisibility, columnSizing });
         return next;
       });
+      // Server-side sort changes the ordering of the entire dataset — go back to page 1.
+      setPage(1);
     },
     [persistConfig, columnVisibility, columnSizing]
   );
@@ -384,6 +394,7 @@ export default function TaskListPage({ params }: { params: Promise<{ code: strin
     onSortingChange: handleSortingChange,
     onColumnVisibilityChange: handleColumnVisibilityChange,
     onColumnSizingChange: handleColumnSizingChange,
+    manualSorting: true,
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
     columnResizeMode: "onChange",

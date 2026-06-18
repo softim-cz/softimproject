@@ -47,6 +47,8 @@ public sealed record GetTicketsQuery(
     string? AssigneeName = null,
     string? TaskTypeName = null,
     DateOnly? DueDate = null,
+    string? SortField = null,
+    string? SortDirection = null,
     int Page = 1,
     int PageSize = 25) : IRequest<PagedResult<TicketListItemDto>>, IRequireProjectAccess;
 
@@ -90,7 +92,8 @@ public sealed class GetTicketsQueryHandler(
         if (request.DueDate.HasValue)
             query = query.Where(t => t.DueDate == request.DueDate.Value);
 
-        var ordered = query.OrderByDescending(t => t.CreatedAt);
+        var ordered = TicketSort.TryApply(query, request.SortField, request.SortDirection)
+            ?? query.OrderByDescending(t => t.CreatedAt);
 
         var totalCount = await ordered.CountAsync(cancellationToken);
 

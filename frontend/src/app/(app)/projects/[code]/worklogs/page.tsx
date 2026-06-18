@@ -104,6 +104,7 @@ function buildAllColumns(t: (key: string) => string) {
       header: t("description"),
       size: 320,
       minSize: 150,
+      enableSorting: false,
       cell: ({ row }) => (
         <span className="text-sm text-muted-foreground truncate block">
           {row.original.description}
@@ -114,6 +115,7 @@ function buildAllColumns(t: (key: string) => string) {
       header: t("aiSummary"),
       size: 280,
       minSize: 150,
+      enableSorting: false,
       cell: ({ row }) => (
         <span
           className="text-sm text-muted-foreground truncate block"
@@ -539,12 +541,6 @@ export default function ProjectWorklogsPage({ params }: { params: Promise<{ code
   const allColumns = useMemo(() => buildAllColumns(t), [t]);
   const [page, setPage] = useState(1);
   const [includeSubprojects, setIncludeSubprojects] = useState(false);
-  const {
-    data: worklogsPage,
-    isLoading,
-    error,
-  } = useWorklogsPaged({ projectId, page, includeSubprojects: includeSubprojects || undefined });
-  const worklogs = useMemo(() => worklogsPage?.items ?? [], [worklogsPage]);
   const { data: currentUser } = useCurrentUser();
   const deleteWorklog = useDeleteWorklog();
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -573,6 +569,24 @@ export default function ProjectWorklogsPage({ params }: { params: Promise<{ code
     setColumnVisibility(savedConfig.columnVisibility ?? {});
     setColumnSizing(savedConfig.columnSizing ?? {});
   }, [savedConfig]);
+
+  // Sorting is applied server-side over the whole result set, not just the page.
+  const serverSort = useMemo(() => {
+    const sort = sorting[0];
+    return sort ? { sortField: sort.id, sortDirection: sort.desc ? "desc" : "asc" } : {};
+  }, [sorting]);
+
+  const {
+    data: worklogsPage,
+    isLoading,
+    error,
+  } = useWorklogsPaged({
+    projectId,
+    page,
+    includeSubprojects: includeSubprojects || undefined,
+    ...serverSort,
+  });
+  const worklogs = useMemo(() => worklogsPage?.items ?? [], [worklogsPage]);
 
   const saveTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(
@@ -604,6 +618,7 @@ export default function ProjectWorklogsPage({ params }: { params: Promise<{ code
         persistConfig({ sorting: next, columnVisibility, columnSizing });
         return next;
       });
+      setPage(1);
     },
     [persistConfig, columnVisibility, columnSizing]
   );
@@ -679,6 +694,7 @@ export default function ProjectWorklogsPage({ params }: { params: Promise<{ code
     onSortingChange: handleSortingChange,
     onColumnVisibilityChange: handleColumnVisibilityChange,
     onColumnSizingChange: handleColumnSizingChange,
+    manualSorting: true,
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
     columnResizeMode: "onChange",

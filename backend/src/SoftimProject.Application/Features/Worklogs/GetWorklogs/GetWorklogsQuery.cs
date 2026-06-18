@@ -2,6 +2,7 @@ using MediatR;
 using Microsoft.EntityFrameworkCore;
 using SoftimProject.Application.Common;
 using SoftimProject.Application.Interfaces;
+using SoftimProject.Domain.Entities;
 using SoftimProject.Domain.Enums;
 
 namespace SoftimProject.Application.Features.Worklogs.GetWorklogs;
@@ -35,6 +36,8 @@ public sealed record GetWorklogsQuery(
     DateOnly? To = null,
     Guid? UserId = null,
     bool IncludeSubprojects = false,
+    string? SortField = null,
+    string? SortDirection = null,
     int Page = 1,
     int PageSize = 50) : IRequest<PagedResult<WorklogDto>>;
 
@@ -81,8 +84,8 @@ public sealed class GetWorklogsQueryHandler(
             query = query.Where(w => w.UserId == currentUserService.UserId.Value);
         }
 
-        var ordered = query
-            .OrderByDescending(w => w.Date)
+        var descending = string.Equals(request.SortDirection, "desc", StringComparison.OrdinalIgnoreCase);
+        var ordered = ApplyWorklogSort(query, request.SortField, descending)
             .ThenByDescending(w => w.CreatedAt);
 
         var totalCount = await ordered.CountAsync(cancellationToken);
@@ -114,6 +117,25 @@ public sealed class GetWorklogsQueryHandler(
 
         return new PagedResult<WorklogDto>(items, totalCount, page, pageSize);
     }
+
+    // Server-side worklog ordering. CreatedAt is always appended as a tiebreaker by the caller.
+    private static IOrderedQueryable<Worklog> ApplyWorklogSort(
+        IQueryable<Worklog> query, string? sortField, bool descending) => sortField switch
+        {
+            "hours" => descending ? query.OrderByDescending(w => w.Hours) : query.OrderBy(w => w.Hours),
+            "user" => descending ? query.OrderByDescending(w => w.User.DisplayName) : query.OrderBy(w => w.User.DisplayName),
+            "ticketTitle" => descending ? query.OrderByDescending(w => w.Ticket.Title) : query.OrderBy(w => w.Ticket.Title),
+            "ticket" or "ticketKey" => descending
+                ? query.OrderByDescending(w => w.Ticket.Number)
+                : query.OrderBy(w => w.Ticket.Number),
+            "isBillable" => descending ? query.OrderByDescending(w => w.IsBillable) : query.OrderBy(w => w.IsBillable),
+            "source" => descending ? query.OrderByDescending(w => w.Source) : query.OrderBy(w => w.Source),
+            "invoiced" => descending ? query.OrderByDescending(w => w.Invoiced) : query.OrderBy(w => w.Invoiced),
+            "createdAt" => descending ? query.OrderByDescending(w => w.CreatedAt) : query.OrderBy(w => w.CreatedAt),
+            "date" => descending ? query.OrderByDescending(w => w.Date) : query.OrderBy(w => w.Date),
+            // Default preserves the previous behaviour: newest first.
+            _ => query.OrderByDescending(w => w.Date),
+        };
 
     // Returns the project plus all of its (recursive) sub-projects. Loads the project edges once
     // and walks the tree in memory; the result set is cycle-safe via the visited set.
