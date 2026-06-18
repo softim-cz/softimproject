@@ -5,11 +5,15 @@ import {
   useReactTable,
   getCoreRowModel,
   getSortedRowModel,
+  getGroupedRowModel,
+  getExpandedRowModel,
   flexRender,
   createColumnHelper,
   type SortingState,
   type VisibilityState,
   type ColumnSizingState,
+  type GroupingState,
+  type ExpandedState,
 } from "@tanstack/react-table";
 import {
   useWorklogsPaged,
@@ -41,6 +45,8 @@ import {
   ArrowUp,
   ArrowDown,
   ArrowUpDown,
+  ChevronDown,
+  Layers,
 } from "lucide-react";
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -207,7 +213,19 @@ interface WorklogListConfig {
   columnVisibility?: VisibilityState;
   columnSizing?: ColumnSizingState;
   sorting?: SortingState;
+  grouping?: GroupingState;
 }
+
+// Worklog columns offered in the "group by" selector.
+const WORKLOG_GROUPABLE_COLUMNS = ["date", "user", "ticket", "source"] as const;
+
+const WORKLOG_GROUPABLE_COLUMN_LABELS: Record<(typeof WORKLOG_GROUPABLE_COLUMNS)[number], string> =
+  {
+    date: "date",
+    user: "user",
+    ticket: "ticket",
+    source: "source",
+  };
 
 function AddWorklogDialog({
   open,
@@ -563,11 +581,14 @@ export default function ProjectWorklogsPage({ params }: { params: Promise<{ code
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
   const [columnSizing, setColumnSizing] = useState<ColumnSizingState>({});
+  const [grouping, setGrouping] = useState<GroupingState>([]);
+  const [expanded, setExpanded] = useState<ExpandedState>(true);
 
   useEffect(() => {
     setSorting(savedConfig.sorting ?? []);
     setColumnVisibility(savedConfig.columnVisibility ?? {});
     setColumnSizing(savedConfig.columnSizing ?? {});
+    setGrouping(savedConfig.grouping ?? []);
   }, [savedConfig]);
 
   // Sorting is applied server-side over the whole result set, not just the page.
@@ -576,13 +597,19 @@ export default function ProjectWorklogsPage({ params }: { params: Promise<{ code
     return sort ? { sortField: sort.id, sortDirection: sort.desc ? "desc" : "asc" } : {};
   }, [sorting]);
 
+  // Grouping is client-side, so it needs the whole dataset — load up to the server cap
+  // on a single page and hide the pager while grouped.
+  const isGrouped = grouping.length > 0;
+  const GROUPED_PAGE_SIZE = 500;
+
   const {
     data: worklogsPage,
     isLoading,
     error,
   } = useWorklogsPaged({
     projectId,
-    page,
+    page: isGrouped ? 1 : page,
+    pageSize: isGrouped ? GROUPED_PAGE_SIZE : undefined,
     includeSubprojects: includeSubprojects || undefined,
     ...serverSort,
   });
@@ -615,34 +642,44 @@ export default function ProjectWorklogsPage({ params }: { params: Promise<{ code
     (updater: SortingState | ((old: SortingState) => SortingState)) => {
       setSorting((prev) => {
         const next = typeof updater === "function" ? updater(prev) : updater;
-        persistConfig({ sorting: next, columnVisibility, columnSizing });
+        persistConfig({ sorting: next, columnVisibility, columnSizing, grouping });
         return next;
       });
       setPage(1);
     },
-    [persistConfig, columnVisibility, columnSizing]
+    [persistConfig, columnVisibility, columnSizing, grouping]
   );
 
   const handleColumnVisibilityChange = useCallback(
     (updater: VisibilityState | ((old: VisibilityState) => VisibilityState)) => {
       setColumnVisibility((prev) => {
         const next = typeof updater === "function" ? updater(prev) : updater;
-        persistConfig({ sorting, columnVisibility: next, columnSizing });
+        persistConfig({ sorting, columnVisibility: next, columnSizing, grouping });
         return next;
       });
     },
-    [persistConfig, sorting, columnSizing]
+    [persistConfig, sorting, columnSizing, grouping]
+  );
+
+  const handleGroupingChange = useCallback(
+    (next: GroupingState) => {
+      setGrouping(next);
+      setExpanded(true);
+      setPage(1);
+      persistConfig({ sorting, columnVisibility, columnSizing, grouping: next });
+    },
+    [persistConfig, sorting, columnVisibility, columnSizing]
   );
 
   const handleColumnSizingChange = useCallback(
     (updater: ColumnSizingState | ((old: ColumnSizingState) => ColumnSizingState)) => {
       setColumnSizing((prev) => {
         const next = typeof updater === "function" ? updater(prev) : updater;
-        persistConfig({ sorting, columnVisibility, columnSizing: next });
+        persistConfig({ sorting, columnVisibility, columnSizing: next, grouping });
         return next;
       });
     },
-    [persistConfig, sorting, columnVisibility]
+    [persistConfig, sorting, columnVisibility, grouping]
   );
 
   const isProjectManager = (pid: string) =>
@@ -690,13 +727,16 @@ export default function ProjectWorklogsPage({ params }: { params: Promise<{ code
   const table = useReactTable({
     data: worklogs,
     columns: allColumns,
-    state: { sorting, columnVisibility, columnSizing },
+    state: { sorting, columnVisibility, columnSizing, grouping, expanded },
     onSortingChange: handleSortingChange,
     onColumnVisibilityChange: handleColumnVisibilityChange,
     onColumnSizingChange: handleColumnSizingChange,
+    onExpandedChange: setExpanded,
     manualSorting: true,
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
+    getGroupedRowModel: getGroupedRowModel(),
+    getExpandedRowModel: getExpandedRowModel(),
     columnResizeMode: "onChange",
     meta: {
       onEdit: setEditingWorklog,
@@ -772,6 +812,22 @@ export default function ProjectWorklogsPage({ params }: { params: Promise<{ code
             <Upload className="h-4 w-4" />
             {t("import.button")}
           </button>
+          <div className="inline-flex items-center gap-1.5 px-2 py-1.5 text-sm text-muted-foreground border border-border rounded-lg">
+            <Layers className="h-4 w-4" />
+            <select
+              value={grouping[0] ?? ""}
+              onChange={(e) => handleGroupingChange(e.target.value ? [e.target.value] : [])}
+              className="bg-transparent text-sm text-foreground focus:outline-none"
+              aria-label={t("groupBy")}
+            >
+              <option value="">{t("groupByNone")}</option>
+              {WORKLOG_GROUPABLE_COLUMNS.map((colId) => (
+                <option key={colId} value={colId}>
+                  {t(WORKLOG_GROUPABLE_COLUMN_LABELS[colId])}
+                </option>
+              ))}
+            </select>
+          </div>
           <div className="relative">
             <button
               onClick={() => setShowColumnSettings((v) => !v)}
@@ -871,25 +927,53 @@ export default function ProjectWorklogsPage({ params }: { params: Promise<{ code
               ))}
             </thead>
             <tbody className="divide-y divide-border">
-              {table.getRowModel().rows.map((row) => (
-                <tr key={row.id} className="hover:bg-muted/30">
-                  {row.getVisibleCells().map((cell) => (
-                    <td
-                      key={cell.id}
-                      className="px-4 py-3"
-                      style={{ width: cell.column.getSize() }}
-                    >
-                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
+              {table.getRowModel().rows.map((row) =>
+                row.getIsGrouped() ? (
+                  <tr key={row.id} className="bg-muted/40">
+                    <td colSpan={table.getVisibleLeafColumns().length} className="px-3 py-2">
+                      <button
+                        onClick={row.getToggleExpandedHandler()}
+                        className="flex items-center gap-1.5 text-sm font-medium text-foreground"
+                      >
+                        {row.getIsExpanded() ? (
+                          <ChevronDown className="h-4 w-4" />
+                        ) : (
+                          <ChevronRight className="h-4 w-4" />
+                        )}
+                        {row.groupingColumnId
+                          ? String(row.getGroupingValue(row.groupingColumnId) ?? "—")
+                          : "—"}
+                        <span className="text-muted-foreground font-normal">
+                          ({row.subRows.length}
+                          {", "}
+                          {row.subRows
+                            .reduce((sum, r) => sum + (r.original.hours || 0), 0)
+                            .toFixed(2)}
+                          h)
+                        </span>
+                      </button>
                     </td>
-                  ))}
-                </tr>
-              ))}
+                  </tr>
+                ) : (
+                  <tr key={row.id} className="hover:bg-muted/30">
+                    {row.getVisibleCells().map((cell) => (
+                      <td
+                        key={cell.id}
+                        className="px-4 py-3"
+                        style={{ width: cell.column.getSize() }}
+                      >
+                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                      </td>
+                    ))}
+                  </tr>
+                )
+              )}
             </tbody>
           </table>
         </div>
       )}
 
-      {worklogsPage && worklogsPage.totalCount > worklogsPage.pageSize && (
+      {!isGrouped && worklogsPage && worklogsPage.totalCount > worklogsPage.pageSize && (
         <div className="flex items-center justify-between text-sm text-muted-foreground">
           <span>
             {t("pageRange", {

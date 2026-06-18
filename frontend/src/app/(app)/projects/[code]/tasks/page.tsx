@@ -5,11 +5,15 @@ import {
   useReactTable,
   getCoreRowModel,
   getSortedRowModel,
+  getGroupedRowModel,
+  getExpandedRowModel,
   flexRender,
   createColumnHelper,
   type SortingState,
   type VisibilityState,
   type ColumnSizingState,
+  type GroupingState,
+  type ExpandedState,
 } from "@tanstack/react-table";
 import { useTickets } from "@/queries/tickets";
 import { useViewConfiguration, useUpsertViewConfiguration } from "@/queries/view-configurations";
@@ -33,6 +37,8 @@ import {
   Plus,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
+  Layers,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useTranslations } from "next-intl";
@@ -98,6 +104,7 @@ function buildAllColumns(t: (key: string) => string) {
         const b = rowB.original.assignee?.displayName || "";
         return a.localeCompare(b);
       },
+      getGroupingValue: (row) => row.assignee?.displayName ?? "—",
     }),
     columnHelper.accessor("taskTypeName", {
       header: t("typeCol"),
@@ -166,7 +173,23 @@ interface TaskListConfig {
   columnVisibility?: VisibilityState;
   columnSizing?: ColumnSizingState;
   sorting?: SortingState;
+  grouping?: GroupingState;
 }
+
+// Columns offered in the "group by" selector — only those that yield a sensible key.
+const GROUPABLE_COLUMNS = [
+  "taskStateName",
+  "ticketPriorityName",
+  "assignee",
+  "taskTypeName",
+] as const;
+
+const GROUPABLE_COLUMN_LABELS: Record<(typeof GROUPABLE_COLUMNS)[number], string> = {
+  taskStateName: "statusCol",
+  ticketPriorityName: "priorityCol",
+  assignee: "assigneeCol",
+  taskTypeName: "typeCol",
+};
 
 function getFieldValue(ticket: Ticket, field: string): string {
   switch (field) {
@@ -280,11 +303,14 @@ export default function TaskListPage({ params }: { params: Promise<{ code: strin
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
   const [columnSizing, setColumnSizing] = useState<ColumnSizingState>({});
+  const [grouping, setGrouping] = useState<GroupingState>([]);
+  const [expanded, setExpanded] = useState<ExpandedState>(true);
 
   useEffect(() => {
     setSorting(savedConfig.sorting ?? []);
     setColumnVisibility(savedConfig.columnVisibility ?? {});
     setColumnSizing(savedConfig.columnSizing ?? {});
+    setGrouping(savedConfig.grouping ?? []);
   }, [savedConfig]);
 
   // Sorting is done server-side over the whole result set (not just the current
@@ -294,11 +320,21 @@ export default function TaskListPage({ params }: { params: Promise<{ code: strin
     return sort ? { sortField: sort.id, sortDirection: sort.desc ? "desc" : "asc" } : {};
   }, [sorting]);
 
+  // Grouping is client-side, so it must see the whole dataset — when active we load
+  // up to the server cap on a single page and hide the pager.
+  const isGrouped = grouping.length > 0;
+  const GROUPED_PAGE_SIZE = 500;
+
   const {
     data: tickets,
     isLoading,
     error,
-  } = useTickets(projectId, { ...serverParams, ...serverSort, page, pageSize: 25 });
+  } = useTickets(projectId, {
+    ...serverParams,
+    ...serverSort,
+    page: isGrouped ? 1 : page,
+    pageSize: isGrouped ? GROUPED_PAGE_SIZE : 25,
+  });
 
   const filteredTickets = useMemo(() => {
     const items = tickets?.items ?? [];
@@ -353,35 +389,45 @@ export default function TaskListPage({ params }: { params: Promise<{ code: strin
     (updater: SortingState | ((old: SortingState) => SortingState)) => {
       setSorting((prev) => {
         const next = typeof updater === "function" ? updater(prev) : updater;
-        persistConfig({ sorting: next, columnVisibility, columnSizing });
+        persistConfig({ sorting: next, columnVisibility, columnSizing, grouping });
         return next;
       });
       // Server-side sort changes the ordering of the entire dataset — go back to page 1.
       setPage(1);
     },
-    [persistConfig, columnVisibility, columnSizing]
+    [persistConfig, columnVisibility, columnSizing, grouping]
   );
 
   const handleColumnVisibilityChange = useCallback(
     (updater: VisibilityState | ((old: VisibilityState) => VisibilityState)) => {
       setColumnVisibility((prev) => {
         const next = typeof updater === "function" ? updater(prev) : updater;
-        persistConfig({ sorting, columnVisibility: next, columnSizing });
+        persistConfig({ sorting, columnVisibility: next, columnSizing, grouping });
         return next;
       });
     },
-    [persistConfig, sorting, columnSizing]
+    [persistConfig, sorting, columnSizing, grouping]
   );
 
   const handleColumnSizingChange = useCallback(
     (updater: ColumnSizingState | ((old: ColumnSizingState) => ColumnSizingState)) => {
       setColumnSizing((prev) => {
         const next = typeof updater === "function" ? updater(prev) : updater;
-        persistConfig({ sorting, columnVisibility, columnSizing: next });
+        persistConfig({ sorting, columnVisibility, columnSizing: next, grouping });
         return next;
       });
     },
-    [persistConfig, sorting, columnVisibility]
+    [persistConfig, sorting, columnVisibility, grouping]
+  );
+
+  const handleGroupingChange = useCallback(
+    (next: GroupingState) => {
+      setGrouping(next);
+      setExpanded(true);
+      setPage(1);
+      persistConfig({ sorting, columnVisibility, columnSizing, grouping: next });
+    },
+    [persistConfig, sorting, columnVisibility, columnSizing]
   );
 
   // TanStack Table returns non-memoizable functions — React Compiler skips this
@@ -390,13 +436,16 @@ export default function TaskListPage({ params }: { params: Promise<{ code: strin
   const table = useReactTable({
     data: filteredTickets,
     columns: allColumns,
-    state: { sorting, columnVisibility, columnSizing },
+    state: { sorting, columnVisibility, columnSizing, grouping, expanded },
     onSortingChange: handleSortingChange,
     onColumnVisibilityChange: handleColumnVisibilityChange,
     onColumnSizingChange: handleColumnSizingChange,
+    onExpandedChange: setExpanded,
     manualSorting: true,
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
+    getGroupedRowModel: getGroupedRowModel(),
+    getExpandedRowModel: getExpandedRowModel(),
     columnResizeMode: "onChange",
     meta: {
       onRowClick: (ticket: Ticket) => setSelectedTicket(ticket),
@@ -421,15 +470,25 @@ export default function TaskListPage({ params }: { params: Promise<{ code: strin
         <FilterBar viewKey={viewKey} viewType="TaskList" filterFields={taskFilterFields} />
 
         <div className="flex items-center justify-between mb-4 mt-2">
-          <p className="text-sm text-muted-foreground">
-            {localFilters.length > 0
-              ? t("pageRange", {
-                  from: 1,
-                  to: filteredTickets.length,
-                  total: tickets?.totalCount ?? 0,
-                })
-              : `${tickets?.totalCount ?? 0}`}
-          </p>
+          <div className="flex items-center gap-3">
+            <p className="text-sm text-muted-foreground">
+              {localFilters.length > 0
+                ? t("pageRange", {
+                    from: 1,
+                    to: filteredTickets.length,
+                    total: tickets?.totalCount ?? 0,
+                  })
+                : `${tickets?.totalCount ?? 0}`}
+            </p>
+            {isGrouped && tickets && tickets.totalCount > tickets.items.length && (
+              <span className="text-xs text-amber-600">
+                {t("groupingTruncated", {
+                  shown: tickets.items.length,
+                  total: tickets.totalCount,
+                })}
+              </span>
+            )}
+          </div>
           <div className="flex items-center gap-2">
             <button
               onClick={() => setShowCreateDialog(true)}
@@ -476,6 +535,22 @@ export default function TaskListPage({ params }: { params: Promise<{ code: strin
               <Download className="h-4 w-4" />
               {t("export")}
             </button>
+            <div className="inline-flex items-center gap-1.5 px-2 py-1.5 text-sm text-muted-foreground border border-border rounded-lg">
+              <Layers className="h-4 w-4" />
+              <select
+                value={grouping[0] ?? ""}
+                onChange={(e) => handleGroupingChange(e.target.value ? [e.target.value] : [])}
+                className="bg-transparent text-sm text-foreground focus:outline-none"
+                aria-label={t("groupBy")}
+              >
+                <option value="">{t("groupByNone")}</option>
+                {GROUPABLE_COLUMNS.map((colId) => (
+                  <option key={colId} value={colId}>
+                    {t(GROUPABLE_COLUMN_LABELS[colId])}
+                  </option>
+                ))}
+              </select>
+            </div>
             <div className="relative">
               <button
                 onClick={() => setShowColumnSettings((v) => !v)}
@@ -559,30 +634,53 @@ export default function TaskListPage({ params }: { params: Promise<{ code: strin
                   ))}
                 </thead>
                 <tbody className="divide-y divide-border">
-                  {table.getRowModel().rows.map((row) => (
-                    <tr
-                      key={row.id}
-                      className={cn(
-                        "hover:bg-muted/30 cursor-pointer transition-colors",
-                        selectedTicket?.id === row.original.id && "bg-muted/50"
-                      )}
-                      onClick={() => setSelectedTicket(row.original)}
-                    >
-                      {row.getVisibleCells().map((cell) => (
-                        <td
-                          key={cell.id}
-                          className="px-4 py-3"
-                          style={{ width: cell.column.getSize() }}
-                        >
-                          {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                  {table.getRowModel().rows.map((row) =>
+                    row.getIsGrouped() ? (
+                      <tr key={row.id} className="bg-muted/40">
+                        <td colSpan={table.getVisibleLeafColumns().length} className="px-3 py-2">
+                          <button
+                            onClick={row.getToggleExpandedHandler()}
+                            className="flex items-center gap-1.5 text-sm font-medium text-foreground"
+                          >
+                            {row.getIsExpanded() ? (
+                              <ChevronDown className="h-4 w-4" />
+                            ) : (
+                              <ChevronRight className="h-4 w-4" />
+                            )}
+                            {row.groupingColumnId
+                              ? String(row.getGroupingValue(row.groupingColumnId) ?? "—")
+                              : "—"}
+                            <span className="text-muted-foreground font-normal">
+                              ({row.subRows.length})
+                            </span>
+                          </button>
                         </td>
-                      ))}
-                    </tr>
-                  ))}
+                      </tr>
+                    ) : (
+                      <tr
+                        key={row.id}
+                        className={cn(
+                          "hover:bg-muted/30 cursor-pointer transition-colors",
+                          selectedTicket?.id === row.original.id && "bg-muted/50"
+                        )}
+                        onClick={() => setSelectedTicket(row.original)}
+                      >
+                        {row.getVisibleCells().map((cell) => (
+                          <td
+                            key={cell.id}
+                            className="px-4 py-3"
+                            style={{ width: cell.column.getSize() }}
+                          >
+                            {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                          </td>
+                        ))}
+                      </tr>
+                    )
+                  )}
                 </tbody>
               </table>
             </div>
-            {tickets && tickets.totalPages > 1 && (
+            {!isGrouped && tickets && tickets.totalPages > 1 && (
               <div className="flex items-center justify-between pt-3">
                 <p className="text-sm text-muted-foreground">
                   {t("pageOf", { page: tickets.page, total: tickets.totalPages })}

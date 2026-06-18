@@ -458,6 +458,9 @@
     "export": "Export",
     "exportDownloaded": "Export stažen",
     "exportFailed": "Export se nezdařil",
+    "groupBy": "Seskupit dle",
+    "groupByNone": "Bez seskupení",
+    "groupingTruncated": "Seskupení zahrnuje prvních {shown} z {total} úkolů",
     "resetView": "Obnovit pohled",
     "subtitle": "Časové záznamy pro tento projekt",
     "totalSuffix": " — {count} celkem",
@@ -538,6 +541,8 @@
     "nextPage": "Další strana",
     "pageRange": "{from}–{to} z {total}",
     "includeSubprojects": "Včetně podprojektů",
+    "groupBy": "Seskupit dle",
+    "groupByNone": "Bez seskupení",
     "aiSummary": "AI souhrn"
   },
   "FilterBar": {

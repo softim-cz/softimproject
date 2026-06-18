@@ -458,6 +458,9 @@
     "export": "Export",
     "exportDownloaded": "Export downloaded",
     "exportFailed": "Export failed",
+    "groupBy": "Group by",
+    "groupByNone": "No grouping",
+    "groupingTruncated": "Grouping covers the first {shown} of {total} tasks",
     "resetView": "Reset view",
     "subtitle": "Tasks for this project",
     "totalSuffix": " — {count} total",
@@ -538,6 +541,8 @@
     "nextPage": "Next page",
     "pageRange": "{from}–{to} of {total}",
     "includeSubprojects": "Include sub-projects",
+    "groupBy": "Group by",
+    "groupByNone": "No grouping",
     "aiSummary": "AI summary"
   },
   "FilterBar": {
