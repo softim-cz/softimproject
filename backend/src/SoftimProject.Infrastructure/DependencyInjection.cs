@@ -30,6 +30,19 @@ public static class DependencyInjection
         // Services
         services.AddHttpContextAccessor();
         services.AddScoped<ICurrentUserService, CurrentUserService>();
+
+        // Firemní adresář (Graph) pro doplnění firemní role / firmy při provisioningu.
+        // Vyžaduje app-only přístup (AzureAd ClientSecret + Graph perm User.Read.All).
+        // Bez konfigurace se použije no-op implementace a provisioning běží beze změny.
+        var hasGraphCredentials =
+            !string.IsNullOrWhiteSpace(configuration["AzureAd:TenantId"])
+            && !string.IsNullOrWhiteSpace(configuration["AzureAd:ClientId"])
+            && !string.IsNullOrWhiteSpace(configuration["AzureAd:ClientSecret"]);
+        if (hasGraphCredentials)
+            services.AddScoped<IUserDirectory, GraphUserDirectory>();
+        else
+            services.AddScoped<IUserDirectory, NullUserDirectory>();
+
         services.AddScoped<IBlobStorageService, BlobStorageService>();
         services.AddScoped<IAiService, AiService>();
 

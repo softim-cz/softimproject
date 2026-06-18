@@ -11,13 +11,18 @@ public sealed class CurrentUserService : ICurrentUserService
 {
     private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly IApplicationDbContext _dbContext;
+    private readonly IUserDirectory _userDirectory;
     private Guid? _userId;
     private GlobalRole? _globalRole;
 
-    public CurrentUserService(IHttpContextAccessor httpContextAccessor, IApplicationDbContext dbContext)
+    public CurrentUserService(
+        IHttpContextAccessor httpContextAccessor,
+        IApplicationDbContext dbContext,
+        IUserDirectory userDirectory)
     {
         _httpContextAccessor = httpContextAccessor;
         _dbContext = dbContext;
+        _userDirectory = userDirectory;
     }
 
     private ClaimsPrincipal? User => _httpContextAccessor.HttpContext?.User;
@@ -58,6 +63,11 @@ public sealed class CurrentUserService : ICurrentUserService
 
         // Auto-provision user on first login
         var hasAnyUsers = await _dbContext.Users.AnyAsync(cancellationToken);
+
+        // Firemní role a firma nejsou v přihlašovacím tokenu — doplníme je z Graphu
+        // (jen jednou, při prvním přihlášení). Při nedostupnosti zůstanou prázdné.
+        var profile = await _userDirectory.GetProfileAsync(EntraObjectId, cancellationToken);
+
         var user = new User
         {
             Id = Guid.NewGuid(),
@@ -66,6 +76,8 @@ public sealed class CurrentUserService : ICurrentUserService
             DisplayName = DisplayName ?? Email ?? "Unknown User",
             FirstName = FirstName,
             LastName = LastName,
+            CorporateRole = profile?.JobTitle,
+            CompanyName = profile?.CompanyName,
             GlobalRole = hasAnyUsers ? GlobalRole.User : GlobalRole.Admin, // First user becomes Admin
             IsActive = true,
             CreatedAt = DateTime.UtcNow
