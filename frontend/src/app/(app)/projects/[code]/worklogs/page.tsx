@@ -600,7 +600,7 @@ export default function ProjectWorklogsPage({ params }: { params: Promise<{ code
   // Grouping is client-side, so it needs the whole dataset — load up to the server cap
   // on a single page and hide the pager while grouped.
   const isGrouped = grouping.length > 0;
-  const GROUPED_PAGE_SIZE = 1000;
+  const GROUPED_PAGE_SIZE = 500;
 
   const {
     data: worklogsPage,
