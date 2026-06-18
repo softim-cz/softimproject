@@ -201,7 +201,13 @@
     "saving": "Ukládám...",
     "save": "Uložit",
     "updated": "Výkaz aktualizován",
-    "updateFailed": "Aktualizace výkazu se nezdařila"
+    "updateFailed": "Aktualizace výkazu se nezdařila",
+    "aiSummary": "AI souhrn",
+    "aiSummaryEmpty": "Zatím bez souhrnu.",
+    "aiSummaryGenerate": "Generovat",
+    "aiSummaryGenerating": "Generuji…",
+    "aiSummaryTriggered": "AI souhrn vygenerován",
+    "aiSummaryFailed": "Generování AI souhrnu se nezdařilo"
   },
   "WorklogsPage": {
     "title": "Výkazy",

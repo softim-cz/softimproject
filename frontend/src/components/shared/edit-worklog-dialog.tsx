@@ -5,9 +5,9 @@ import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { useTranslations } from "next-intl";
-import { X } from "lucide-react";
+import { X, Sparkles } from "lucide-react";
 import { format } from "date-fns";
-import { useUpdateWorklog } from "@/queries/worklogs";
+import { useUpdateWorklog, useResummarizeWorklog } from "@/queries/worklogs";
 import { useTickets } from "@/queries/tickets";
 import { useAdminUsers } from "@/queries/admin";
 import { useCurrentUser } from "@/queries/auth";
@@ -26,6 +26,7 @@ export function EditWorklogDialog({
   const t = useTranslations("EditWorklog");
   const tCommon = useTranslations("Common");
   const updateWorklog = useUpdateWorklog();
+  const resummarize = useResummarizeWorklog();
   const { data: currentUser } = useCurrentUser();
   const isAdmin = currentUser?.globalRole === GlobalRole.Admin;
   const { data: adminUsers } = useAdminUsers();
@@ -41,6 +42,18 @@ export function EditWorklogDialog({
     resolver: zodResolver(updateWorklogSchema),
   });
   const description = useWatch({ control, name: "description" }) ?? "";
+
+  const handleResummarize = async () => {
+    if (!worklog) return;
+    try {
+      await resummarize.mutateAsync({ projectId: worklog.projectId, worklogId: worklog.id });
+      toast.success(t("aiSummaryTriggered"));
+    } catch (err) {
+      const resp = (err as { response?: { data?: { errors?: string[]; message?: string } } })
+        .response;
+      toast.error(resp?.data?.errors?.[0] ?? resp?.data?.message ?? t("aiSummaryFailed"));
+    }
+  };
 
   useEffect(() => {
     if (worklog && open) {
@@ -202,6 +215,26 @@ export function EditWorklogDialog({
             {errors.invoiced && (
               <p className="text-xs text-destructive mt-1">{errors.invoiced.message}</p>
             )}
+          </div>
+
+          <div>
+            <div className="flex items-center justify-between mb-1">
+              <label className="block text-sm font-medium text-card-foreground">
+                {t("aiSummary")}
+              </label>
+              <button
+                type="button"
+                onClick={handleResummarize}
+                disabled={resummarize.isPending}
+                className="inline-flex items-center gap-1 text-xs font-medium text-accent-orange hover:bg-accent-orange/10 rounded px-2 py-1 disabled:opacity-50"
+              >
+                <Sparkles className="h-3.5 w-3.5" />
+                {resummarize.isPending ? t("aiSummaryGenerating") : t("aiSummaryGenerate")}
+              </button>
+            </div>
+            <p className="text-sm text-muted-foreground rounded-lg border border-border bg-muted/30 px-3 py-2 min-h-[2.25rem]">
+              {worklog?.aiSummary?.trim() ? worklog.aiSummary : t("aiSummaryEmpty")}
+            </p>
           </div>
 
           <div className="flex justify-end gap-3 pt-2">

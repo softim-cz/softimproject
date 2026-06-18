@@ -16,6 +16,11 @@ public interface IAiService
         string? userInstruction = null,
         CancellationToken cancellationToken = default);
 
+    Task<(string Summary, AiTokenUsage Usage, string Prompt)> SummarizeWorklogAsync(
+        string ticketTitle,
+        string description,
+        CancellationToken cancellationToken = default);
+
     Task<(string Report, AiTokenUsage Usage, string Prompt)> GenerateReportAsync(
         string projectName,
         string reportType,

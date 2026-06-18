@@ -159,3 +159,17 @@ export function useDeleteWorklog() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.worklogs.all() }),
   });
 }
+
+export function useResummarizeWorklog() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ projectId, worklogId }: { projectId: string; worklogId: string }) => {
+      const { data } = await apiClient.post<{ invocationId: string }>(
+        `/api/v1/worklogs/${worklogId}/ai/resummarize`,
+        { projectId }
+      );
+      return data;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.worklogs.all() }),
+  });
+}
