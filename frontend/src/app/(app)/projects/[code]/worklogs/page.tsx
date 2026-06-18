@@ -42,7 +42,7 @@ import {
   ArrowDown,
   ArrowUpDown,
 } from "lucide-react";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { createWorklogSchema, type CreateWorklogInput } from "@/schemas/worklog";
 import { toast } from "sonner";
@@ -228,7 +228,7 @@ function AddWorklogDialog({
     register,
     handleSubmit,
     reset,
-    watch,
+    control,
     formState: { errors, isSubmitting },
   } = useForm<CreateWorklogInput>({
     resolver: zodResolver(createWorklogSchema),
@@ -239,7 +239,7 @@ function AddWorklogDialog({
       description: "",
     },
   });
-  const description = watch("description") ?? "";
+  const description = useWatch({ control, name: "description" }) ?? "";
 
   const onSubmit = async (data: CreateWorklogInput) => {
     try {

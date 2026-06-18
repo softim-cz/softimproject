@@ -23,7 +23,7 @@ import {
   CalendarDays,
 } from "lucide-react";
 import { WorklogCalendar } from "@/components/worklogs/worklog-calendar";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { createWorklogSchema, type CreateWorklogInput } from "@/schemas/worklog";
 import { toast } from "sonner";
@@ -169,7 +169,7 @@ function QuickLogDialog({ open, onClose }: { open: boolean; onClose: () => void 
     register,
     handleSubmit,
     reset,
-    watch,
+    control,
     formState: { errors, isSubmitting },
   } = useForm<CreateWorklogInput>({
     resolver: zodResolver(createWorklogSchema),
@@ -179,8 +179,8 @@ function QuickLogDialog({ open, onClose }: { open: boolean; onClose: () => void 
       description: "",
     },
   });
-  const description = watch("description") ?? "";
-  const selectedProjectId = watch("projectId");
+  const description = useWatch({ control, name: "description" }) ?? "";
+  const selectedProjectId = useWatch({ control, name: "projectId" });
   const { data: ticketsPage } = useTickets(selectedProjectId || "", { pageSize: 200 });
   const tickets = ticketsPage?.items ?? [];
 
