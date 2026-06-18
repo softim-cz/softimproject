@@ -21,10 +21,12 @@ public class WorklogsController : ApiControllerBase
         [FromQuery] DateOnly? to = null,
         [FromQuery] Guid? userId = null,
         [FromQuery] bool includeSubprojects = false,
+        [FromQuery] string? sortField = null,
+        [FromQuery] string? sortDirection = null,
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 50)
     {
-        return Ok(await Mediator.Send(new GetWorklogsQuery(projectId, ticketId, from, to, userId, includeSubprojects, page, pageSize)));
+        return Ok(await Mediator.Send(new GetWorklogsQuery(projectId, ticketId, from, to, userId, includeSubprojects, sortField, sortDirection, page, pageSize)));
     }
 
     [HttpGet("{worklogId:guid}")]

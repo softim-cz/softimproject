@@ -30,6 +30,8 @@ public class TicketsController : ApiControllerBase
         [FromQuery] string? assignee = null,
         [FromQuery] string? taskTypeName = null,
         [FromQuery] DateOnly? dueDate = null,
+        [FromQuery] string? sortField = null,
+        [FromQuery] string? sortDirection = null,
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 25)
     {
@@ -45,6 +47,8 @@ public class TicketsController : ApiControllerBase
             assignee,
             taskTypeName,
             dueDate,
+            sortField,
+            sortDirection,
             page,
             pageSize)));
     }

@@ -62,7 +62,8 @@ public sealed class ExportXlsxQueryHandler(IApplicationDbContext dbContext)
             if (request.DueDate.HasValue)
                 query = query.Where(t => t.DueDate == request.DueDate.Value);
 
-            var ordered = ApplyTicketSort(query, request.SortField, request.SortDirection);
+            var ordered = TicketSort.TryApply(query, request.SortField, request.SortDirection)
+                ?? query.OrderBy(t => t.Position);
 
             var row = 2;
             await foreach (var ticket in ordered
@@ -126,37 +127,6 @@ public sealed class ExportXlsxQueryHandler(IApplicationDbContext dbContext)
 
         worksheet.Cells.AutoFitColumns();
         return await package.GetAsByteArrayAsync(cancellationToken);
-    }
-
-    private static IQueryable<Ticket> ApplyTicketSort(
-        IQueryable<Ticket> query,
-        string? sortField,
-        string? sortDirection)
-    {
-        var descending = string.Equals(sortDirection, "desc", StringComparison.OrdinalIgnoreCase);
-
-        return sortField switch
-        {
-            "key" or "number" => descending ? query.OrderByDescending(t => t.Number) : query.OrderBy(t => t.Number),
-            "title" => descending ? query.OrderByDescending(t => t.Title) : query.OrderBy(t => t.Title),
-            "taskStateName" => descending
-                ? query.OrderByDescending(t => t.TaskState.Name)
-                : query.OrderBy(t => t.TaskState.Name),
-            "ticketPriorityName" => descending
-                ? query.OrderByDescending(t => t.TicketPriority.Name)
-                : query.OrderBy(t => t.TicketPriority.Name),
-            "assignee" => descending
-                ? query.OrderByDescending(t => t.Assignee != null ? t.Assignee.DisplayName : string.Empty)
-                : query.OrderBy(t => t.Assignee != null ? t.Assignee.DisplayName : string.Empty),
-            "dueDate" => descending ? query.OrderByDescending(t => t.DueDate) : query.OrderBy(t => t.DueDate),
-            "estimatedHours" => descending
-                ? query.OrderByDescending(t => t.EstimatedHours)
-                : query.OrderBy(t => t.EstimatedHours),
-            "createdAt" => descending
-                ? query.OrderByDescending(t => t.CreatedAt)
-                : query.OrderBy(t => t.CreatedAt),
-            _ => query.OrderBy(t => t.Position),
-        };
     }
 
     private static object? GetTicketFieldValue(TicketExportRow ticket, string field) => field switch
