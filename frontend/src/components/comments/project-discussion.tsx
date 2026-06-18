@@ -11,6 +11,7 @@ import { createCommentSchema, type CreateCommentInput } from "@/schemas/comment"
 import { MarkdownEditor } from "@/components/shared/markdown-editor";
 import { MarkdownContent } from "@/components/shared/markdown-content";
 import { Skeleton } from "@/components/shared/loading-skeleton";
+import { Avatar } from "@/components/shared/avatar";
 import type { Comment } from "@/types";
 
 /**
@@ -114,19 +115,12 @@ export function ProjectDiscussion({ projectId }: { projectId: string }) {
 function ProjectCommentCard({ comment }: { comment: Comment }) {
   const t = useTranslations("ProjectDiscussion");
   const displayName = comment.externalUser || comment.author.displayName;
-  const initials = displayName
-    .split(" ")
-    .map((n) => n[0])
-    .join("")
-    .slice(0, 2);
 
   return (
     <div className="rounded-lg border border-border p-4">
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-2">
-          <div className="h-6 w-6 rounded-full bg-primary-navy text-white flex items-center justify-center text-[10px] font-bold">
-            {initials}
-          </div>
+          <Avatar name={displayName} size="sm" />
           <span className="text-sm font-medium text-foreground">{displayName}</span>
           {comment.externalUser && (
             <span

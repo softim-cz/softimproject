@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { TableSkeleton } from "@/components/shared/loading-skeleton";
 import { EmptyState } from "@/components/shared/empty-state";
+import { Avatar } from "@/components/shared/avatar";
 import {
   Users,
   Shield,
@@ -132,13 +133,7 @@ function UserManagement() {
               <tr key={user.id} className="hover:bg-muted/30">
                 <td className="px-4 py-3">
                   <div className="flex items-center gap-3">
-                    <div className="h-8 w-8 rounded-full bg-primary-navy text-white flex items-center justify-center text-xs font-bold">
-                      {user.displayName
-                        .split(" ")
-                        .map((n) => n[0])
-                        .join("")
-                        .slice(0, 2)}
-                    </div>
+                    <Avatar name={user.displayName} size="lg" />
                     <div>
                       <span className="text-sm font-medium text-foreground block">
                         {user.displayName}
