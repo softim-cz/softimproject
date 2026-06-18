@@ -201,7 +201,13 @@
     "saving": "Saving...",
     "save": "Save",
     "updated": "Worklog updated",
-    "updateFailed": "Failed to update worklog"
+    "updateFailed": "Failed to update worklog",
+    "aiSummary": "AI summary",
+    "aiSummaryEmpty": "No summary yet.",
+    "aiSummaryGenerate": "Generate",
+    "aiSummaryGenerating": "Generating…",
+    "aiSummaryTriggered": "AI summary generated",
+    "aiSummaryFailed": "Failed to generate AI summary"
   },
   "WorklogsPage": {
     "title": "Worklogs",

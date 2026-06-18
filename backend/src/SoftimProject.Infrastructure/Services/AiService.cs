@@ -39,6 +39,16 @@ public sealed class AiService : IAiService
         return (text, usage, prompt);
     }
 
+    public async Task<(string Summary, AiTokenUsage Usage, string Prompt)> SummarizeWorklogAsync(string ticketTitle, string description, CancellationToken cancellationToken = default)
+    {
+        var prompt = BuildWorklogSummarizePrompt(ticketTitle, description);
+        if (_chat is null)
+            return (string.Empty, new AiTokenUsage(0, 0), prompt);
+
+        var (text, usage) = await CompleteAsync(prompt, cancellationToken);
+        return (text, usage, prompt);
+    }
+
     public async Task<(string Report, AiTokenUsage Usage, string Prompt)> GenerateReportAsync(string projectName, string reportType, string periodDescription, string data, CancellationToken cancellationToken = default)
     {
         var prompt = $"""
@@ -115,6 +125,23 @@ public sealed class AiService : IAiService
         prompt.AppendLine("Comments:");
         foreach (var comment in comments)
             prompt.AppendLine($"- {comment}");
+        return prompt.ToString();
+    }
+
+    internal static string BuildWorklogSummarizePrompt(string ticketTitle, string description)
+    {
+        var prompt = new StringBuilder();
+        prompt.AppendLine("You condense a single work-log entry into one short, factual sentence for a timesheet overview.");
+        prompt.AppendLine();
+        prompt.AppendLine("Follow these rules exactly:");
+        prompt.AppendLine("1. Write the summary in the SAME LANGUAGE as the work-log description below. Never translate. If it is in Czech, answer in Czech.");
+        prompt.AppendLine("2. Output a SINGLE plain-text sentence, max ~25 words. No Markdown, no headings, no bullet points, no quotes.");
+        prompt.AppendLine("3. Be factual — describe only what the description states. Do not invent anything.");
+        prompt.AppendLine("4. Do not add any text before or after the sentence.");
+        prompt.AppendLine();
+        prompt.AppendLine("--- WORK LOG ---");
+        prompt.AppendLine($"Ticket: {ticketTitle}");
+        prompt.AppendLine($"Description: {description}");
         return prompt.ToString();
     }
 }

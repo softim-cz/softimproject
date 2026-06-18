@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using SoftimProject.Application.Features.Worklogs.AiHistory;
 using SoftimProject.Application.Features.Worklogs.CreateWorklog;
 using SoftimProject.Application.Features.Worklogs.CreateWorklogsBatch;
 using SoftimProject.Application.Features.Worklogs.DeleteWorklog;
@@ -85,4 +86,14 @@ public class WorklogsController : ApiControllerBase
         await Mediator.Send(new DeleteWorklogCommand(projectId, worklogId));
         return NoContent();
     }
+
+    /// <summary>Generates (or regenerates) the AI summary for a worklog entry.</summary>
+    [HttpPost("{worklogId:guid}/ai/resummarize")]
+    public async Task<ActionResult<object>> Resummarize(Guid worklogId, [FromBody] ResummarizeWorklogBody body)
+    {
+        var id = await Mediator.Send(new ResummarizeWorklogCommand(body.ProjectId, worklogId));
+        return Ok(new { invocationId = id });
+    }
+
+    public sealed record ResummarizeWorklogBody(Guid ProjectId);
 }
