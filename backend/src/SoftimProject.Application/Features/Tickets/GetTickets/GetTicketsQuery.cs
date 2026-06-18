@@ -98,7 +98,9 @@ public sealed class GetTicketsQueryHandler(
         var totalCount = await ordered.CountAsync(cancellationToken);
 
         var page = Math.Max(1, request.Page);
-        var pageSize = Math.Clamp(request.PageSize, 1, 100);
+        // Upper bound raised to 500 so the client can load a whole project's tasks in one
+        // page for client-side grouping; normal paged browsing still uses 25.
+        var pageSize = Math.Clamp(request.PageSize, 1, 500);
 
         var items = await ordered
             .Skip((page - 1) * pageSize)

@@ -91,7 +91,9 @@ public sealed class GetWorklogsQueryHandler(
         var totalCount = await ordered.CountAsync(cancellationToken);
 
         var page = Math.Max(1, request.Page);
-        var pageSize = Math.Clamp(request.PageSize, 1, 200);
+        // Upper bound raised to 1000 so the client can load enough worklogs in one page
+        // for client-side grouping; normal paged browsing still uses 50.
+        var pageSize = Math.Clamp(request.PageSize, 1, 1000);
 
         var items = await ordered
             .Skip((page - 1) * pageSize)
