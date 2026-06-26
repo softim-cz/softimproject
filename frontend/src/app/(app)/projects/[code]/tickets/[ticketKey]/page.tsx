@@ -95,7 +95,7 @@ export default function TicketDetailPage({
   }
 
   return (
-    <div className="space-y-6 max-w-5xl">
+    <div className="space-y-6">
       <Link
         href={`/projects/${code}/board`}
         className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
@@ -104,9 +104,9 @@ export default function TicketDetailPage({
         {t("backToBoard")}
       </Link>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Main content */}
-        <div className="lg:col-span-2 space-y-6">
+      <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_22rem] gap-6">
+        {/* Main content — fluid, fills the available page width */}
+        <div className="space-y-6 min-w-0">
           <div>
             <EditableTitle ticket={ticket} canEdit={canEditTicket} />
           </div>
@@ -149,10 +149,12 @@ export default function TicketDetailPage({
           <SubTicketsSection subTickets={ticket.subTickets} projectCode={code} />
 
           {ticket.aiSummary && (
-            <div className="rounded-lg border border-purple-200 bg-purple-50 p-4">
+            <div className="rounded-lg border border-purple-200 bg-purple-50 p-4 dark:border-purple-500/30 dark:bg-purple-500/10">
               <div className="flex items-center gap-2 mb-2">
-                <Sparkles className="h-4 w-4 text-purple-600" />
-                <h3 className="text-sm font-semibold text-purple-900">{t("aiSummaryTitle")}</h3>
+                <Sparkles className="h-4 w-4 text-purple-600 dark:text-purple-300" />
+                <h3 className="text-sm font-semibold text-purple-900 dark:text-purple-200">
+                  {t("aiSummaryTitle")}
+                </h3>
               </div>
               <MarkdownContent content={ticket.aiSummary} />
             </div>
