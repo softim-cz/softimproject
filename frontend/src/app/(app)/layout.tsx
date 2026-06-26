@@ -7,17 +7,27 @@ import { useEffect } from "react";
 import { Sidebar } from "@/components/layout/sidebar";
 import { Topbar } from "@/components/layout/topbar";
 import { useUiStore } from "@/stores/ui-store";
-import { setTokenProvider } from "@/lib/api/client";
+import { setTokenProvider, setAuthFailureHandler } from "@/lib/api/client";
+import { isDevAuthMode } from "@/lib/auth/dev-mode";
 import { SignalRProvider } from "@/lib/signalr/signalr-provider";
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
-  const { isAuthenticated, inProgress, getAccessToken } = useAuth();
+  const { isAuthenticated, inProgress, getAccessToken, login } = useAuth();
   const router = useRouter();
   const sidebarCollapsed = useUiStore((s) => s.sidebarCollapsed);
 
   useEffect(() => {
     setTokenProvider(isAuthenticated ? getAccessToken : async () => null);
   }, [isAuthenticated, getAccessToken]);
+
+  // On an unrecoverable 401 (silent token refresh failed) re-run interactive
+  // login instead of looping through /login. Dev-auth never hits 401, so the
+  // handler stays unset and the API client keeps its /login fallback.
+  useEffect(() => {
+    if (isDevAuthMode) return;
+    setAuthFailureHandler(() => login());
+    return () => setAuthFailureHandler(null);
+  }, [login]);
 
   useEffect(() => {
     if (inProgress !== InteractionStatus.None) return;
