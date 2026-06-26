@@ -1,9 +1,12 @@
 @import "tailwindcss";
 @plugin "@tailwindcss/typography";
 
+/* Neutrály (pozadí, plochy, ohraničení, text) sjednoceny s firemní aplikací
+   Money — světlý „papírový" režim a tmavý „námořnický" režim (ne černá).
+   Firemní navy a oranžová značka i sémantické stavové barvy zůstávají. */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #fafaf7;
+  --foreground: #1a1a1a;
 
   /* Softim Brand Colors */
   --primary-navy: #1a2744;
@@ -13,20 +16,20 @@
   --accent-orange-light: #f07a4a;
   --accent-orange-dark: #c94d1e;
 
-  /* Semantic Colors */
-  --muted: #f5f5f5;
-  --muted-foreground: #737373;
-  --border: #e5e5e5;
-  --input: #e5e5e5;
+  /* Semantic Colors (paleta Money – světlý režim) */
+  --muted: #f1efe8;
+  --muted-foreground: #767676;
+  --border: #e7e3da;
+  --input: #cdcdcd;
   --ring: #1a2744;
   --card: #ffffff;
-  --card-foreground: #171717;
+  --card-foreground: #1a1a1a;
   --popover: #ffffff;
-  --popover-foreground: #171717;
+  --popover-foreground: #1a1a1a;
   --primary: #1a2744;
   --primary-foreground: #ffffff;
-  --secondary: #f5f5f5;
-  --secondary-foreground: #171717;
+  --secondary: #f1efe8;
+  --secondary-foreground: #1a1a1a;
   --accent: #e85d26;
   --accent-foreground: #ffffff;
   --destructive: #dc2626;
@@ -38,8 +41,8 @@
 }
 
 .dark {
-  --background: #0a0a0a;
-  --foreground: #ededed;
+  --background: #0a1628;
+  --foreground: #f2f6fb;
 
   --primary-navy: #1a2744;
   --primary-navy-light: #2a3d66;
@@ -48,19 +51,20 @@
   --accent-orange-light: #f07a4a;
   --accent-orange-dark: #c94d1e;
 
-  --muted: #262626;
-  --muted-foreground: #a3a3a3;
-  --border: #2e2e2e;
-  --input: #2e2e2e;
+  /* Semantic Colors (paleta Money – tmavý námořnický režim) */
+  --muted: #101f38;
+  --muted-foreground: #8da0be;
+  --border: #26395b;
+  --input: #33486b;
   --ring: #e85d26;
-  --card: #171717;
-  --card-foreground: #ededed;
-  --popover: #171717;
-  --popover-foreground: #ededed;
+  --card: #111f36;
+  --card-foreground: #f2f6fb;
+  --popover: #111f36;
+  --popover-foreground: #f2f6fb;
   --primary: #e85d26;
   --primary-foreground: #ffffff;
-  --secondary: #262626;
-  --secondary-foreground: #ededed;
+  --secondary: #101f38;
+  --secondary-foreground: #f2f6fb;
   --accent: #e85d26;
   --accent-foreground: #ffffff;
   --destructive: #ef4444;
