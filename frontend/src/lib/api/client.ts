@@ -13,6 +13,32 @@ export function setTokenProvider(fn: () => Promise<string | null>) {
   getTokenFn = fn;
 }
 
+// Wired from the app layout (MSAL mode only). Called when a request is rejected
+// with 401 and the token can't be refreshed silently — triggers an interactive
+// loginRedirect that actually re-establishes the session. Without this we'd hard
+// reload to /login, which bounces straight back to the dashboard while a stale
+// account lingers in the MSAL cache, producing an endless reload loop.
+let onAuthFailure: (() => void) | null = null;
+
+export function setAuthFailureHandler(fn: (() => void) | null) {
+  onAuthFailure = fn;
+}
+
+// Guard against a tight interactive-login loop when re-auth keeps failing (e.g.
+// misconfigured Entra). If we already tried recently, fall back to the static
+// login screen instead of bouncing to Microsoft again.
+const REAUTH_COOLDOWN_MS = 30_000;
+function shouldAttemptReauth(): boolean {
+  try {
+    const last = Number(window.sessionStorage.getItem("softim-last-reauth") || 0);
+    if (Date.now() - last < REAUTH_COOLDOWN_MS) return false;
+    window.sessionStorage.setItem("softim-last-reauth", String(Date.now()));
+    return true;
+  } catch {
+    return true;
+  }
+}
+
 apiClient.interceptors.request.use(async (config) => {
   if (isDevAuthMode) {
     config.headers["X-Dev-User-Id"] = getDevUserId();
@@ -50,10 +76,16 @@ apiClient.interceptors.response.use(
       }
     }
 
-    // If retry failed or no token provider, redirect to login (once)
+    // Silent refresh failed (or no token provider). Force an interactive
+    // re-login that re-establishes the session, instead of a hard reload to
+    // /login that would just loop back to the dashboard with a stale account.
     if (error.response?.status === 401 && typeof window !== "undefined" && !isRedirecting) {
       isRedirecting = true;
-      window.location.href = "/login";
+      if (onAuthFailure && shouldAttemptReauth()) {
+        onAuthFailure();
+      } else {
+        window.location.href = "/login";
+      }
     }
 
     return Promise.reject(error);
