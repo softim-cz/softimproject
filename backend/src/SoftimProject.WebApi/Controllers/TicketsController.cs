@@ -6,6 +6,7 @@ using SoftimProject.Application.Features.Tickets.GetTicketByNumber;
 using SoftimProject.Application.Common;
 using SoftimProject.Application.Features.Tickets.GetTickets;
 using SoftimProject.Application.Features.Tickets.MoveTicket;
+using SoftimProject.Application.Features.Tickets.SetWatch;
 using SoftimProject.Application.Features.Tickets.UpdateTicket;
 using SoftimProject.Application.Features.Tickets;
 using SoftimProject.Application.Features.Projects.GitHub;
@@ -103,6 +104,16 @@ public class TicketsController : ApiControllerBase
         await Mediator.Send(new DeleteTicketCommand(projectId, ticketId));
         return NoContent();
     }
+
+    /// <summary>Sets whether the current user watches (follows) the ticket. Default is not watching.</summary>
+    [HttpPut("{ticketId:guid}/watch")]
+    public async Task<IActionResult> SetWatch(Guid projectId, Guid ticketId, [FromBody] SetWatchBody body)
+    {
+        await Mediator.Send(new SetTicketWatchCommand(projectId, ticketId, body.Watching));
+        return NoContent();
+    }
+
+    public sealed record SetWatchBody(bool Watching);
 
     // --- GitHub integration per ticket ---
 

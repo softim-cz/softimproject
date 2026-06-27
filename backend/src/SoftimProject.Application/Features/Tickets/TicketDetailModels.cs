@@ -77,6 +77,7 @@ public sealed record TicketDetailDto(
     string? ImplementationNotes,
     string? LastComment,
     string? AiSummary,
+    bool IsWatching,
     DateTime CreatedAt,
     DateTime? UpdatedAt,
     List<TicketCommentDto> Comments,
@@ -86,7 +87,9 @@ public sealed record TicketDetailDto(
 
 internal static class TicketDetailProjections
 {
-    public static readonly Expression<Func<Ticket, TicketDetailDto>> Detail = ticket => new TicketDetailDto(
+    // IsWatching is evaluated per current user, so the projection is built per
+    // request rather than as a shared static expression.
+    public static Expression<Func<Ticket, TicketDetailDto>> Detail(Guid? currentUserId) => ticket => new TicketDetailDto(
         ticket.Id,
         ticket.Number,
         ticket.Project.Code + "-" + ticket.Number,
@@ -123,6 +126,7 @@ internal static class TicketDetailProjections
         ticket.ImplementationNotes,
         ticket.LastComment,
         ticket.AiSummary,
+        currentUserId != null && ticket.Watchers.Any(watcher => watcher.UserId == currentUserId),
         ticket.CreatedAt,
         ticket.UpdatedAt,
         ticket.Comments

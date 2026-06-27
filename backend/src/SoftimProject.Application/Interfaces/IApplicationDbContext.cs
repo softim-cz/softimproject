@@ -41,6 +41,7 @@ public interface IApplicationDbContext
     DbSet<LinkedCommit> LinkedCommits { get; }
     DbSet<AiInvocation> AiInvocations { get; }
     DbSet<ProcessedWebhookDelivery> ProcessedWebhookDeliveries { get; }
+    DbSet<TicketWatcher> TicketWatchers { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }

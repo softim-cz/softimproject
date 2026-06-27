@@ -137,3 +137,24 @@ export function useUpdateTicket() {
       ),
   });
 }
+
+export function useSetTicketWatch() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      projectId,
+      ticketId,
+      watching,
+    }: {
+      projectId: string;
+      ticketId: string;
+      watching: boolean;
+    }) => {
+      await apiClient.put(`/api/v1/projects/${projectId}/tickets/${ticketId}/watch`, { watching });
+    },
+    // listRoot prefix-matches the detail and by-number query keys, so this
+    // refreshes whichever ticket query the detail page is using.
+    onSuccess: (_, { projectId }) =>
+      invalidateQueryKeys(queryClient, queryKeys.tickets.listRoot(projectId)),
+  });
+}

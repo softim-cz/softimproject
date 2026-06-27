@@ -1,7 +1,7 @@
 "use client";
 
 import { use } from "react";
-import { useTicketByNumber, useUpdateTicket } from "@/queries/tickets";
+import { useTicketByNumber, useUpdateTicket, useSetTicketWatch } from "@/queries/tickets";
 import { useProjectByCode, useProjectUsers } from "@/queries/projects";
 import { useTaskStates, useTicketPriorities } from "@/queries/lookups";
 import { useCurrentUser } from "@/queries/auth";
@@ -10,7 +10,17 @@ import { PriorityBadge } from "@/components/shared/priority-badge";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { Skeleton } from "@/components/shared/loading-skeleton";
 import { MarkdownContent } from "@/components/shared/markdown-content";
-import { User, Calendar, Clock, Sparkles, ChevronLeft, FileText, ExternalLink } from "lucide-react";
+import {
+  User,
+  Calendar,
+  Clock,
+  Sparkles,
+  ChevronLeft,
+  FileText,
+  ExternalLink,
+  Eye,
+  EyeOff,
+} from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
 import { useLocale, useTranslations } from "next-intl";
@@ -56,6 +66,7 @@ export default function TicketDetailPage({
   const { data: priorities } = useTicketPriorities(project?.projectTemplateId);
   const { data: projectUsers } = useProjectUsers();
   const updateTicket = useUpdateTicket();
+  const setWatch = useSetTicketWatch();
 
   const canEditTicket =
     !!currentUser &&
@@ -64,6 +75,17 @@ export default function TicketDetailPage({
       currentUser.projectRoles.some(
         (pr) => pr.projectId === project.id && pr.role !== ProjectRole.Guest
       ));
+
+  const toggleWatch = async () => {
+    if (!ticket || setWatch.isPending) return;
+    const nextWatching = !ticket.isWatching;
+    try {
+      await setWatch.mutateAsync({ projectId, ticketId: ticket.id, watching: nextWatching });
+      toast.success(nextWatching ? t("watchStarted") : t("watchStopped"));
+    } catch {
+      toast.error(t("watchUpdateFailed"));
+    }
+  };
 
   const saveTicketPatch = async (patch: TicketPatch, successKey: string) => {
     if (!ticket) return;
@@ -187,6 +209,22 @@ export default function TicketDetailPage({
         {/* Sidebar */}
         <div className="space-y-4">
           <div className="rounded-lg border border-border bg-card p-4 space-y-4">
+            <button
+              type="button"
+              onClick={toggleWatch}
+              disabled={setWatch.isPending}
+              aria-pressed={ticket.isWatching ?? false}
+              title={ticket.isWatching ? t("watchStopHint") : t("watchStartHint")}
+              className={`flex w-full items-center justify-center gap-2 rounded-md border px-3 py-2 text-sm font-medium transition-colors disabled:opacity-60 ${
+                ticket.isWatching
+                  ? "border-accent-orange/40 bg-accent-orange/10 text-accent-orange hover:bg-accent-orange/15"
+                  : "border-border text-foreground hover:bg-muted"
+              }`}
+            >
+              {ticket.isWatching ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
+              {ticket.isWatching ? t("watching") : t("notWatching")}
+            </button>
+
             <EditableSidebarSelect
               label={t("status")}
               displayValue={
