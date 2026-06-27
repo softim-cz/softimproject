@@ -109,6 +109,25 @@ public class SyncEngineTests
         (await db.CustomFieldDefinitions.CountAsync()).Should().Be(1);
     }
 
+    [Fact]
+    public async Task Incremental_Run_Passes_ChangedSince_To_Connector()
+    {
+        await using var db = CreateDbContext();
+        var (doneStateId, _) = await SeedAsync(db);
+        var jobId = await SeedJobAsync(db);
+
+        var connector = BuildConnector();
+        var engine = BuildEngine(db, out var tracker);
+        tracker.Init(jobId);
+
+        var since = new DateTime(2026, 6, 1, 8, 0, 0, DateTimeKind.Utc);
+        var request = BuildRequest(doneStateId) with { ChangedSince = since };
+
+        await engine.ExecuteAsync(jobId, request, connector, new SourceConnectionContext("https://ep.example", "key"));
+
+        connector.LastIssuesChangedSince.Should().Be(since);
+    }
+
     private static SyncEngineRequest BuildRequest(Guid doneStateId) => new(
         TemplateId,
         ["50"],
@@ -206,13 +225,16 @@ public class SyncEngineTests
         public IReadOnlyList<CanonicalIssue> Issues { get; init; } = [];
         public IReadOnlyList<CanonicalWorklog> Worklogs { get; init; } = [];
 
+        // Records the changedSince the engine passed through (for incremental assertions).
+        public DateTime? LastIssuesChangedSince { get; private set; }
+
         public SyncType SourceSystem => SyncType.EasyProject;
         public Task<(bool Success, string? Error)> TestConnectionAsync(SourceConnectionContext context, CancellationToken ct) => Task.FromResult((true, (string?)null));
         public Task<IReadOnlyList<CanonicalProject>> GetProjectsAsync(SourceConnectionContext context, CancellationToken ct) => Task.FromResult(Projects);
         public Task<IReadOnlyList<CanonicalUser>> GetUsersAsync(SourceConnectionContext context, CancellationToken ct) => Task.FromResult<IReadOnlyList<CanonicalUser>>([]);
         public Task<CanonicalLookups> GetLookupsAsync(SourceConnectionContext context, CancellationToken ct) => Task.FromResult(new CanonicalLookups([], [], []));
-        public Task<IReadOnlyList<CanonicalIssue>> GetIssuesAsync(SourceConnectionContext context, string projectExternalId, CancellationToken ct) => Task.FromResult(Issues);
-        public Task<IReadOnlyList<CanonicalWorklog>> GetWorklogsAsync(SourceConnectionContext context, string projectExternalId, CancellationToken ct) => Task.FromResult(Worklogs);
+        public Task<IReadOnlyList<CanonicalIssue>> GetIssuesAsync(SourceConnectionContext context, string projectExternalId, DateTime? changedSince, CancellationToken ct) { LastIssuesChangedSince = changedSince; return Task.FromResult(Issues); }
+        public Task<IReadOnlyList<CanonicalWorklog>> GetWorklogsAsync(SourceConnectionContext context, string projectExternalId, DateTime? changedSince, CancellationToken ct) => Task.FromResult(Worklogs);
         public Task<Stream> DownloadAttachmentAsync(SourceConnectionContext context, string contentUrl, CancellationToken ct) => throw new NotSupportedException();
     }
 

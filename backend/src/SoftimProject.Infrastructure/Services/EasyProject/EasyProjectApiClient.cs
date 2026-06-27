@@ -36,10 +36,17 @@ public sealed class EasyProjectApiClient(HttpClient httpClient, ILogger<EasyProj
         return await GetAllPaginatedAsync<EpProject>(baseUrl, "projects", apiKey, "projects", ct);
     }
 
-    public async Task<List<EpIssue>> GetProjectIssuesAsync(string baseUrl, string apiKey, int projectId, CancellationToken ct)
+    public async Task<List<EpIssue>> GetProjectIssuesAsync(string baseUrl, string apiKey, int projectId, DateTime? updatedSince, CancellationToken ct)
     {
-        return await GetAllPaginatedAsync<EpIssue>(baseUrl, $"projects/{projectId}/issues", apiKey, "issues", ct);
+        return await GetAllPaginatedAsync<EpIssue>(baseUrl, $"projects/{projectId}/issues", apiKey, "issues", ct, BuildUpdatedSinceFilter(updatedSince));
     }
+
+    // EasyProject/Redmine server-side filter for incremental pulls: only issues changed
+    // at or after the given instant. The ">=" operator and ":" must be URL-encoded.
+    public static string? BuildUpdatedSinceFilter(DateTime? updatedSince)
+        => updatedSince is { } since
+            ? $"updated_on={Uri.EscapeDataString($">={since.ToUniversalTime():yyyy-MM-ddTHH:mm:ssZ}")}"
+            : null;
 
     public async Task<int> GetProjectIssueCountAsync(string baseUrl, string apiKey, int projectId, CancellationToken ct)
     {
@@ -131,7 +138,7 @@ public sealed class EasyProjectApiClient(HttpClient httpClient, ILogger<EasyProj
     }
 
     private async Task<List<T>> GetAllPaginatedAsync<T>(
-        string baseUrl, string endpoint, string apiKey, string rootProperty, CancellationToken ct)
+        string baseUrl, string endpoint, string apiKey, string rootProperty, CancellationToken ct, string? extraFilter = null)
     {
         var all = new List<T>();
         var offset = 0;
@@ -139,7 +146,8 @@ public sealed class EasyProjectApiClient(HttpClient httpClient, ILogger<EasyProj
 
         while (true)
         {
-            var url = BuildUrl(baseUrl, endpoint, apiKey, $"limit={limit}&offset={offset}");
+            var paging = $"limit={limit}&offset={offset}";
+            var url = BuildUrl(baseUrl, endpoint, apiKey, extraFilter is null ? paging : $"{paging}&{extraFilter}");
             var response = await httpClient.GetAsync(url, ct);
             response.EnsureSuccessStatusCode();
 

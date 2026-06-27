@@ -77,12 +77,12 @@ public sealed class SyncEngine(
                 if (project is null) continue;
                 selectedProjects.Add(project);
 
-                var issues = (await connector.GetIssuesAsync(context, project.ExternalId, ct)).ToList();
+                var issues = (await connector.GetIssuesAsync(context, project.ExternalId, request.ChangedSince, ct)).ToList();
                 issuesByProject[project.ExternalId] = issues;
 
                 if (request.ImportWorklogs)
                 {
-                    var worklogs = (await connector.GetWorklogsAsync(context, project.ExternalId, ct)).ToList();
+                    var worklogs = (await connector.GetWorklogsAsync(context, project.ExternalId, request.ChangedSince, ct)).ToList();
                     worklogsByProject[project.ExternalId] = worklogs;
                 }
 
@@ -871,4 +871,7 @@ public sealed record SyncEngineRequest(
     IReadOnlyDictionary<string, string>? AutoCreateTrackers,
     IReadOnlyDictionary<string, string>? AutoCreateStatuses,
     IReadOnlyDictionary<string, bool>? AutoCreateStatusIsClosed,
-    IReadOnlyDictionary<string, string>? AutoCreatePriorities);
+    IReadOnlyDictionary<string, string>? AutoCreatePriorities,
+    // null = full pull (one-time import); non-null = only records changed at/after this
+    // instant (incremental sync). Wired from a connection's watermark in milník 3c.
+    DateTime? ChangedSince = null);
