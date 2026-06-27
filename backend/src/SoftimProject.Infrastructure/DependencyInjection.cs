@@ -45,6 +45,8 @@ public static class DependencyInjection
             services.AddScoped<IUserDirectory, NullUserDirectory>();
 
         services.AddScoped<IBlobStorageService, BlobStorageService>();
+        // Encrypts integration secrets at rest (ASP.NET Data Protection, same pattern as GitHub OAuth).
+        services.AddSingleton<ISecretProtector, DataProtectionSecretProtector>();
         services.AddScoped<IAiService, AiService>();
 
         // GitHub App (server-to-server). Opt-in: no-ops when GitHubApp config is empty.

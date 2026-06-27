@@ -40,6 +40,8 @@ public class Project : BaseEntity
     public string? ExternalApiToken { get; set; }
     public string? WebhookSecret { get; set; }
     public Guid? GitHubConnectedByUserId { get; set; }
+    // Connection this project is synced from (null for manually-created projects).
+    public Guid? IntegrationConnectionId { get; set; }
     // GitHub App installation id — set when the repo is connected via the GitHub App,
     // enabling server-to-server installation tokens independent of a user's OAuth token.
     public long? GitHubInstallationId { get; set; }
@@ -58,6 +60,7 @@ public class Project : BaseEntity
     // Navigation properties
     public ProjectTemplate ProjectTemplate { get; set; } = null!;
     public Company? Company { get; set; }
+    public IntegrationConnection? IntegrationConnection { get; set; }
     public ProjectType? ProjectType { get; set; }
     public ProjectState? ProjectState { get; set; }
     public Project? ParentProject { get; set; }
