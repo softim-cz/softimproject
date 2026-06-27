@@ -12,6 +12,7 @@ using SoftimProject.Infrastructure.Persistence;
 using SoftimProject.Infrastructure.Services;
 using SoftimProject.Infrastructure.Services.EasyProject;
 using SoftimProject.Infrastructure.Services.Email;
+using SoftimProject.Infrastructure.Services.Integrations;
 
 namespace SoftimProject.Infrastructure;
 
@@ -156,6 +157,8 @@ public static class DependencyInjection
                 }));
             });
         services.AddSingleton<IMigrationProgressTracker, MigrationProgressTracker>();
+        // Provider-agnostic sync engine + EasyProject adapter that feeds it.
+        services.AddTransient<SyncEngine>();
         services.AddTransient<IEasyProjectMigrationService, EasyProjectMigrationService>();
         // Provider-agnostic read connector (canonical model). Future systems (Jira,
         // Redmine) register additional ISourceConnector implementations alongside this.

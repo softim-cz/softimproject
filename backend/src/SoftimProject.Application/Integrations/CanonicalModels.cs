@@ -98,7 +98,10 @@ public sealed record CanonicalIssue(
     IReadOnlyList<CanonicalCustomFieldValue> CustomFields,
     IReadOnlyList<CanonicalComment> Comments,
     IReadOnlyList<CanonicalAttachment> Attachments,
-    IReadOnlyList<CanonicalChecklistItem> ChecklistItems);
+    IReadOnlyList<CanonicalChecklistItem> ChecklistItems,
+    // Direct link to the issue in the source system's web UI. Built by the connector
+    // (provider-specific URL shape), so the engine never hard-codes a path.
+    string? WebUrl = null);
 
 public sealed record CanonicalWorklog(
     string ExternalId,
