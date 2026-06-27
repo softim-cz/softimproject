@@ -24,7 +24,7 @@ public sealed class EasyProjectMigrationService : IEasyProjectMigrationService
         _connector = connectors.First(c => c.SourceSystem == SyncType.EasyProject);
     }
 
-    public Task ExecuteAsync(Guid jobId, StartMigrationCommand cmd)
+    public Task ExecuteAsync(Guid jobId, StartMigrationCommand cmd, Guid? integrationConnectionId)
     {
         var context = new SourceConnectionContext(cmd.BaseUrl, cmd.ApiKey);
         var request = new SyncEngineRequest(
@@ -43,7 +43,9 @@ public sealed class EasyProjectMigrationService : IEasyProjectMigrationService
             cmd.AutoCreateTrackers?.ToDictionary(kv => kv.Key.ToString(), kv => kv.Value),
             cmd.AutoCreateStatuses?.ToDictionary(kv => kv.Key.ToString(), kv => kv.Value),
             cmd.AutoCreateStatusIsClosed?.ToDictionary(kv => kv.Key.ToString(), kv => kv.Value),
-            cmd.AutoCreatePriorities?.ToDictionary(kv => kv.Key.ToString(), kv => kv.Value));
+            cmd.AutoCreatePriorities?.ToDictionary(kv => kv.Key.ToString(), kv => kv.Value),
+            ChangedSince: null,
+            IntegrationConnectionId: integrationConnectionId);
 
         return _syncEngine.ExecuteAsync(jobId, request, _connector, context);
     }

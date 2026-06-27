@@ -52,6 +52,7 @@ public sealed class StartMigrationCommandHandler(
     ICurrentUserService currentUserService,
     IMigrationProgressTracker progressTracker,
     IMigrationNotifier notifier,
+    IIntegrationConnectionWriter connectionWriter,
     IServiceScopeFactory scopeFactory) : IRequestHandler<StartMigrationCommand, Guid>
 {
     public async Task<Guid> Handle(StartMigrationCommand request, CancellationToken cancellationToken)
@@ -95,6 +96,10 @@ public sealed class StartMigrationCommandHandler(
         dbContext.MigrationJobs.Add(job);
         await dbContext.SaveChangesAsync(cancellationToken);
 
+        // Persist a reusable connection (encrypted token + mappings) and link the imported
+        // projects to it, so future incremental syncs (milník 3c) can run without the wizard.
+        var connectionId = await connectionWriter.UpsertForEasyProjectAsync(request, cancellationToken);
+
         progressTracker.Init(jobId);
 
         _ = Task.Run(async () =>
@@ -103,7 +108,7 @@ public sealed class StartMigrationCommandHandler(
             {
                 using var scope = scopeFactory.CreateScope();
                 var migrationService = scope.ServiceProvider.GetRequiredService<IEasyProjectMigrationService>();
-                await migrationService.ExecuteAsync(jobId, request);
+                await migrationService.ExecuteAsync(jobId, request, connectionId);
             }
             catch (Exception ex)
             {

@@ -94,7 +94,9 @@ public sealed class ResumeMigrationCommandHandler(
             {
                 using var scope = scopeFactory.CreateScope();
                 var migrationService = scope.ServiceProvider.GetRequiredService<IEasyProjectMigrationService>();
-                await migrationService.ExecuteAsync(request.JobId, rebuilt);
+                // Connection already exists from the original run; existing projects keep
+                // their link (MigrateProject only sets it when non-null).
+                await migrationService.ExecuteAsync(request.JobId, rebuilt, null);
             }
             catch (Exception ex)
             {

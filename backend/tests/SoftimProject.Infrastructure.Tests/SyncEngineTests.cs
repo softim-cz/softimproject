@@ -128,6 +128,25 @@ public class SyncEngineTests
         connector.LastIssuesChangedSince.Should().Be(since);
     }
 
+    [Fact]
+    public async Task Links_Created_Project_To_Connection()
+    {
+        await using var db = CreateDbContext();
+        var (doneStateId, _) = await SeedAsync(db);
+        var jobId = await SeedJobAsync(db);
+
+        var connectionId = Guid.NewGuid();
+        var connector = BuildConnector();
+        var engine = BuildEngine(db, out var tracker);
+        tracker.Init(jobId);
+
+        var request = BuildRequest(doneStateId) with { IntegrationConnectionId = connectionId };
+        await engine.ExecuteAsync(jobId, request, connector, new SourceConnectionContext("https://ep.example", "key"));
+
+        var project = await db.Projects.SingleAsync();
+        project.IntegrationConnectionId.Should().Be(connectionId);
+    }
+
     private static SyncEngineRequest BuildRequest(Guid doneStateId) => new(
         TemplateId,
         ["50"],
