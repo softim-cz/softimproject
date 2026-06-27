@@ -65,7 +65,10 @@ public sealed class EasyProjectSourceConnector(
                 logger.LogWarning(ex, "Failed to fetch issue detail #{IssueId}; using list payload", issue.Id);
             }
 
-            result.Add(EasyProjectCanonicalMapper.MapIssue(detail, optionsFor));
+            var canonical = EasyProjectCanonicalMapper.MapIssue(detail, optionsFor)
+                with
+            { WebUrl = $"{context.BaseUrl.TrimEnd('/')}/issues/{detail.Id}" };
+            result.Add(canonical);
         }
 
         return result;
