@@ -157,6 +157,9 @@ public static class DependencyInjection
             });
         services.AddSingleton<IMigrationProgressTracker, MigrationProgressTracker>();
         services.AddTransient<IEasyProjectMigrationService, EasyProjectMigrationService>();
+        // Provider-agnostic read connector (canonical model). Future systems (Jira,
+        // Redmine) register additional ISourceConnector implementations alongside this.
+        services.AddScoped<ISourceConnector, EasyProjectSourceConnector>();
 
         return services;
     }
