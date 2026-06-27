@@ -6,7 +6,7 @@ public interface IEasyProjectApiClient
 {
     Task<(bool Success, string? Error)> TestConnectionAsync(string baseUrl, string apiKey, CancellationToken ct);
     Task<List<EpProject>> GetProjectsAsync(string baseUrl, string apiKey, CancellationToken ct);
-    Task<List<EpIssue>> GetProjectIssuesAsync(string baseUrl, string apiKey, int projectId, CancellationToken ct);
+    Task<List<EpIssue>> GetProjectIssuesAsync(string baseUrl, string apiKey, int projectId, DateTime? updatedSince, CancellationToken ct);
     Task<int> GetProjectIssueCountAsync(string baseUrl, string apiKey, int projectId, CancellationToken ct);
     Task<EpIssue> GetIssueDetailAsync(string baseUrl, string apiKey, int issueId, CancellationToken ct);
     Task<List<EpTimeEntry>> GetProjectTimeEntriesAsync(string baseUrl, string apiKey, int projectId, CancellationToken ct);

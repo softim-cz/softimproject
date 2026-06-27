@@ -10,8 +10,8 @@ namespace SoftimProject.Application.Interfaces;
 /// system = one new connector, not a new pipeline.
 /// </summary>
 /// <remarks>
-/// Incremental ("changed since") fetching is introduced together with the scheduled
-/// sync (milník 3); these methods currently perform a full pull per project.
+/// Pass <c>changedSince = null</c> for a full pull (one-time import); a non-null value
+/// requests only records changed at/after that instant (incremental sync).
 /// </remarks>
 public interface ISourceConnector
 {
@@ -26,9 +26,9 @@ public interface ISourceConnector
 
     Task<CanonicalLookups> GetLookupsAsync(SourceConnectionContext context, CancellationToken ct);
 
-    Task<IReadOnlyList<CanonicalIssue>> GetIssuesAsync(SourceConnectionContext context, string projectExternalId, CancellationToken ct);
+    Task<IReadOnlyList<CanonicalIssue>> GetIssuesAsync(SourceConnectionContext context, string projectExternalId, DateTime? changedSince, CancellationToken ct);
 
-    Task<IReadOnlyList<CanonicalWorklog>> GetWorklogsAsync(SourceConnectionContext context, string projectExternalId, CancellationToken ct);
+    Task<IReadOnlyList<CanonicalWorklog>> GetWorklogsAsync(SourceConnectionContext context, string projectExternalId, DateTime? changedSince, CancellationToken ct);
 
     Task<Stream> DownloadAttachmentAsync(SourceConnectionContext context, string contentUrl, CancellationToken ct);
 }

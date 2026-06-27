@@ -42,13 +42,13 @@ public sealed class EasyProjectSourceConnector(
         return projects.Select(p => EasyProjectCanonicalMapper.MapProject(p, optionsFor)).ToList();
     }
 
-    public async Task<IReadOnlyList<CanonicalIssue>> GetIssuesAsync(SourceConnectionContext context, string projectExternalId, CancellationToken ct)
+    public async Task<IReadOnlyList<CanonicalIssue>> GetIssuesAsync(SourceConnectionContext context, string projectExternalId, DateTime? changedSince, CancellationToken ct)
     {
         var epProjectId = ParseProjectId(projectExternalId);
         var definitions = await apiClient.GetCustomFieldsAsync(context.BaseUrl, context.ApiToken, ct);
         var optionsFor = EasyProjectCanonicalMapper.BuildOptionsResolver(definitions);
 
-        var issues = await apiClient.GetProjectIssuesAsync(context.BaseUrl, context.ApiToken, epProjectId, ct);
+        var issues = await apiClient.GetProjectIssuesAsync(context.BaseUrl, context.ApiToken, epProjectId, changedSince, ct);
         var result = new List<CanonicalIssue>(issues.Count);
         foreach (var issue in issues)
         {
@@ -74,8 +74,12 @@ public sealed class EasyProjectSourceConnector(
         return result;
     }
 
-    public async Task<IReadOnlyList<CanonicalWorklog>> GetWorklogsAsync(SourceConnectionContext context, string projectExternalId, CancellationToken ct)
+    public async Task<IReadOnlyList<CanonicalWorklog>> GetWorklogsAsync(SourceConnectionContext context, string projectExternalId, DateTime? changedSince, CancellationToken ct)
     {
+        // EasyProject time_entries don't expose a reliable updated_on filter, so worklogs
+        // are pulled in full even for incremental runs; the engine's ExternalId upsert
+        // dedups them. (changedSince accepted for contract symmetry / future providers.)
+        _ = changedSince;
         var epProjectId = ParseProjectId(projectExternalId);
         var entries = await apiClient.GetProjectTimeEntriesAsync(context.BaseUrl, context.ApiToken, epProjectId, ct);
         return entries.Select(EasyProjectCanonicalMapper.MapWorklog).ToList();
