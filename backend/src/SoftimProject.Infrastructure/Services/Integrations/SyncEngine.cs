@@ -133,7 +133,7 @@ public sealed class SyncEngine(
                 ct.ThrowIfCancellationRequested();
                 try
                 {
-                    var spProjectId = await MigrateProject(jobId, project, context.BaseUrl, request.TargetProjectTemplateId, adminUserId, systemName, ct);
+                    var spProjectId = await MigrateProject(jobId, project, context.BaseUrl, request.TargetProjectTemplateId, adminUserId, systemName, request.IntegrationConnectionId, ct);
                     projectMap[project.ExternalId] = spProjectId;
                     projectsMigrated++;
                     tracker.UpdateCounts(jobId, "projects", selectedProjects.Count, projectsMigrated);
@@ -452,7 +452,7 @@ public sealed class SyncEngine(
         }
     }
 
-    private async Task<Guid> MigrateProject(Guid jobId, CanonicalProject project, string baseUrl, Guid targetTemplateId, Guid adminUserId, string systemName, CancellationToken ct)
+    private async Task<Guid> MigrateProject(Guid jobId, CanonicalProject project, string baseUrl, Guid targetTemplateId, Guid adminUserId, string systemName, Guid? integrationConnectionId, CancellationToken ct)
     {
         var externalId = project.ExternalId;
         var existing = await dbContext.Projects.FirstOrDefaultAsync(p => p.ExternalSystem == systemName && p.ExternalProjectId == externalId, ct);
@@ -460,6 +460,7 @@ public sealed class SyncEngine(
         {
             existing.Name = project.Name; existing.Description = HtmlToMarkdown.Convert(project.DescriptionHtml); existing.Status = MapProjectStatus(project.Status);
             existing.StartDate = ParseDateOnly(project.StartDate); existing.DeadlineDate = ParseDateOnly(project.DueDate);
+            if (integrationConnectionId is { } existingConnId) existing.IntegrationConnectionId = existingConnId;
             tracker.IncrementUpdated(jobId); tracker.AddLog(jobId, $"Updated project '{project.Name}'"); return existing.Id;
         }
 
@@ -478,6 +479,7 @@ public sealed class SyncEngine(
             StartDate = ParseDateOnly(project.StartDate),
             DeadlineDate = ParseDateOnly(project.DueDate),
             ProjectTemplateId = targetTemplateId,
+            IntegrationConnectionId = integrationConnectionId,
             CreatedAt = DateTime.UtcNow
         };
         dbContext.Projects.Add(spProject);
@@ -874,4 +876,6 @@ public sealed record SyncEngineRequest(
     IReadOnlyDictionary<string, string>? AutoCreatePriorities,
     // null = full pull (one-time import); non-null = only records changed at/after this
     // instant (incremental sync). Wired from a connection's watermark in milník 3c.
-    DateTime? ChangedSince = null);
+    DateTime? ChangedSince = null,
+    // When set, created/updated projects are linked to this connection (Project.IntegrationConnectionId).
+    Guid? IntegrationConnectionId = null);

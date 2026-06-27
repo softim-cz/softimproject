@@ -4,5 +4,5 @@ namespace SoftimProject.Application.Interfaces;
 
 public interface IEasyProjectMigrationService
 {
-    Task ExecuteAsync(Guid jobId, StartMigrationCommand command);
+    Task ExecuteAsync(Guid jobId, StartMigrationCommand command, Guid? integrationConnectionId);
 }
