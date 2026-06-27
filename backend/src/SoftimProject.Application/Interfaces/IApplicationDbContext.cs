@@ -42,6 +42,7 @@ public interface IApplicationDbContext
     DbSet<AiInvocation> AiInvocations { get; }
     DbSet<ProcessedWebhookDelivery> ProcessedWebhookDeliveries { get; }
     DbSet<TicketWatcher> TicketWatchers { get; }
+    DbSet<IntegrationConnection> IntegrationConnections { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }

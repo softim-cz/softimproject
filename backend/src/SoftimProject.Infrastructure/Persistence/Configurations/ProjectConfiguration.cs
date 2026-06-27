@@ -38,6 +38,7 @@ public sealed class ProjectConfiguration : IEntityTypeConfiguration<Project>
         builder.HasOne(p => p.ProjectType).WithMany(pt => pt.Projects).HasForeignKey(p => p.ProjectTypeId).OnDelete(DeleteBehavior.Restrict);
         builder.HasOne(p => p.ProjectState).WithMany(ps => ps.Projects).HasForeignKey(p => p.ProjectStateId).OnDelete(DeleteBehavior.Restrict);
         builder.HasOne(p => p.ParentProject).WithMany(p => p.SubProjects).HasForeignKey(p => p.ParentProjectId).OnDelete(DeleteBehavior.Restrict);
+        builder.HasOne(p => p.IntegrationConnection).WithMany(c => c.Projects).HasForeignKey(p => p.IntegrationConnectionId).OnDelete(DeleteBehavior.SetNull);
 
         // ProjectTemplate je povinná část projektu — určuje, jaké TaskStates
         // a TicketPriorities projekt používá. Restrict, protože smazání šablony

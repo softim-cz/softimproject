@@ -44,6 +44,7 @@ public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> 
     public DbSet<AiInvocation> AiInvocations => Set<AiInvocation>();
     public DbSet<ProcessedWebhookDelivery> ProcessedWebhookDeliveries => Set<ProcessedWebhookDelivery>();
     public DbSet<TicketWatcher> TicketWatchers => Set<TicketWatcher>();
+    public DbSet<IntegrationConnection> IntegrationConnections => Set<IntegrationConnection>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
