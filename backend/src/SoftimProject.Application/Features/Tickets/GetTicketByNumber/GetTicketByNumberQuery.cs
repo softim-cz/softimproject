@@ -9,14 +9,15 @@ namespace SoftimProject.Application.Features.Tickets.GetTicketByNumber;
 public sealed record GetTicketByNumberQuery(Guid ProjectId, int Number) : IRequest<TicketDetailDto>, IRequireProjectAccess;
 
 public sealed class GetTicketByNumberQueryHandler(
-    IApplicationDbContext dbContext) : IRequestHandler<GetTicketByNumberQuery, TicketDetailDto>
+    IApplicationDbContext dbContext,
+    ICurrentUserService currentUserService) : IRequestHandler<GetTicketByNumberQuery, TicketDetailDto>
 {
     public async Task<TicketDetailDto> Handle(GetTicketByNumberQuery request, CancellationToken cancellationToken)
     {
         return await dbContext.Tickets
             .AsNoTracking()
             .Where(ticket => ticket.ProjectId == request.ProjectId && ticket.Number == request.Number)
-            .Select(TicketDetailProjections.Detail)
+            .Select(TicketDetailProjections.Detail(currentUserService.UserId))
             .FirstOrDefaultAsync(cancellationToken)
             ?? throw new NotFoundException(nameof(Domain.Entities.Ticket), $"#{request.Number} in project {request.ProjectId}");
     }

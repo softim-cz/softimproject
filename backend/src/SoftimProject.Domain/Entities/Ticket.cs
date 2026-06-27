@@ -47,4 +47,5 @@ public class Ticket : BaseEntity
     public ICollection<Comment> Comments { get; set; } = new List<Comment>();
     public ICollection<Worklog> Worklogs { get; set; } = new List<Worklog>();
     public ICollection<TicketCustomFieldValue> CustomFieldValues { get; set; } = new List<TicketCustomFieldValue>();
+    public ICollection<TicketWatcher> Watchers { get; set; } = new List<TicketWatcher>();
 }

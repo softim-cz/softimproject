@@ -43,6 +43,7 @@ public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> 
     public DbSet<LinkedCommit> LinkedCommits => Set<LinkedCommit>();
     public DbSet<AiInvocation> AiInvocations => Set<AiInvocation>();
     public DbSet<ProcessedWebhookDelivery> ProcessedWebhookDeliveries => Set<ProcessedWebhookDelivery>();
+    public DbSet<TicketWatcher> TicketWatchers => Set<TicketWatcher>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

@@ -203,6 +203,7 @@ export interface Ticket {
   externalProject?: string;
   implementationNotes?: string;
   lastComment?: string;
+  isWatching?: boolean;
   checklistItems: ChecklistItem[];
   commentsCount: number;
   attachmentsCount: number;
