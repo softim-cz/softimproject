@@ -20,4 +20,7 @@ public sealed record StoredMigrationConfig(
     Dictionary<int, string>? AutoCreateTrackers,
     Dictionary<int, string>? AutoCreateStatuses,
     Dictionary<int, bool>? AutoCreateStatusIsClosed,
-    Dictionary<int, string>? AutoCreatePriorities);
+    Dictionary<int, string>? AutoCreatePriorities,
+    Guid? TargetCompanyId = null,
+    bool EnableIncrementalSync = false,
+    int SyncIntervalMinutes = 1440);

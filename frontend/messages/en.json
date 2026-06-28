@@ -983,7 +983,18 @@
       "userMappings": "User mappings",
       "startMigration": "Start migration",
       "starting": "Starting...",
-      "targetTemplateRequired": "Select a target project template in the Lookups step before starting."
+      "targetTemplateRequired": "Select a target project template in the Lookups step before starting.",
+      "syncSettings": "Sync settings",
+      "company": "Customer (company)",
+      "companyNone": "— no company —",
+      "companyHelp": "Imported projects will be linked to this company.",
+      "enableIncremental": "Enable continuous sync (after the initial import)",
+      "syncInterval": "Sync interval",
+      "interval1h": "Every hour",
+      "interval6h": "Every 6 hours",
+      "interval12h": "Every 12 hours",
+      "interval24h": "Once a day",
+      "incrementalHelp": "New and changed records from the source will be pulled automatically at this interval."
     },
     "progress": {
       "title": "Migration progress",

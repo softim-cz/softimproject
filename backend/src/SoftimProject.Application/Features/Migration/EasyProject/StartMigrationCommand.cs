@@ -30,7 +30,12 @@ public sealed record StartMigrationCommand(
     Dictionary<int, string>? AutoCreateTrackers = null,
     Dictionary<int, string>? AutoCreateStatuses = null,
     Dictionary<int, bool>? AutoCreateStatusIsClosed = null,
-    Dictionary<int, string>? AutoCreatePriorities = null) : IRequest<Guid>;
+    Dictionary<int, string>? AutoCreatePriorities = null,
+    // Connection config (milník 3d): which customer the imported projects belong to, and
+    // whether/how often this source keeps syncing incrementally after the initial import.
+    Guid? TargetCompanyId = null,
+    bool EnableIncrementalSync = false,
+    int SyncIntervalMinutes = 1440) : IRequest<Guid>;
 
 public sealed class StartMigrationCommandValidator : AbstractValidator<StartMigrationCommand>
 {
@@ -44,6 +49,12 @@ public sealed class StartMigrationCommandValidator : AbstractValidator<StartMigr
             .MustAsync(async (id, ct) =>
                 await dbContext.ProjectTemplates.AnyAsync(t => t.Id == id && t.IsActive, ct))
             .WithMessage("Cílová šablona projektu neexistuje nebo není aktivní.");
+
+        // Minimum sync interval is 1 hour (návrh #144).
+        RuleFor(x => x.SyncIntervalMinutes)
+            .GreaterThanOrEqualTo(60)
+            .When(x => x.EnableIncrementalSync)
+            .WithMessage("Interval synchronizace musí být alespoň 60 minut.");
     }
 }
 
@@ -89,7 +100,10 @@ public sealed class StartMigrationCommandHandler(
                 request.AutoCreateTrackers,
                 request.AutoCreateStatuses,
                 request.AutoCreateStatusIsClosed,
-                request.AutoCreatePriorities)),
+                request.AutoCreatePriorities,
+                request.TargetCompanyId,
+                request.EnableIncrementalSync,
+                request.SyncIntervalMinutes)),
             CreatedAt = DateTime.UtcNow
         };
 

@@ -37,14 +37,21 @@ public sealed class IntegrationConnectionWriter(IApplicationDbContext dbContext,
         var existing = await dbContext.IntegrationConnections
             .FirstOrDefaultAsync(c => c.SourceSystem == system && c.BaseUrl == command.BaseUrl, ct);
 
+        // The wizard is the source of truth for this connection's scheduling: enabling
+        // incremental sync sets Mode/IsEnabled, otherwise it stays manual (one-time import).
+        var mode = command.EnableIncrementalSync ? IntegrationSyncMode.FullThenIncremental : IntegrationSyncMode.Manual;
+
         if (existing != null)
         {
-            // Refresh credentials + "what to sync"; preserve scheduling/policy the user owns.
             existing.EncryptedApiToken = encryptedToken;
             existing.TargetProjectTemplateId = command.TargetProjectTemplateId;
+            existing.TargetCompanyId = command.TargetCompanyId;
             existing.MappingsJson = mappingsJson;
             existing.OptionsJson = optionsJson;
             existing.ProjectSelectorJson = selectorJson;
+            existing.Mode = mode;
+            existing.IsEnabled = command.EnableIncrementalSync;
+            existing.IntervalMinutes = command.SyncIntervalMinutes;
             await dbContext.SaveChangesAsync(ct);
             return existing.Id;
         }
@@ -57,11 +64,12 @@ public sealed class IntegrationConnectionWriter(IApplicationDbContext dbContext,
             BaseUrl = command.BaseUrl,
             EncryptedApiToken = encryptedToken,
             TargetProjectTemplateId = command.TargetProjectTemplateId,
+            TargetCompanyId = command.TargetCompanyId,
             CreatedByUserId = createdByUserId,
             ConflictPolicy = ConflictPolicy.SourceOwnedWins,
-            Mode = IntegrationSyncMode.Manual,
-            IntervalMinutes = 1440,
-            IsEnabled = false,
+            Mode = mode,
+            IntervalMinutes = command.SyncIntervalMinutes,
+            IsEnabled = command.EnableIncrementalSync,
             MappingsJson = mappingsJson,
             OptionsJson = optionsJson,
             ProjectSelectorJson = selectorJson,
