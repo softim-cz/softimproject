@@ -38,7 +38,12 @@ public sealed class EasyProjectApiClient(HttpClient httpClient, ILogger<EasyProj
 
     public async Task<List<EpIssue>> GetProjectIssuesAsync(string baseUrl, string apiKey, int projectId, DateTime? updatedSince, CancellationToken ct)
     {
-        return await GetAllPaginatedAsync<EpIssue>(baseUrl, $"projects/{projectId}/issues", apiKey, "issues", ct, BuildUpdatedSinceFilter(updatedSince));
+        // status_id=* is required — without it EasyProject/Redmine returns only OPEN issues,
+        // silently dropping all closed tickets (and missing closed-issue updates on incremental).
+        var filter = "status_id=*";
+        var since = BuildUpdatedSinceFilter(updatedSince);
+        if (since != null) filter += $"&{since}";
+        return await GetAllPaginatedAsync<EpIssue>(baseUrl, $"projects/{projectId}/issues", apiKey, "issues", ct, filter);
     }
 
     // EasyProject/Redmine server-side filter for incremental pulls: only issues changed
@@ -50,7 +55,7 @@ public sealed class EasyProjectApiClient(HttpClient httpClient, ILogger<EasyProj
 
     public async Task<int> GetProjectIssueCountAsync(string baseUrl, string apiKey, int projectId, CancellationToken ct)
     {
-        var url = BuildUrl(baseUrl, $"projects/{projectId}/issues", apiKey, "limit=1&offset=0");
+        var url = BuildUrl(baseUrl, $"projects/{projectId}/issues", apiKey, "limit=1&offset=0&status_id=*");
         var response = await httpClient.GetAsync(url, ct);
         response.EnsureSuccessStatusCode();
         var json = await response.Content.ReadAsStringAsync(ct);

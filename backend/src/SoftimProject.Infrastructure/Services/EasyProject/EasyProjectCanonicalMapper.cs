@@ -147,6 +147,14 @@ public static class EasyProjectCanonicalMapper
         return id => map.GetValueOrDefault(id);
     }
 
+    // EasyProject returns timestamps in US format (MM/dd/yyyy HH:mm:ss), not ISO — parse with
+    // InvariantCulture so a cs-CZ server doesn't read the month as the day. Dates without an
+    // offset are treated as UTC (close enough; avoids a server-local shift).
     private static DateTime? ParseDateTime(string? dt) =>
-        string.IsNullOrWhiteSpace(dt) ? null : DateTime.TryParse(dt, out var d) ? d.ToUniversalTime() : null;
+        string.IsNullOrWhiteSpace(dt)
+            ? null
+            : DateTime.TryParse(dt, System.Globalization.CultureInfo.InvariantCulture,
+                System.Globalization.DateTimeStyles.AssumeUniversal | System.Globalization.DateTimeStyles.AdjustToUniversal, out var d)
+                ? d
+                : null;
 }
