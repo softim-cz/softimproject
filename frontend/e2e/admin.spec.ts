@@ -57,7 +57,7 @@ test.describe("admin page — /admin", () => {
       window.localStorage.setItem("softim-dev-user-id", "dev:user");
     });
 
-    await page.goto("/admin");
+    await page.goto("/admin/users");
 
     await expect(
       page.getByText(/failed to load users|načtení uživatelů se nezdařilo/i)
@@ -66,7 +66,7 @@ test.describe("admin page — /admin", () => {
   });
 
   test("admin sees user table with self row protected", async ({ page }) => {
-    await page.goto("/admin");
+    await page.goto("/admin/users");
 
     await expect(
       page.getByRole("heading", { name: /user management|správa uživatelů/i })
@@ -86,7 +86,7 @@ test.describe("admin page — /admin", () => {
   });
 
   test("admin can promote dev:user to Admin via dropdown", async ({ page, request }) => {
-    await page.goto("/admin");
+    await page.goto("/admin/users");
     const userRow = userRowByEmail(page, "user@softim.cz");
     await expect(userRow.locator("select")).toHaveValue("User");
 
@@ -102,7 +102,7 @@ test.describe("admin page — /admin", () => {
   });
 
   test("admin can toggle Active status on dev:user", async ({ page, request }) => {
-    await page.goto("/admin");
+    await page.goto("/admin/users");
     const userRow = userRowByEmail(page, "user@softim.cz");
     const statusButton = userRow.getByRole("button", {
       name: /active|inactive|aktivní|neaktivní/i,
@@ -132,7 +132,7 @@ test.describe("admin page — /admin", () => {
       await page.addInitScript(() => {
         window.localStorage.setItem("softim-dev-user-id", "dev:user");
       });
-      await page.goto("/admin");
+      await page.goto("/admin/users");
       const adminRow = userRowByEmail(page, "admin@softim.cz");
       await expect(adminRow.locator("select")).toHaveValue("Admin");
 

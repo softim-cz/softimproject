@@ -9,7 +9,7 @@ const apiURL = process.env.PLAYWRIGHT_API_URL ?? "http://localhost:5249";
 
 test.describe("admin page — dead-letter queue", () => {
   test("admin sees the DLQ section and its list area (empty or populated)", async ({ page }) => {
-    await page.goto("/admin");
+    await page.goto("/admin/users");
     await expect(
       page.getByRole("heading", {
         name: /dead-letter queue|dead-letter fronta/i,
