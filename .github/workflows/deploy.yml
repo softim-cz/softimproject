@@ -67,6 +67,7 @@ jobs:
           NEXT_PUBLIC_SIGNALR_URL: https://softimproject-api.azurewebsites.net
           NEXT_PUBLIC_AZURE_AD_CLIENT_ID: 65d9c0a3-45b0-4c6d-bb76-72d2120ec6d6
           NEXT_PUBLIC_AZURE_AD_TENANT_ID: ad80ab49-c9d0-4fab-b3f4-a0c7bb45d548
+          NEXT_PUBLIC_GIT_SHA: ${{ github.sha }}
 
       - name: Prepare standalone package
         run: |

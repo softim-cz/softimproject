@@ -55,6 +55,16 @@
     "lookups": "Lookups",
     "migration": "Migration"
   },
+  "Footer": {
+    "whatsNew": "What's new"
+  },
+  "Releases": {
+    "title": "What's new",
+    "intro": "Overview of new features, improvements and fixes.",
+    "added": "Added",
+    "changed": "Changed",
+    "fixed": "Fixed"
+  },
   "Topbar": {
     "search": "Search...",
     "notifications": "Notifications",

@@ -55,6 +55,16 @@
     "lookups": "Číselníky",
     "migration": "Migrace"
   },
+  "Footer": {
+    "whatsNew": "Co je nového"
+  },
+  "Releases": {
+    "title": "Co je nového",
+    "intro": "Přehled novinek, vylepšení a oprav.",
+    "added": "Přidáno",
+    "changed": "Změněno",
+    "fixed": "Opraveno"
+  },
   "Topbar": {
     "search": "Hledat...",
     "notifications": "Oznámení",
