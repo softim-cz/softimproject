@@ -90,6 +90,9 @@ export function useStartMigration() {
       autoCreateStatuses: Record<number, string>;
       autoCreateStatusIsClosed: Record<number, boolean>;
       autoCreatePriorities: Record<number, string>;
+      targetCompanyId: string | null;
+      enableIncrementalSync: boolean;
+      syncIntervalMinutes: number;
     }) => {
       const { data } = await apiClient.post<string>("/api/v1/migration/start", params);
       return data;

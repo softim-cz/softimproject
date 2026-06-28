@@ -71,7 +71,10 @@ public sealed class ResumeMigrationCommandHandler(
             config.AutoCreateTrackers,
             config.AutoCreateStatuses,
             config.AutoCreateStatusIsClosed,
-            config.AutoCreatePriorities);
+            config.AutoCreatePriorities,
+            config.TargetCompanyId,
+            config.EnableIncrementalSync,
+            config.SyncIntervalMinutes);
 
         // Reset only the run-state fields — keep CurrentPhase so ExecuteAsync can
         // skip the boundaries that already finished.

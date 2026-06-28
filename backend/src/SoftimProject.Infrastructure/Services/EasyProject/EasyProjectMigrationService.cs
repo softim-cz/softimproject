@@ -64,7 +64,8 @@ public sealed class EasyProjectMigrationService : IEasyProjectMigrationService
             cmd.AutoCreateStatusIsClosed?.ToDictionary(kv => kv.Key.ToString(), kv => kv.Value),
             cmd.AutoCreatePriorities?.ToDictionary(kv => kv.Key.ToString(), kv => kv.Value),
             ChangedSince: null,
-            IntegrationConnectionId: integrationConnectionId);
+            IntegrationConnectionId: integrationConnectionId,
+            TargetCompanyId: cmd.TargetCompanyId);
 
         await _syncEngine.ExecuteAsync(jobId, adminUserId, request, _connector, context, sink);
     }

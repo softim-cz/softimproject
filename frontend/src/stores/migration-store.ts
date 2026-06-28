@@ -39,6 +39,11 @@ interface MigrationState {
   // (a kam se napojí importované Project.ProjectTemplateId).
   targetProjectTemplateId: string | null;
 
+  // Connection config (milník 3d)
+  targetCompanyId: string | null;
+  enableIncrementalSync: boolean;
+  syncIntervalMinutes: number;
+
   // Active migration
   activeJobId: string | null;
 
@@ -63,6 +68,9 @@ interface MigrationState {
   setUserSelection: (epId: number, value: string | null) => void;
   setOption: (key: string, value: boolean) => void;
   setTargetProjectTemplateId: (id: string | null) => void;
+  setTargetCompanyId: (id: string | null) => void;
+  setEnableIncrementalSync: (value: boolean) => void;
+  setSyncIntervalMinutes: (minutes: number) => void;
   updateProjectIssueCount: (epId: number, count: number) => void;
   setActiveJobId: (id: string | null) => void;
   reset: () => void;
@@ -90,6 +98,9 @@ const initialState = {
   importChecklists: true,
   createMissingUsers: true,
   targetProjectTemplateId: null as string | null,
+  targetCompanyId: null as string | null,
+  enableIncrementalSync: false,
+  syncIntervalMinutes: 1440,
   activeJobId: null as string | null,
 };
 
@@ -181,6 +192,10 @@ export const useMigrationStore = create<MigrationState>()((set) => ({
   setOption: (key, value) => set({ [key]: value } as Partial<MigrationState>),
 
   setTargetProjectTemplateId: (targetProjectTemplateId) => set({ targetProjectTemplateId }),
+
+  setTargetCompanyId: (targetCompanyId) => set({ targetCompanyId }),
+  setEnableIncrementalSync: (enableIncrementalSync) => set({ enableIncrementalSync }),
+  setSyncIntervalMinutes: (syncIntervalMinutes) => set({ syncIntervalMinutes }),
 
   updateProjectIssueCount: (epId, count) =>
     set((state) => ({

@@ -35,6 +35,7 @@ import {
   useTaskStates,
   useTicketPriorities,
   useProjectTemplates,
+  useCompanies,
 } from "@/queries/lookups";
 import type { MigrationJob } from "@/types";
 import { HubConnectionBuilder } from "@microsoft/signalr";
@@ -653,6 +654,7 @@ function StepReview() {
   const t = useTranslations("Migration");
   const store = useMigrationStore();
   const startMigration = useStartMigration();
+  const { data: companies } = useCompanies();
 
   const selectedProjects = store.projects.filter((p) => store.selectedProjectIds.has(p.epId));
   const totalIssues = selectedProjects.reduce((sum, p) => sum + Math.max(0, p.issueCount), 0);
@@ -715,6 +717,9 @@ function StepReview() {
         autoCreateStatuses,
         autoCreateStatusIsClosed,
         autoCreatePriorities,
+        targetCompanyId: store.targetCompanyId,
+        enableIncrementalSync: store.enableIncrementalSync,
+        syncIntervalMinutes: store.syncIntervalMinutes,
       },
       {
         onSuccess: (jobId) => {
@@ -752,6 +757,57 @@ function StepReview() {
           </p>
           <p className="text-xs text-muted-foreground">{t("review.userMappings")}</p>
         </div>
+      </div>
+
+      {/* Connection / sync settings */}
+      <div className="rounded-lg border border-border p-4 space-y-4">
+        <h3 className="text-sm font-semibold text-foreground">{t("review.syncSettings")}</h3>
+
+        <div>
+          <label className="block text-sm text-foreground mb-1">{t("review.company")}</label>
+          <select
+            value={store.targetCompanyId ?? ""}
+            onChange={(e) => store.setTargetCompanyId(e.target.value || null)}
+            className="w-full px-2 py-1.5 rounded border border-border bg-card text-sm"
+          >
+            <option value="">{t("review.companyNone")}</option>
+            {companies
+              ?.filter((c) => c.isActive)
+              .map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+          </select>
+          <p className="text-xs text-muted-foreground mt-1">{t("review.companyHelp")}</p>
+        </div>
+
+        <label className="flex items-center gap-3 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={store.enableIncrementalSync}
+            onChange={(e) => store.setEnableIncrementalSync(e.target.checked)}
+            className="rounded border-border"
+          />
+          <span className="text-sm text-foreground">{t("review.enableIncremental")}</span>
+        </label>
+
+        {store.enableIncrementalSync && (
+          <div>
+            <label className="block text-sm text-foreground mb-1">{t("review.syncInterval")}</label>
+            <select
+              value={store.syncIntervalMinutes}
+              onChange={(e) => store.setSyncIntervalMinutes(Number(e.target.value))}
+              className="w-full px-2 py-1.5 rounded border border-border bg-card text-sm"
+            >
+              <option value={60}>{t("review.interval1h")}</option>
+              <option value={360}>{t("review.interval6h")}</option>
+              <option value={720}>{t("review.interval12h")}</option>
+              <option value={1440}>{t("review.interval24h")}</option>
+            </select>
+            <p className="text-xs text-muted-foreground mt-1">{t("review.incrementalHelp")}</p>
+          </div>
+        )}
       </div>
 
       {/* Options */}

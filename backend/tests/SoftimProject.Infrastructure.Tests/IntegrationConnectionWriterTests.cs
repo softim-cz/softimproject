@@ -13,7 +13,7 @@ public class IntegrationConnectionWriterTests
 {
     private static readonly Guid CreatorId = Guid.NewGuid();
 
-    private static StartMigrationCommand Command(string token = "secret-token") => new(
+    private static StartMigrationCommand Command(string token = "secret-token", bool enableIncremental = false, int interval = 1440) => new(
         BaseUrl: "https://ep.example",
         ApiKey: token,
         ProjectIds: [1, 2],
@@ -27,7 +27,9 @@ public class IntegrationConnectionWriterTests
         ImportComments: true,
         ImportWorklogs: true,
         ImportChecklists: false,
-        CreateMissingUsers: false);
+        CreateMissingUsers: false,
+        EnableIncrementalSync: enableIncremental,
+        SyncIntervalMinutes: interval);
 
     private static (IntegrationConnectionWriter writer, ApplicationDbContext db, DataProtectionSecretProtector protector) Build()
     {
@@ -65,30 +67,30 @@ public class IntegrationConnectionWriterTests
     }
 
     [Fact]
-    public async Task Second_Upsert_Updates_Credentials_But_Preserves_User_Scheduling()
+    public async Task Upsert_Applies_Wizard_Scheduling()
     {
         var (writer, db, _) = Build();
 
-        var firstId = await writer.UpsertForEasyProjectAsync(Command("token-1"), CreatorId, CancellationToken.None);
+        // First run enables incremental sync at 1h.
+        var firstId = await writer.UpsertForEasyProjectAsync(
+            Command("token-1", enableIncremental: true, interval: 60), CreatorId, CancellationToken.None);
 
-        // Simulate the user later enabling incremental sync on the connection.
-        var connection = await db.IntegrationConnections.SingleAsync();
-        connection.Mode = IntegrationSyncMode.FullThenIncremental;
-        connection.IsEnabled = true;
-        connection.IntervalMinutes = 60;
-        await db.SaveChangesAsync();
+        var created = await db.IntegrationConnections.SingleAsync();
+        created.Mode.Should().Be(IntegrationSyncMode.FullThenIncremental);
+        created.IsEnabled.Should().BeTrue();
+        created.IntervalMinutes.Should().Be(60);
 
-        var secondId = await writer.UpsertForEasyProjectAsync(Command("token-2"), CreatorId, CancellationToken.None);
+        // Re-running the wizard with incremental off is the user's explicit intent and wins.
+        var secondId = await writer.UpsertForEasyProjectAsync(
+            Command("token-2", enableIncremental: false), CreatorId, CancellationToken.None);
 
         secondId.Should().Be(firstId); // same connection (upsert by system + baseUrl)
         (await db.IntegrationConnections.CountAsync()).Should().Be(1);
 
         var updated = await db.IntegrationConnections.SingleAsync();
-        // Credentials refreshed...
-        updated.EncryptedApiToken.Should().NotBeNull();
-        // ...but scheduling owned by the user is preserved.
-        updated.Mode.Should().Be(IntegrationSyncMode.FullThenIncremental);
-        updated.IsEnabled.Should().BeTrue();
-        updated.IntervalMinutes.Should().Be(60);
+        updated.EncryptedApiToken.Should().NotBeNull(); // credentials refreshed
+        updated.Mode.Should().Be(IntegrationSyncMode.Manual);
+        updated.IsEnabled.Should().BeFalse();
+        updated.IntervalMinutes.Should().Be(1440);
     }
 }
