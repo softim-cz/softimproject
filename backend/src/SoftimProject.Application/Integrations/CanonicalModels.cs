@@ -101,7 +101,10 @@ public sealed record CanonicalIssue(
     IReadOnlyList<CanonicalChecklistItem> ChecklistItems,
     // Direct link to the issue in the source system's web UI. Built by the connector
     // (provider-specific URL shape), so the engine never hard-codes a path.
-    string? WebUrl = null);
+    string? WebUrl = null,
+    // When the record was last modified in the source system. Drives the SourceOwnedWins
+    // conflict policy (overwrite only when the source actually changed). Null = unknown.
+    DateTime? SourceUpdatedAt = null);
 
 public sealed record CanonicalWorklog(
     string ExternalId,

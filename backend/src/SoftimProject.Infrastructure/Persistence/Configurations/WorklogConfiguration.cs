@@ -24,5 +24,6 @@ public sealed class WorklogConfiguration : IEntityTypeConfiguration<Worklog>
 
         builder.HasIndex(w => new { w.TicketId, w.Date });
         builder.HasIndex(w => new { w.UserId, w.Date });
+        builder.HasIndex(w => w.ExternalId);
     }
 }

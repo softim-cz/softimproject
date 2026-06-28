@@ -147,6 +147,50 @@ public class SyncEngineTests
         project.IntegrationConnectionId.Should().Be(connectionId);
     }
 
+    [Fact]
+    public async Task SourceOwnedWins_Skips_Unchanged_Source_But_Applies_Changes()
+    {
+        await using var db = CreateDbContext();
+        var (doneStateId, _) = await SeedAsync(db);
+        var t1 = new DateTime(2026, 6, 1, 8, 0, 0, DateTimeKind.Utc);
+
+        // Run 1: initial import (source @ t1).
+        await RunOnce(db, doneStateId, IssueAt(t1, "Original"));
+        (await db.Tickets.SingleAsync()).Title.Should().Be("Original");
+
+        // A user edits the ticket in ProjectMan.
+        var ticket = await db.Tickets.SingleAsync();
+        ticket.Title = "Locally edited";
+        await db.SaveChangesAsync();
+
+        // Run 2: source unchanged (same t1) → local edit preserved.
+        await RunOnce(db, doneStateId, IssueAt(t1, "Original"));
+        (await db.Tickets.SingleAsync()).Title.Should().Be("Locally edited");
+
+        // Run 3: source genuinely changed (t1+1h) → source wins.
+        await RunOnce(db, doneStateId, IssueAt(t1.AddHours(1), "Updated from source"));
+        (await db.Tickets.SingleAsync()).Title.Should().Be("Updated from source");
+    }
+
+    private static CanonicalIssue IssueAt(DateTime sourceUpdatedAt, string title) => new(
+        "100", title, null, null, "2", "Done", null, null, null, null, null, null, "50", "Web Project",
+        [], [], [], [])
+    { WebUrl = "https://ep.example/issues/100", SourceUpdatedAt = sourceUpdatedAt };
+
+    private static async Task RunOnce(ApplicationDbContext db, Guid doneStateId, CanonicalIssue issue)
+    {
+        var jobId = await SeedJobAsync(db);
+        var engine = BuildEngine(db, out var tracker);
+        tracker.Init(jobId);
+        var connector = new FakeSourceConnector
+        {
+            Projects = [new CanonicalProject("50", "Web Project", null, CanonicalProjectStatus.Active, null, null, null, [])],
+            Issues = [issue],
+        };
+        await engine.ExecuteAsync(jobId, AdminId, BuildRequest(doneStateId), connector,
+            new SourceConnectionContext("https://ep.example", "key"), NullSyncJobSink.Instance);
+    }
+
     private static SyncEngineRequest BuildRequest(Guid doneStateId) => new(
         TemplateId,
         ["50"],

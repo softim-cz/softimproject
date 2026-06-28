@@ -56,6 +56,8 @@ public sealed class ProjectConfiguration : IEntityTypeConfiguration<Project>
                 r => r.HasOne(typeof(Project)).WithMany().HasForeignKey("ProjectId").OnDelete(DeleteBehavior.Cascade));
 
         builder.HasIndex(p => p.Code).IsUnique();
+        // A source project maps to at most one ProjectMan project per system.
+        builder.HasIndex(p => new { p.ExternalSystem, p.ExternalProjectId }).IsUnique().HasFilter("[ExternalProjectId] IS NOT NULL");
         builder.HasIndex(p => p.ClientAccessToken).IsUnique().HasFilter("[ClientAccessToken] IS NOT NULL");
     }
 }

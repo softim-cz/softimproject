@@ -107,7 +107,9 @@ public sealed class ExternalSyncRunner(
             mappings.AutoCreateStatusIsClosed?.ToDictionary(kv => kv.Key.ToString(), kv => kv.Value),
             mappings.AutoCreatePriorities?.ToDictionary(kv => kv.Key.ToString(), kv => kv.Value),
             ChangedSince: connection.LastSyncWatermark,
-            IntegrationConnectionId: connection.Id);
+            IntegrationConnectionId: connection.Id,
+            TargetCompanyId: connection.TargetCompanyId,
+            ConflictPolicy: connection.ConflictPolicy);
     }
 
     private static T? Deserialize<T>(string? json) =>
