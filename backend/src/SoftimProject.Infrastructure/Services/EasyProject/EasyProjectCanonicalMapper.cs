@@ -116,7 +116,8 @@ public static class EasyProjectCanonicalMapper
         (issue.EasyChecklists ?? [])
             .SelectMany(c => c.Items ?? [])
             .Select(MapChecklistItem)
-            .ToList());
+            .ToList(),
+        SourceUpdatedAt: ParseDateTime(issue.UpdatedOn));
 
     public static CanonicalWorklog MapWorklog(EpTimeEntry te) => new(
         te.Id.ToString(),

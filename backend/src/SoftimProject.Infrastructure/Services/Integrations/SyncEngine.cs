@@ -176,7 +176,7 @@ public sealed class SyncEngine(
 
                     try
                     {
-                        var spTicketId = await MigrateTicket(jobId, issue, spProjectId, taskTypeMap, userMap, adminUserId, defaultStateId, defaultPriorityId, mergedStatusMapping, mergedPriorityMapping, ct);
+                        var spTicketId = await MigrateTicket(jobId, issue, spProjectId, taskTypeMap, userMap, adminUserId, defaultStateId, defaultPriorityId, mergedStatusMapping, mergedPriorityMapping, request.ConflictPolicy, ct);
                         ticketMap[issue.ExternalId] = spTicketId;
                         ticketsMigrated++;
                         batchCount++;
@@ -260,14 +260,14 @@ public sealed class SyncEngine(
 
                 foreach (var (epProjectId, worklogs) in worklogsByProject)
                 {
-                    if (!projectMap.TryGetValue(epProjectId, out _)) continue;
+                    if (!projectMap.TryGetValue(epProjectId, out var spProjectId)) continue;
 
                     foreach (var worklog in worklogs)
                     {
                         ct.ThrowIfCancellationRequested();
                         try
                         {
-                            await MigrateWorklog(jobId, worklog, ticketMap, userMap, adminUserId, systemName, ct);
+                            await MigrateWorklog(jobId, worklog, spProjectId, ticketMap, userMap, adminUserId, systemName, ct);
                             worklogsMigrated++;
                             tracker.UpdateCounts(jobId, "worklogs", totalWorklogs, worklogsMigrated);
                         }
@@ -469,7 +469,7 @@ public sealed class SyncEngine(
 
     private async Task<Guid> MigrateTicket(Guid jobId, CanonicalIssue issue, Guid spProjectId,
         Dictionary<string, Guid> taskTypeMap, Dictionary<string, Guid> userMap, Guid adminUserId, Guid defaultStateId, Guid defaultPriorityId,
-        Dictionary<string, Guid> statusMap, Dictionary<string, Guid> priorityMap, CancellationToken ct)
+        Dictionary<string, Guid> statusMap, Dictionary<string, Guid> priorityMap, ConflictPolicy conflictPolicy, CancellationToken ct)
     {
         var externalId = issue.ExternalId;
         var existing = await dbContext.Tickets.FirstOrDefaultAsync(t => t.ProjectId == spProjectId && t.ExternalId == externalId, ct);
@@ -482,11 +482,18 @@ public sealed class SyncEngine(
 
         if (existing != null)
         {
+            if (!ShouldApplySourceFields(existing, issue, conflictPolicy))
+            {
+                tracker.IncrementSkipped(jobId);
+                return existing.Id;
+            }
+
             existing.Title = issue.Title; existing.Description = HtmlToMarkdown.Convert(issue.DescriptionHtml); existing.TaskStateId = taskStateId; existing.TicketPriorityId = ticketPriorityId;
             existing.TaskTypeId = taskTypeId; existing.AssigneeId = assigneeId; existing.ReporterId = reporterId;
             existing.EstimatedHours = issue.EstimatedHours; existing.DueDate = ParseDateOnly(issue.DueDate); existing.ColumnId = column?.Id;
             existing.ExternalUrl = issue.WebUrl;
             existing.ExternalProject = issue.ProjectName;
+            existing.LastSyncedFromSourceAt = issue.SourceUpdatedAt ?? DateTime.UtcNow;
             tracker.IncrementUpdated(jobId); return existing.Id;
         }
 
@@ -508,9 +515,34 @@ public sealed class SyncEngine(
             EstimatedHours = issue.EstimatedHours,
             DueDate = ParseDateOnly(issue.DueDate),
             ColumnId = column?.Id,
+            LastSyncedFromSourceAt = issue.SourceUpdatedAt ?? DateTime.UtcNow,
             CreatedAt = DateTime.UtcNow
         };
         dbContext.Tickets.Add(ticket); tracker.IncrementCreated(jobId); return ticket.Id;
+    }
+
+    // Conflict policy (návrh #144 §3.5). Source-owned fields are overwritten only per the
+    // chosen policy; ProjectMan-owned fields (AI summary, watching, manual comments, …) are
+    // never touched by the engine regardless.
+    private static bool ShouldApplySourceFields(Ticket existing, CanonicalIssue issue, ConflictPolicy policy)
+    {
+        // Did the source record change since we last pulled it? Unknown (null) source
+        // timestamp ⇒ we can't tell, so treat as changed.
+        var sourceChanged = issue.SourceUpdatedAt is null
+            || existing.LastSyncedFromSourceAt is null
+            || issue.SourceUpdatedAt > existing.LastSyncedFromSourceAt;
+
+        // Was the ticket edited locally in ProjectMan since the last sync?
+        var locallyEdited = existing.UpdatedAt is { } updatedAt
+            && existing.LastSyncedFromSourceAt is { } syncedAt
+            && updatedAt > syncedAt;
+
+        return policy switch
+        {
+            ConflictPolicy.StrictSourceWins => true,
+            ConflictPolicy.PreserveLocalEdits => sourceChanged && !locallyEdited,
+            _ => sourceChanged // SourceOwnedWins (default)
+        };
     }
 
     private async Task MigrateComment(Guid jobId, CanonicalComment comment, Guid spTicketId, Guid spProjectId, Dictionary<string, Guid> userMap, Guid adminUserId, CommentSource source, CancellationToken ct)
@@ -534,10 +566,12 @@ public sealed class SyncEngine(
         tracker.IncrementCreated(jobId);
     }
 
-    private async Task MigrateWorklog(Guid jobId, CanonicalWorklog worklog, Dictionary<string, Guid> ticketMap, Dictionary<string, Guid> userMap, Guid adminUserId, string systemName, CancellationToken ct)
+    private async Task MigrateWorklog(Guid jobId, CanonicalWorklog worklog, Guid spProjectId, Dictionary<string, Guid> ticketMap, Dictionary<string, Guid> userMap, Guid adminUserId, string systemName, CancellationToken ct)
     {
         var externalId = worklog.ExternalId;
-        if (await dbContext.Worklogs.AnyAsync(w => w.ExternalId == externalId, ct)) { tracker.IncrementSkipped(jobId); return; }
+        // Scope dedup to the project + synced source so external ids can't collide across
+        // projects/systems (návrh #144 §3.4).
+        if (await dbContext.Worklogs.AnyAsync(w => w.ExternalId == externalId && w.Source == WorklogSource.Sync && w.Ticket.ProjectId == spProjectId, ct)) { tracker.IncrementSkipped(jobId); return; }
         if (worklog.IssueExternalId == null || !ticketMap.TryGetValue(worklog.IssueExternalId, out var ticketId))
         {
             tracker.AddLog(jobId, $"Skipping worklog #{externalId} — no linked ticket in target project.");
@@ -842,4 +876,6 @@ public sealed record SyncEngineRequest(
     // When set, created/updated projects are linked to this connection (Project.IntegrationConnectionId).
     Guid? IntegrationConnectionId = null,
     // When set, imported projects belong to this customer (Project.CompanyId).
-    Guid? TargetCompanyId = null);
+    Guid? TargetCompanyId = null,
+    // How to resolve a record changed in both the source and ProjectMan (návrh #144 §3.5).
+    ConflictPolicy ConflictPolicy = ConflictPolicy.SourceOwnedWins);

@@ -31,6 +31,9 @@ public class Ticket : BaseEntity
     public string? ExternalProject { get; set; } // Name of the external project (e.g. EasyProject source)
     public string? ImplementationNotes { get; set; }
     public string? LastComment { get; set; }
+    // When this ticket's source-owned fields were last written from the external system.
+    // Drives the incremental conflict policy (overwrite only on a genuine source change).
+    public DateTime? LastSyncedFromSourceAt { get; set; }
 
     // Navigation properties
     public Project Project { get; set; } = null!;

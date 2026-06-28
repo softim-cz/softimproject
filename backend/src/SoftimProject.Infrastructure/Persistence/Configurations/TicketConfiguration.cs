@@ -40,6 +40,7 @@ public sealed class TicketConfiguration : IEntityTypeConfiguration<Ticket>
 
         builder.HasIndex(t => new { t.ProjectId, t.TaskStateId });
         builder.HasIndex(t => t.AssigneeId);
-        builder.HasIndex(t => t.ExternalId);
+        // Synced tickets are unique per project by external id (manual tickets have none).
+        builder.HasIndex(t => new { t.ProjectId, t.ExternalId }).IsUnique().HasFilter("[ExternalId] IS NOT NULL");
     }
 }

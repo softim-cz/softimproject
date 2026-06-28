@@ -20,7 +20,8 @@ public sealed record EpIssue(
     [property: JsonPropertyName("custom_fields")] List<EpCustomField>? CustomFields,
     [property: JsonPropertyName("journals")] List<EpJournal>? Journals,
     [property: JsonPropertyName("attachments")] List<EpAttachment>? Attachments,
-    [property: JsonPropertyName("easy_checklists")] List<EpChecklist>? EasyChecklists);
+    [property: JsonPropertyName("easy_checklists")] List<EpChecklist>? EasyChecklists,
+    [property: JsonPropertyName("updated_on")] string? UpdatedOn = null);
 
 public sealed record EpChecklist(
     [property: JsonPropertyName("id")] int Id,
