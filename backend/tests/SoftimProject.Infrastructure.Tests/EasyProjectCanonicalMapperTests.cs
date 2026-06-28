@@ -174,6 +174,23 @@ public class EasyProjectCanonicalMapperTests
     }
 
     [Fact]
+    public void MapIssue_Parses_UsFormat_UpdatedOn_AsInvariant()
+    {
+        // EasyProject returns "MM/dd/yyyy HH:mm:ss" — must be read as June 5 (month 6), not May 6,
+        // regardless of the server's culture.
+        var issue = new EpIssue(
+            Id: 1, Subject: "x", Description: null,
+            Tracker: null, Status: null, Priority: null, AssignedTo: null, Author: null,
+            EstimatedHours: null, DoneRatio: null, StartDate: null, DueDate: null,
+            Parent: null, Project: null, CustomFields: null, Journals: null, Attachments: null, EasyChecklists: null,
+            UpdatedOn: "06/05/2026 06:11:17");
+
+        var mapped = EasyProjectCanonicalMapper.MapIssue(issue, _ => null);
+
+        mapped.SourceUpdatedAt.Should().Be(new DateTime(2026, 6, 5, 6, 11, 17, DateTimeKind.Utc));
+    }
+
+    [Fact]
     public void MapIssue_HandlesNullCollectionsAndRefs()
     {
         var issue = new EpIssue(

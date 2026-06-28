@@ -839,7 +839,7 @@ public sealed class SyncEngine(
         _ => CustomFieldType.Text
     };
 
-    private static DateOnly? ParseDateOnly(string? date) { if (string.IsNullOrWhiteSpace(date)) return null; return DateOnly.TryParse(date, out var d) ? d : null; }
+    private static DateOnly? ParseDateOnly(string? date) { if (string.IsNullOrWhiteSpace(date)) return null; return DateOnly.TryParse(date, System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out var d) ? d : null; }
     private static string GenerateProjectCode(string name) { var words = name.Split(' ', StringSplitOptions.RemoveEmptyEntries); if (words.Length == 1) return words[0][..Math.Min(3, words[0].Length)].ToUpperInvariant(); return string.Concat(words.Take(6).Select(w => char.ToUpperInvariant(w[0]))); }
     private async Task<string> EnsureUniqueCode(string baseCode, CancellationToken ct)
     {
