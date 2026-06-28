@@ -32,7 +32,7 @@ public class SyncEngineTests
         var engine = BuildEngine(db, out var tracker);
         tracker.Init(jobId);
 
-        await engine.ExecuteAsync(jobId, BuildRequest(doneStateId), connector, new SourceConnectionContext("https://ep.example", "key"));
+        await engine.ExecuteAsync(jobId, AdminId, BuildRequest(doneStateId), connector, new SourceConnectionContext("https://ep.example", "key"), JobSink(db, jobId));
 
         var project = await db.Projects.SingleAsync();
         project.ExternalSystem.Should().Be("EasyProject");
@@ -93,13 +93,13 @@ public class SyncEngineTests
         var job1 = await SeedJobAsync(db);
         var engine1 = BuildEngine(db, out var tracker1);
         tracker1.Init(job1);
-        await engine1.ExecuteAsync(job1, BuildRequest(doneStateId), connector, new SourceConnectionContext("https://ep.example", "key"));
+        await engine1.ExecuteAsync(job1, AdminId, BuildRequest(doneStateId), connector, new SourceConnectionContext("https://ep.example", "key"), JobSink(db, job1));
 
         // Second run with the same source data
         var job2 = await SeedJobAsync(db);
         var engine2 = BuildEngine(db, out var tracker2);
         tracker2.Init(job2);
-        await engine2.ExecuteAsync(job2, BuildRequest(doneStateId), connector, new SourceConnectionContext("https://ep.example", "key"));
+        await engine2.ExecuteAsync(job2, AdminId, BuildRequest(doneStateId), connector, new SourceConnectionContext("https://ep.example", "key"), JobSink(db, job2));
 
         (await db.Projects.CountAsync()).Should().Be(1);
         (await db.Tickets.CountAsync()).Should().Be(1);
@@ -123,7 +123,7 @@ public class SyncEngineTests
         var since = new DateTime(2026, 6, 1, 8, 0, 0, DateTimeKind.Utc);
         var request = BuildRequest(doneStateId) with { ChangedSince = since };
 
-        await engine.ExecuteAsync(jobId, request, connector, new SourceConnectionContext("https://ep.example", "key"));
+        await engine.ExecuteAsync(jobId, AdminId, request, connector, new SourceConnectionContext("https://ep.example", "key"), NullSyncJobSink.Instance);
 
         connector.LastIssuesChangedSince.Should().Be(since);
     }
@@ -141,7 +141,7 @@ public class SyncEngineTests
         tracker.Init(jobId);
 
         var request = BuildRequest(doneStateId) with { IntegrationConnectionId = connectionId };
-        await engine.ExecuteAsync(jobId, request, connector, new SourceConnectionContext("https://ep.example", "key"));
+        await engine.ExecuteAsync(jobId, AdminId, request, connector, new SourceConnectionContext("https://ep.example", "key"), NullSyncJobSink.Instance);
 
         var project = await db.Projects.SingleAsync();
         project.IntegrationConnectionId.Should().Be(connectionId);
@@ -195,8 +195,11 @@ public class SyncEngineTests
     private static SyncEngine BuildEngine(ApplicationDbContext db, out MigrationProgressTracker tracker)
     {
         tracker = new MigrationProgressTracker();
-        return new SyncEngine(db, tracker, new NoopNotifier(), new FakeBlobStorage(), NullLogger<SyncEngine>.Instance);
+        return new SyncEngine(db, tracker, new FakeBlobStorage(), NullLogger<SyncEngine>.Instance);
     }
+
+    // Wizard-style sink so tests can assert MigrationJob state.
+    private static MigrationJobSink JobSink(ApplicationDbContext db, Guid jobId) => new(db, new NoopNotifier(), jobId);
 
     private static async Task<(Guid doneStateId, Guid priorityId)> SeedAsync(ApplicationDbContext db)
     {
