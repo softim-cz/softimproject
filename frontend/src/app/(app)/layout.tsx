@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { Sidebar } from "@/components/layout/sidebar";
 import { Topbar } from "@/components/layout/topbar";
+import { Footer } from "@/components/layout/footer";
 import { useUiStore } from "@/stores/ui-store";
 import { setTokenProvider, setAuthFailureHandler } from "@/lib/api/client";
 import { isDevAuthMode } from "@/lib/auth/dev-mode";
@@ -44,6 +45,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         <div className="flex flex-col flex-1 overflow-hidden">
           <Topbar />
           <main className="flex-1 overflow-y-auto p-6">{children}</main>
+          <Footer />
         </div>
       </div>
     </SignalRProvider>
