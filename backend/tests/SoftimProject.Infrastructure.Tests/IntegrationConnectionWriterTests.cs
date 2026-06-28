@@ -11,6 +11,8 @@ namespace SoftimProject.Infrastructure.Tests;
 
 public class IntegrationConnectionWriterTests
 {
+    private static readonly Guid CreatorId = Guid.NewGuid();
+
     private static StartMigrationCommand Command(string token = "secret-token") => new(
         BaseUrl: "https://ep.example",
         ApiKey: token,
@@ -41,10 +43,11 @@ public class IntegrationConnectionWriterTests
         var (writer, db, protector) = Build();
         var cmd = Command();
 
-        var id = await writer.UpsertForEasyProjectAsync(cmd, CancellationToken.None);
+        var id = await writer.UpsertForEasyProjectAsync(cmd, CreatorId, CancellationToken.None);
 
         var connection = await db.IntegrationConnections.SingleAsync();
         connection.Id.Should().Be(id);
+        connection.CreatedByUserId.Should().Be(CreatorId);
         connection.SourceSystem.Should().Be(SyncType.EasyProject);
         connection.BaseUrl.Should().Be("https://ep.example");
         connection.Name.Should().Contain("ep.example");
@@ -66,7 +69,7 @@ public class IntegrationConnectionWriterTests
     {
         var (writer, db, _) = Build();
 
-        var firstId = await writer.UpsertForEasyProjectAsync(Command("token-1"), CancellationToken.None);
+        var firstId = await writer.UpsertForEasyProjectAsync(Command("token-1"), CreatorId, CancellationToken.None);
 
         // Simulate the user later enabling incremental sync on the connection.
         var connection = await db.IntegrationConnections.SingleAsync();
@@ -75,7 +78,7 @@ public class IntegrationConnectionWriterTests
         connection.IntervalMinutes = 60;
         await db.SaveChangesAsync();
 
-        var secondId = await writer.UpsertForEasyProjectAsync(Command("token-2"), CancellationToken.None);
+        var secondId = await writer.UpsertForEasyProjectAsync(Command("token-2"), CreatorId, CancellationToken.None);
 
         secondId.Should().Be(firstId); // same connection (upsert by system + baseUrl)
         (await db.IntegrationConnections.CountAsync()).Should().Be(1);

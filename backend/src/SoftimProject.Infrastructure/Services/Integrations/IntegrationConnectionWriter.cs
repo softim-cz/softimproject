@@ -11,7 +11,7 @@ namespace SoftimProject.Infrastructure.Services.Integrations;
 public sealed class IntegrationConnectionWriter(IApplicationDbContext dbContext, ISecretProtector protector)
     : IIntegrationConnectionWriter
 {
-    public async Task<Guid> UpsertForEasyProjectAsync(StartMigrationCommand command, CancellationToken ct)
+    public async Task<Guid> UpsertForEasyProjectAsync(StartMigrationCommand command, Guid createdByUserId, CancellationToken ct)
     {
         const SyncType system = SyncType.EasyProject;
 
@@ -57,6 +57,7 @@ public sealed class IntegrationConnectionWriter(IApplicationDbContext dbContext,
             BaseUrl = command.BaseUrl,
             EncryptedApiToken = encryptedToken,
             TargetProjectTemplateId = command.TargetProjectTemplateId,
+            CreatedByUserId = createdByUserId,
             ConflictPolicy = ConflictPolicy.SourceOwnedWins,
             Mode = IntegrationSyncMode.Manual,
             IntervalMinutes = 1440,
