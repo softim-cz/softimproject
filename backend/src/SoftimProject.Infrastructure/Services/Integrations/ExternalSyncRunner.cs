@@ -87,25 +87,25 @@ public sealed class ExternalSyncRunner(
             ?? throw new InvalidOperationException("MappingsJson missing.");
         var options = Deserialize<StoredConnectionOptions>(connection.OptionsJson)
             ?? throw new InvalidOperationException("OptionsJson missing.");
-        var projectIds = Deserialize<List<int>>(connection.ProjectSelectorJson) ?? [];
+        var projectIds = Deserialize<List<string>>(connection.ProjectSelectorJson) ?? [];
 
         return new SyncEngineRequest(
             connection.TargetProjectTemplateId,
-            projectIds.Select(id => id.ToString()).ToList(),
-            mappings.TrackerMapping.ToDictionary(kv => kv.Key.ToString(), kv => kv.Value),
-            mappings.StatusMapping.ToDictionary(kv => kv.Key.ToString(), kv => kv.Value),
-            mappings.PriorityMapping.ToDictionary(kv => kv.Key.ToString(), kv => kv.Value),
-            mappings.UserMapping.ToDictionary(kv => kv.Key.ToString(), kv => kv.Value),
+            projectIds,
+            mappings.TrackerMapping,
+            mappings.StatusMapping,
+            mappings.PriorityMapping,
+            mappings.UserMapping,
             options.SkipClosedIssues,
             options.SkipAttachments,
             options.ImportComments,
             options.ImportWorklogs,
             options.ImportChecklists,
             options.CreateMissingUsers,
-            mappings.AutoCreateTrackers?.ToDictionary(kv => kv.Key.ToString(), kv => kv.Value),
-            mappings.AutoCreateStatuses?.ToDictionary(kv => kv.Key.ToString(), kv => kv.Value),
-            mappings.AutoCreateStatusIsClosed?.ToDictionary(kv => kv.Key.ToString(), kv => kv.Value),
-            mappings.AutoCreatePriorities?.ToDictionary(kv => kv.Key.ToString(), kv => kv.Value),
+            mappings.AutoCreateTrackers,
+            mappings.AutoCreateStatuses,
+            mappings.AutoCreateStatusIsClosed,
+            mappings.AutoCreatePriorities,
             ChangedSince: connection.LastSyncWatermark,
             IntegrationConnectionId: connection.Id,
             TargetCompanyId: connection.TargetCompanyId,
