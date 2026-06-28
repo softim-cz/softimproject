@@ -164,6 +164,7 @@ public static class DependencyInjection
         services.AddTransient<SyncEngine>();
         services.AddScoped<IIntegrationConnectionWriter, IntegrationConnectionWriter>();
         services.AddScoped<ExternalSyncRunner>();
+        services.AddScoped<IIntegrationSyncTrigger, IntegrationSyncTrigger>();
         services.AddTransient<IEasyProjectMigrationService, EasyProjectMigrationService>();
         // Provider-agnostic read connector (canonical model). Future systems (Jira,
         // Redmine) register additional ISourceConnector implementations alongside this.

@@ -4,6 +4,7 @@ using System.Text.Json;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using SoftimProject.Application.Interfaces;
 using SoftimProject.Domain.Entities;
 using SoftimProject.Domain.Enums;
@@ -21,8 +22,63 @@ namespace SoftimProject.WebApi.Controllers;
 public class WebhooksController(
     IApplicationDbContext dbContext,
     IGitHubWebhookProcessor processor,
-    IDeadLetterQueue deadLetters) : ControllerBase
+    IDeadLetterQueue deadLetters,
+    IServiceScopeFactory scopeFactory) : ControllerBase
 {
+    // Generic, provider-agnostic webhook for an IntegrationConnection (#144 M5). Treats the
+    // delivery purely as a "sync now" trigger: verifies the HMAC signature against the
+    // connection's WebhookSecret, dedups by delivery id, then kicks off an incremental sync
+    // in the background (the delta pull discovers what changed — no payload parsing). The
+    // external system is configured to POST here per connection with its own URL/secret.
+    [HttpPost("integration/{connectionId:guid}")]
+    public async Task<IActionResult> IntegrationWebhook(Guid connectionId, CancellationToken ct)
+    {
+        using var reader = new StreamReader(Request.Body);
+        var body = await reader.ReadToEndAsync(ct);
+
+        var connection = await dbContext.IntegrationConnections
+            .FirstOrDefaultAsync(c => c.Id == connectionId, ct);
+        if (connection == null)
+            return NotFound("No integration connection for this id");
+
+        if (!string.IsNullOrEmpty(connection.WebhookSecret))
+        {
+            var signature = Request.Headers["X-Signature-256"].FirstOrDefault();
+            if (!VerifySignature(body, signature, connection.WebhookSecret))
+                return Unauthorized("Invalid webhook signature");
+        }
+
+        var provider = connection.SourceSystem.ToString();
+        var deliveryId = Request.Headers["X-Delivery-Id"].FirstOrDefault();
+        if (!string.IsNullOrEmpty(deliveryId))
+        {
+            var already = await dbContext.ProcessedWebhookDeliveries
+                .AnyAsync(d => d.Provider == provider && d.DeliveryId == deliveryId, ct);
+            if (already)
+                return Ok(new { message = "Duplicate delivery ignored" });
+        }
+
+        await RecordDeliveryAsync(provider, deliveryId, "sync-trigger", ct);
+
+        // Fire-and-forget: the caller gets an immediate 202, the sync runs on its own scope.
+        // Failures surface via SyncLog / the dead-letter queue inside the runner path.
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                using var scope = scopeFactory.CreateScope();
+                var trigger = scope.ServiceProvider.GetRequiredService<IIntegrationSyncTrigger>();
+                await trigger.RunNowAsync(connectionId, CancellationToken.None);
+            }
+            catch
+            {
+                // Best-effort; the runner records its own failures.
+            }
+        });
+
+        return Accepted(new { message = "Sync triggered" });
+    }
+
     [HttpPost("github")]
     public async Task<IActionResult> GitHubWebhook(CancellationToken ct)
     {
@@ -75,7 +131,7 @@ public class WebhooksController(
         try
         {
             var result = await processor.ProcessAsync(eventType, body, ct);
-            await RecordDeliveryAsync(deliveryId, eventType, ct);
+            await RecordDeliveryAsync("GitHub", deliveryId, eventType, ct);
             return Ok(new { message = result.Message });
         }
         catch (Exception ex)
@@ -89,18 +145,18 @@ public class WebhooksController(
                 payload,
                 ex,
                 ct);
-            await RecordDeliveryAsync(deliveryId, eventType, ct);
+            await RecordDeliveryAsync("GitHub", deliveryId, eventType, ct);
             return Accepted(new { message = "Processing failed; queued for retry" });
         }
     }
 
-    private async Task RecordDeliveryAsync(string? deliveryId, string eventType, CancellationToken ct)
+    private async Task RecordDeliveryAsync(string provider, string? deliveryId, string eventType, CancellationToken ct)
     {
         if (string.IsNullOrEmpty(deliveryId)) return;
         dbContext.ProcessedWebhookDeliveries.Add(new ProcessedWebhookDelivery
         {
             Id = Guid.NewGuid(),
-            Provider = "GitHub",
+            Provider = provider,
             DeliveryId = deliveryId,
             EventType = eventType,
             ReceivedAt = DateTime.UtcNow,
