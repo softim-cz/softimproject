@@ -85,6 +85,50 @@
       "description": "Připojení ke zdrojovým systémům, pravidelná synchronizace a její stav."
     }
   },
+  "Integrations": {
+    "title": "Integrace",
+    "subtitle": "Připojení ke zdrojovým systémům a jejich pravidelná synchronizace.",
+    "loadFailed": "Načtení připojení se nezdařilo.",
+    "emptyTitle": "Žádná připojení",
+    "emptyDescription": "Připojení vznikne spuštěním migrace ze zdrojového systému.",
+    "goToMigration": "Přejít na Migraci",
+    "mode": "Režim",
+    "modes": {
+      "Manual": "Ruční (jen jednorázový import)",
+      "FullThenIncremental": "Plný + průběžně",
+      "IncrementalOnly": "Jen průběžně"
+    },
+    "interval": "Interval",
+    "intervals": {
+      "60": "Každou hodinu",
+      "360": "Každých 6 hodin",
+      "720": "Každých 12 hodin",
+      "1440": "Jednou denně"
+    },
+    "conflictPolicy": "Řešení konfliktů",
+    "policies": {
+      "SourceOwnedWins": "Zdroj vyhrává (jen u svých polí)",
+      "StrictSourceWins": "Zdroj vždy přepíše",
+      "PreserveLocalEdits": "Zachovat lokální úpravy"
+    },
+    "company": "Zákazník (firma)",
+    "companyNone": "— bez firmy —",
+    "enabled": "Synchronizace zapnuta",
+    "projectsCount": "Projektů: {count}",
+    "lastSync": "Poslední synchronizace",
+    "never": "nikdy",
+    "noToken": "Připojení nemá uložený token — synchronizaci znovu nastavte přes Migraci.",
+    "syncNow": "Synchronizovat teď",
+    "save": "Uložit",
+    "delete": "Smazat",
+    "saved": "Nastavení uloženo.",
+    "saveFailed": "Uložení se nezdařilo.",
+    "syncTriggered": "Synchronizace spuštěna.",
+    "syncFailed": "Spuštění synchronizace se nezdařilo.",
+    "deleted": "Připojení smazáno.",
+    "deleteFailed": "Smazání se nezdařilo.",
+    "deleteConfirm": "Smazat připojení „{name}“? Projekty zůstanou, jen se odpojí od zdroje."
+  },
   "Topbar": {
     "search": "Hledat...",
     "notifications": "Oznámení",

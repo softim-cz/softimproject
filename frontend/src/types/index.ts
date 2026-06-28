@@ -291,6 +291,23 @@ export interface Company {
   isActive: boolean;
 }
 
+export interface IntegrationConnection {
+  id: string;
+  name: string;
+  sourceSystem: string; // "EasyProject" | "Jira" | "Redmine"
+  baseUrl: string;
+  mode: string; // "Manual" | "FullThenIncremental" | "IncrementalOnly"
+  isEnabled: boolean;
+  intervalMinutes: number;
+  conflictPolicy: string; // "SourceOwnedWins" | "StrictSourceWins" | "PreserveLocalEdits"
+  targetCompanyId?: string | null;
+  targetCompanyName?: string | null;
+  hasToken: boolean;
+  lastSyncStartedAt?: string | null;
+  lastSyncWatermark?: string | null;
+  projectsCount: number;
+}
+
 export interface ApplicationRoleEntity {
   id: string;
   name: string;

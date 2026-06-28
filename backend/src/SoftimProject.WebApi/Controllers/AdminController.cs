@@ -59,4 +59,32 @@ public class AdminController : ApiControllerBase
     [HttpGet("ai-usage")]
     public async Task<ActionResult<AiUsageDto>> GetAiUsage([FromQuery] int days = 30)
         => Ok(await Mediator.Send(new GetAiUsageQuery(days)));
+
+    // --- Integration connections (M8) ---
+
+    [HttpGet("integration-connections")]
+    public async Task<ActionResult<List<IntegrationConnectionDto>>> GetIntegrationConnections()
+        => Ok(await Mediator.Send(new GetIntegrationConnectionsQuery()));
+
+    [HttpPut("integration-connections/{id:guid}")]
+    public async Task<IActionResult> UpdateIntegrationConnection(Guid id, UpdateIntegrationConnectionCommand command)
+    {
+        if (id != command.Id) return BadRequest("Route id does not match command id.");
+        await Mediator.Send(command);
+        return NoContent();
+    }
+
+    [HttpPost("integration-connections/{id:guid}/sync")]
+    public async Task<IActionResult> TriggerIntegrationSync(Guid id)
+    {
+        await Mediator.Send(new TriggerIntegrationSyncCommand(id));
+        return Accepted();
+    }
+
+    [HttpDelete("integration-connections/{id:guid}")]
+    public async Task<IActionResult> DeleteIntegrationConnection(Guid id)
+    {
+        await Mediator.Send(new DeleteIntegrationConnectionCommand(id));
+        return NoContent();
+    }
 }

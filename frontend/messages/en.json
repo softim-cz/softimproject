@@ -85,6 +85,50 @@
       "description": "Connections to source systems, scheduled sync and its status."
     }
   },
+  "Integrations": {
+    "title": "Integrations",
+    "subtitle": "Connections to source systems and their scheduled synchronization.",
+    "loadFailed": "Failed to load connections.",
+    "emptyTitle": "No connections",
+    "emptyDescription": "A connection is created by running a migration from a source system.",
+    "goToMigration": "Go to Migration",
+    "mode": "Mode",
+    "modes": {
+      "Manual": "Manual (one-time import only)",
+      "FullThenIncremental": "Full + continuous",
+      "IncrementalOnly": "Continuous only"
+    },
+    "interval": "Interval",
+    "intervals": {
+      "60": "Every hour",
+      "360": "Every 6 hours",
+      "720": "Every 12 hours",
+      "1440": "Once a day"
+    },
+    "conflictPolicy": "Conflict policy",
+    "policies": {
+      "SourceOwnedWins": "Source wins (its fields only)",
+      "StrictSourceWins": "Source always overwrites",
+      "PreserveLocalEdits": "Preserve local edits"
+    },
+    "company": "Customer (company)",
+    "companyNone": "— no company —",
+    "enabled": "Sync enabled",
+    "projectsCount": "Projects: {count}",
+    "lastSync": "Last sync",
+    "never": "never",
+    "noToken": "Connection has no stored token — re-configure the sync via Migration.",
+    "syncNow": "Sync now",
+    "save": "Save",
+    "delete": "Delete",
+    "saved": "Settings saved.",
+    "saveFailed": "Save failed.",
+    "syncTriggered": "Sync triggered.",
+    "syncFailed": "Failed to trigger sync.",
+    "deleted": "Connection deleted.",
+    "deleteFailed": "Delete failed.",
+    "deleteConfirm": "Delete connection \"{name}\"? Projects remain, only detached from the source."
+  },
   "Topbar": {
     "search": "Search...",
     "notifications": "Notifications",
