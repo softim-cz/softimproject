@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useTranslations } from "next-intl";
-import { Users, BookOpen, Import, type LucideIcon } from "lucide-react";
+import { Users, BookOpen, Import, Plug, type LucideIcon } from "lucide-react";
 
 interface Tile {
   key: string;
@@ -14,6 +14,7 @@ const tiles: Tile[] = [
   { key: "users", href: "/admin/users", icon: Users },
   { key: "lookups", href: "/admin/lookups", icon: BookOpen },
   { key: "migration", href: "/admin/migration", icon: Import },
+  { key: "integrations", href: "/admin/integrations", icon: Plug },
 ];
 
 export default function AdminHubPage() {
