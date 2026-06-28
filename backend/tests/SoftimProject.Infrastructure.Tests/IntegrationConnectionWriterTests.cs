@@ -1,6 +1,7 @@
 using FluentAssertions;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.EntityFrameworkCore;
+using SoftimProject.Application.Features.Integration;
 using SoftimProject.Application.Features.Migration.EasyProject;
 using SoftimProject.Domain.Enums;
 using SoftimProject.Infrastructure.Persistence;
@@ -64,6 +65,42 @@ public class IntegrationConnectionWriterTests
         connection.ProjectSelectorJson.Should().Contain("1").And.Contain("2");
         connection.MappingsJson.Should().NotBeNullOrEmpty();
         connection.OptionsJson.Should().NotBeNullOrEmpty();
+    }
+
+    [Fact]
+    public async Task UpsertForImport_Creates_Connection_For_NonEp_System()
+    {
+        var (writer, db, protector) = Build();
+        var cmd = new StartSourceImportCommand(
+            SourceSystem: SyncType.Jira,
+            BaseUrl: "https://acme.atlassian.net",
+            ApiKey: "email:token",
+            ProjectExternalIds: ["10001"],
+            TargetProjectTemplateId: Guid.NewGuid(),
+            TrackerMapping: new Dictionary<string, Guid?>(),
+            StatusMapping: new Dictionary<string, Guid> { ["3"] = Guid.NewGuid() },
+            PriorityMapping: new Dictionary<string, Guid>(),
+            UserMapping: new Dictionary<string, Guid?>(),
+            SkipClosedIssues: false,
+            SkipAttachments: true,
+            ImportComments: true,
+            ImportWorklogs: false,
+            ImportChecklists: false,
+            CreateMissingUsers: false,
+            EnableIncrementalSync: true,
+            SyncIntervalMinutes: 60);
+
+        await writer.UpsertForImportAsync(cmd, CreatorId, CancellationToken.None);
+
+        var connection = await db.IntegrationConnections.SingleAsync();
+        connection.SourceSystem.Should().Be(SyncType.Jira);
+        connection.BaseUrl.Should().Be("https://acme.atlassian.net");
+        connection.Mode.Should().Be(IntegrationSyncMode.FullThenIncremental);
+        connection.IsEnabled.Should().BeTrue();
+        connection.IntervalMinutes.Should().Be(60);
+        connection.ProjectSelectorJson.Should().Contain("10001");
+        connection.MappingsJson.Should().Contain("\"3\"");
+        protector.Unprotect(connection.EncryptedApiToken).Should().Be("email:token");
     }
 
     [Fact]
