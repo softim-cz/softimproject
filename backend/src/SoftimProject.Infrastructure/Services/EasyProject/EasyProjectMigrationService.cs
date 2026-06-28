@@ -1,3 +1,5 @@
+using Microsoft.EntityFrameworkCore;
+using SoftimProject.Application.Common;
 using SoftimProject.Application.Features.Migration.EasyProject;
 using SoftimProject.Application.Interfaces;
 using SoftimProject.Domain.Enums;
@@ -17,15 +19,32 @@ public sealed class EasyProjectMigrationService : IEasyProjectMigrationService
 {
     private readonly SyncEngine _syncEngine;
     private readonly ISourceConnector _connector;
+    private readonly IApplicationDbContext _dbContext;
+    private readonly IMigrationNotifier _notifier;
 
-    public EasyProjectMigrationService(SyncEngine syncEngine, IEnumerable<ISourceConnector> connectors)
+    public EasyProjectMigrationService(
+        SyncEngine syncEngine,
+        IEnumerable<ISourceConnector> connectors,
+        IApplicationDbContext dbContext,
+        IMigrationNotifier notifier)
     {
         _syncEngine = syncEngine;
         _connector = connectors.First(c => c.SourceSystem == SyncType.EasyProject);
+        _dbContext = dbContext;
+        _notifier = notifier;
     }
 
-    public Task ExecuteAsync(Guid jobId, StartMigrationCommand cmd, Guid? integrationConnectionId)
+    public async Task ExecuteAsync(Guid jobId, StartMigrationCommand cmd, Guid? integrationConnectionId)
     {
+        // The wizard run is recorded on its MigrationJob (status/phase/progress over SignalR).
+        var adminUserId = await _dbContext.MigrationJobs
+            .Where(j => j.Id == jobId)
+            .Select(j => j.InitiatedByUserId)
+            .FirstOrDefaultAsync();
+        if (adminUserId == Guid.Empty)
+            throw new NotFoundException(nameof(Domain.Entities.MigrationJob), jobId);
+
+        var sink = new MigrationJobSink(_dbContext, _notifier, jobId);
         var context = new SourceConnectionContext(cmd.BaseUrl, cmd.ApiKey);
         var request = new SyncEngineRequest(
             cmd.TargetProjectTemplateId,
@@ -47,6 +66,6 @@ public sealed class EasyProjectMigrationService : IEasyProjectMigrationService
             ChangedSince: null,
             IntegrationConnectionId: integrationConnectionId);
 
-        return _syncEngine.ExecuteAsync(jobId, request, _connector, context);
+        await _syncEngine.ExecuteAsync(jobId, adminUserId, request, _connector, context, sink);
     }
 }

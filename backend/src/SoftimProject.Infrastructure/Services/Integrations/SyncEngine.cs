@@ -20,11 +20,10 @@ namespace SoftimProject.Infrastructure.Services.Integrations;
 public sealed class SyncEngine(
     IApplicationDbContext dbContext,
     IMigrationProgressTracker tracker,
-    IMigrationNotifier notifier,
     IBlobStorageService blobStorage,
     ILogger<SyncEngine> logger)
 {
-    public async Task ExecuteAsync(Guid jobId, SyncEngineRequest request, ISourceConnector connector, SourceConnectionContext context)
+    public async Task ExecuteAsync(Guid jobId, Guid adminUserId, SyncEngineRequest request, ISourceConnector connector, SourceConnectionContext context, ISyncJobSink sink)
     {
         // Provider-derived literals. For EasyProject these resolve to exactly the values
         // the old service used ("EasyProject", "easyproject:{id}", CommentSource.EasyProject).
@@ -63,7 +62,7 @@ public sealed class SyncEngine(
             // Phase 1: Fetch data from the source system (via the connector → canonical model)
             tracker.UpdatePhase(jobId, "Fetching data from source");
             tracker.AddLog(jobId, "Starting data fetch...");
-            await NotifyProgress(jobId);
+            await sink.NotifyAsync(tracker.GetProgress(jobId));
 
             var allProjects = await connector.GetProjectsAsync(context, ct);
             var selectedProjects = new List<CanonicalProject>();
@@ -88,11 +87,11 @@ public sealed class SyncEngine(
 
                 tracker.AddLog(jobId, $"Fetched project '{project.Name}': {issues.Count} issues");
             }
-            await AdvancePhaseAsync(jobId, MigrationPhase.Fetching, ct);
+            await sink.AdvancePhaseAsync(MigrationPhase.Fetching, ct);
 
             // Phase 2: Lookups
             tracker.UpdatePhase(jobId, "Processing lookups");
-            await NotifyProgress(jobId);
+            await sink.NotifyAsync(tracker.GetProgress(jobId));
 
             var taskTypeMap = await EnsureTaskTypes(jobId, request.TrackerMapping, request.AutoCreateTrackers, ct);
             var taskStateMap = await EnsureTaskStates(jobId, request.TargetProjectTemplateId, request.AutoCreateStatuses, request.AutoCreateStatusIsClosed, ct);
@@ -106,24 +105,19 @@ public sealed class SyncEngine(
             var mergedPriorityMapping = new Dictionary<string, Guid>(request.PriorityMapping);
             foreach (var (epId, spId) in priorityMap)
                 mergedPriorityMapping[epId] = spId;
-            await AdvancePhaseAsync(jobId, MigrationPhase.Lookups, ct);
+            await sink.AdvancePhaseAsync(MigrationPhase.Lookups, ct);
 
             // Phase 3: Users
             tracker.UpdatePhase(jobId, "Processing users");
-            await NotifyProgress(jobId);
+            await sink.NotifyAsync(tracker.GetProgress(jobId));
 
             var userMap = await EnsureUsers(jobId, request, connector, context, userPrefix, ct);
-
-            var adminUserId = await dbContext.MigrationJobs
-                .Where(j => j.Id == jobId)
-                .Select(j => j.InitiatedByUserId)
-                .FirstAsync(ct);
-            await AdvancePhaseAsync(jobId, MigrationPhase.Users, ct);
+            await sink.AdvancePhaseAsync(MigrationPhase.Users, ct);
 
             // Phase 4: Projects
             tracker.UpdatePhase(jobId, "Migrating projects");
             tracker.UpdateCounts(jobId, "projects", selectedProjects.Count, 0);
-            await NotifyProgress(jobId);
+            await sink.NotifyAsync(tracker.GetProgress(jobId));
 
             var projectMap = new Dictionary<string, Guid>();
             var projectsMigrated = 0;
@@ -155,13 +149,13 @@ public sealed class SyncEngine(
                 }
             }
             await dbContext.SaveChangesAsync(ct);
-            await AdvancePhaseAsync(jobId, MigrationPhase.Projects, ct);
+            await sink.AdvancePhaseAsync(MigrationPhase.Projects, ct);
 
             // Phase 5: Tickets
             tracker.UpdatePhase(jobId, "Migrating tickets");
             var totalTickets = issuesByProject.Values.Sum(l => l.Count);
             tracker.UpdateCounts(jobId, "tickets", totalTickets, 0);
-            await NotifyProgress(jobId);
+            await sink.NotifyAsync(tracker.GetProgress(jobId));
 
             var ticketMap = new Dictionary<string, Guid>();
             var ticketsMigrated = 0;
@@ -216,12 +210,12 @@ public sealed class SyncEngine(
                 }
             }
             await dbContext.SaveChangesAsync(ct);
-            await AdvancePhaseAsync(jobId, MigrationPhase.Tickets, ct);
+            await sink.AdvancePhaseAsync(MigrationPhase.Tickets, ct);
 
             if (request.ImportComments)
             {
                 tracker.UpdatePhase(jobId, "Migrating comments");
-                await NotifyProgress(jobId);
+                await sink.NotifyAsync(tracker.GetProgress(jobId));
 
                 var totalComments = issuesByProject.Values.Sum(issues => issues.Sum(i => i.Comments.Count));
                 var commentsMigrated = 0;
@@ -253,12 +247,12 @@ public sealed class SyncEngine(
                 }
                 await dbContext.SaveChangesAsync(ct);
             }
-            await AdvancePhaseAsync(jobId, MigrationPhase.Comments, ct);
+            await sink.AdvancePhaseAsync(MigrationPhase.Comments, ct);
 
             if (request.ImportWorklogs)
             {
                 tracker.UpdatePhase(jobId, "Migrating worklogs");
-                await NotifyProgress(jobId);
+                await sink.NotifyAsync(tracker.GetProgress(jobId));
 
                 var totalWorklogs = worklogsByProject.Values.Sum(l => l.Count);
                 var worklogsMigrated = 0;
@@ -285,10 +279,10 @@ public sealed class SyncEngine(
                 }
                 await dbContext.SaveChangesAsync(ct);
             }
-            await AdvancePhaseAsync(jobId, MigrationPhase.Worklogs, ct);
+            await sink.AdvancePhaseAsync(MigrationPhase.Worklogs, ct);
 
             tracker.UpdatePhase(jobId, "Migrating custom fields");
-            await NotifyProgress(jobId);
+            await sink.NotifyAsync(tracker.GetProgress(jobId));
 
             foreach (var issues in issuesByProject.Values)
             {
@@ -309,12 +303,12 @@ public sealed class SyncEngine(
                 catch (Exception ex) { tracker.AddError(jobId, $"Failed to migrate custom fields for project '{project.Name}': {ex.Message}"); }
             }
             await dbContext.SaveChangesAsync(ct);
-            await AdvancePhaseAsync(jobId, MigrationPhase.CustomFields, ct);
+            await sink.AdvancePhaseAsync(MigrationPhase.CustomFields, ct);
 
             if (request.ImportChecklists)
             {
                 tracker.UpdatePhase(jobId, "Migrating checklists");
-                await NotifyProgress(jobId);
+                await sink.NotifyAsync(tracker.GetProgress(jobId));
 
                 foreach (var issues in issuesByProject.Values)
                 {
@@ -332,12 +326,12 @@ public sealed class SyncEngine(
                 }
                 await dbContext.SaveChangesAsync(ct);
             }
-            await AdvancePhaseAsync(jobId, MigrationPhase.Checklists, ct);
+            await sink.AdvancePhaseAsync(MigrationPhase.Checklists, ct);
 
             if (!request.SkipAttachments)
             {
                 tracker.UpdatePhase(jobId, "Migrating attachments");
-                await NotifyProgress(jobId);
+                await sink.NotifyAsync(tracker.GetProgress(jobId));
 
                 var totalAttachments = issuesByProject.Values.Sum(issues => issues.Sum(i => i.Attachments.Count));
                 var attachmentsMigrated = 0;
@@ -363,10 +357,10 @@ public sealed class SyncEngine(
                     }
                 }
             }
-            await AdvancePhaseAsync(jobId, MigrationPhase.Attachments, ct);
+            await sink.AdvancePhaseAsync(MigrationPhase.Attachments, ct);
 
             tracker.UpdatePhase(jobId, "Recalculating");
-            await NotifyProgress(jobId);
+            await sink.NotifyAsync(tracker.GetProgress(jobId));
 
             foreach (var spProjectId in projectMap.Values)
             {
@@ -397,58 +391,25 @@ public sealed class SyncEngine(
             var progress = tracker.GetProgress(jobId);
             var hasErrors = (progress?.ErrorCount ?? 0) > 0;
             tracker.Complete(jobId, hasErrors);
-
-            var job = await dbContext.MigrationJobs.FindAsync([jobId], ct);
-            if (job != null)
-            {
-                job.Status = hasErrors ? MigrationStatus.CompletedWithErrors : MigrationStatus.Completed;
-                job.CompletedAt = DateTime.UtcNow;
-                job.CurrentPhase = MigrationPhase.Done;
-                job.ProjectsMigrated = projectsMigrated;
-                job.TicketsMigrated = ticketsMigrated;
-                job.ItemsFailed = progress?.ErrorCount ?? 0;
-                job.ItemsCreated = progress?.ItemsCreated ?? 0;
-                job.ItemsUpdated = progress?.ItemsUpdated ?? 0;
-                job.ItemsSkipped = progress?.ItemsSkipped ?? 0;
-                job.ErrorLog = progress?.RecentErrors.Count > 0 ? JsonSerializer.Serialize(progress.RecentErrors) : null;
-            }
-            await dbContext.SaveChangesAsync(ct);
+            await sink.CompleteAsync(hasErrors, progress, ct);
 
             tracker.AddLog(jobId, $"Migration completed. Projects: {projectsMigrated}, Tickets: {ticketsMigrated}");
-            await NotifyProgress(jobId);
+            await sink.NotifyAsync(tracker.GetProgress(jobId));
         }
         catch (OperationCanceledException)
         {
             tracker.Cancel(jobId);
             tracker.AddLog(jobId, "Migration cancelled by user.");
-            var job = await dbContext.MigrationJobs.FindAsync([jobId], CancellationToken.None);
-            if (job != null) { job.Status = MigrationStatus.Cancelled; job.CompletedAt = DateTime.UtcNow; }
-            await dbContext.SaveChangesAsync(CancellationToken.None);
-            await NotifyProgress(jobId);
+            await sink.CancelAsync(CancellationToken.None);
+            await sink.NotifyAsync(tracker.GetProgress(jobId));
         }
         catch (Exception ex)
         {
             logger.LogError(ex, "Sync job {JobId} failed", jobId);
             tracker.Fail(jobId, ex.Message);
             tracker.AddLog(jobId, $"Migration failed: {ex.Message}");
-            var job = await dbContext.MigrationJobs.FindAsync([jobId], CancellationToken.None);
-            if (job != null) { job.Status = MigrationStatus.Failed; job.CompletedAt = DateTime.UtcNow; job.ErrorLog = JsonSerializer.Serialize(new[] { ex.Message }); }
-            await dbContext.SaveChangesAsync(CancellationToken.None);
-            await NotifyProgress(jobId);
-        }
-    }
-
-    // Persists the current phase so /admin/migration can show "last good boundary" even
-    // if the process crashes, and so resume reports progress correctly. Advance is at
-    // phase boundaries, not mid-batch — recovery is phase-granular.
-    private async Task AdvancePhaseAsync(Guid jobId, MigrationPhase phase, CancellationToken ct)
-    {
-        var job = await dbContext.MigrationJobs.FindAsync([jobId], ct);
-        if (job is null) return;
-        if (phase > job.CurrentPhase)
-        {
-            job.CurrentPhase = phase;
-            await dbContext.SaveChangesAsync(ct);
+            await sink.FailAsync(ex.Message, CancellationToken.None);
+            await sink.NotifyAsync(tracker.GetProgress(jobId));
         }
     }
 
@@ -817,7 +778,6 @@ public sealed class SyncEngine(
         return result;
     }
 
-    private async Task NotifyProgress(Guid jobId) { var progress = tracker.GetProgress(jobId); if (progress != null) await notifier.NotifyProgressAsync(jobId, progress); }
 
     private static CommentSource MapCommentSource(SyncType system) => system switch
     {
