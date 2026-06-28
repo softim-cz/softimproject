@@ -13,6 +13,7 @@ using SoftimProject.Infrastructure.Services;
 using SoftimProject.Infrastructure.Services.EasyProject;
 using SoftimProject.Infrastructure.Services.Email;
 using SoftimProject.Infrastructure.Services.Integrations;
+using SoftimProject.Infrastructure.Services.Jira;
 
 namespace SoftimProject.Infrastructure;
 
@@ -166,9 +167,10 @@ public static class DependencyInjection
         services.AddScoped<ExternalSyncRunner>();
         services.AddScoped<IIntegrationSyncTrigger, IntegrationSyncTrigger>();
         services.AddTransient<IEasyProjectMigrationService, EasyProjectMigrationService>();
-        // Provider-agnostic read connector (canonical model). Future systems (Jira,
-        // Redmine) register additional ISourceConnector implementations alongside this.
+        // Provider-agnostic read connectors (canonical model). Resolved as IEnumerable and
+        // dispatched by SourceSystem, so multiple providers coexist.
         services.AddScoped<ISourceConnector, EasyProjectSourceConnector>();
+        services.AddHttpClient<ISourceConnector, JiraSourceConnector>();
 
         return services;
     }
