@@ -14,6 +14,7 @@ using SoftimProject.Infrastructure.Services.EasyProject;
 using SoftimProject.Infrastructure.Services.Email;
 using SoftimProject.Infrastructure.Services.Integrations;
 using SoftimProject.Infrastructure.Services.Jira;
+using SoftimProject.Infrastructure.Services.Redmine;
 
 namespace SoftimProject.Infrastructure;
 
@@ -170,6 +171,7 @@ public static class DependencyInjection
         // Provider-agnostic read connectors (canonical model). Resolved as IEnumerable and
         // dispatched by SourceSystem, so multiple providers coexist.
         services.AddScoped<ISourceConnector, EasyProjectSourceConnector>();
+        services.AddScoped<ISourceConnector, RedmineSourceConnector>();
         services.AddHttpClient<ISourceConnector, JiraSourceConnector>();
 
         return services;
