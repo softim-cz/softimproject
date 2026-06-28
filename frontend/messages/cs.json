@@ -65,6 +65,26 @@
     "changed": "Změněno",
     "fixed": "Opraveno"
   },
+  "AdminHub": {
+    "title": "Administrace",
+    "subtitle": "Správa uživatelů, číselníků, migrací a integrací.",
+    "users": {
+      "title": "Uživatelé",
+      "description": "Správa uživatelů, rolí, stav systému a fronta chyb."
+    },
+    "lookups": {
+      "title": "Číselníky",
+      "description": "Typy a stavy úkolů, priority, firmy, šablony projektů, custom fieldy."
+    },
+    "migration": {
+      "title": "Migrace",
+      "description": "Jednorázový import a nastavení synchronizace ze zdrojových systémů."
+    },
+    "integrations": {
+      "title": "Integrace",
+      "description": "Připojení ke zdrojovým systémům, pravidelná synchronizace a její stav."
+    }
+  },
   "Topbar": {
     "search": "Hledat...",
     "notifications": "Oznámení",

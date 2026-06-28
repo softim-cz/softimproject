@@ -9,8 +9,6 @@ import {
   Clock,
   Users,
   Settings,
-  BookOpen,
-  Import,
   ChevronLeft,
   ChevronRight,
   Timer,
@@ -26,8 +24,6 @@ const navigation = [
   { key: "worklogs", href: "/worklogs", icon: Clock },
   { key: "resources", href: "/resources", icon: Users },
   { key: "admin", href: "/admin", icon: Settings },
-  { key: "lookups", href: "/admin/lookups", icon: BookOpen },
-  { key: "migration", href: "/admin/migration", icon: Import },
 ] as const;
 
 function TimerWidget({ collapsed }: { collapsed: boolean }) {

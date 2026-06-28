@@ -65,6 +65,26 @@
     "changed": "Changed",
     "fixed": "Fixed"
   },
+  "AdminHub": {
+    "title": "Administration",
+    "subtitle": "Manage users, lookups, migrations and integrations.",
+    "users": {
+      "title": "Users",
+      "description": "User and role management, system health and the error queue."
+    },
+    "lookups": {
+      "title": "Lookups",
+      "description": "Task types and states, priorities, companies, project templates, custom fields."
+    },
+    "migration": {
+      "title": "Migration",
+      "description": "One-time import and sync settings from source systems."
+    },
+    "integrations": {
+      "title": "Integrations",
+      "description": "Connections to source systems, scheduled sync and its status."
+    }
+  },
   "Topbar": {
     "search": "Search...",
     "notifications": "Notifications",
