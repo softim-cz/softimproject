@@ -11,5 +11,5 @@ namespace SoftimProject.Application.Interfaces;
 public interface IIntegrationConnectionWriter
 {
     /// <summary>Upserts the EasyProject connection for the given migration command. Returns its id.</summary>
-    Task<Guid> UpsertForEasyProjectAsync(StartMigrationCommand command, CancellationToken ct);
+    Task<Guid> UpsertForEasyProjectAsync(StartMigrationCommand command, Guid createdByUserId, CancellationToken ct);
 }

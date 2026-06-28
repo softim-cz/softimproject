@@ -8,5 +8,6 @@ public enum DeadLetterOperation
     AiSummarizeTicket,
     GitHubSyncProject,
     EasyProjectFetch,
-    GitHubWebhook
+    GitHubWebhook,
+    ExternalSync
 }

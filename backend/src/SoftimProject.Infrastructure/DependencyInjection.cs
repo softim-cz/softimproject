@@ -128,6 +128,7 @@ public static class DependencyInjection
         services.AddHostedService<WeeklyReportService>();
         services.AddHostedService<HealthRecalcService>();
         services.AddHostedService<GitHubSyncService>();
+        services.AddHostedService<ExternalSyncService>();
 
         // EasyProject Migration
         services.AddHttpClient<IEasyProjectApiClient, EasyProjectApiClient>()
@@ -162,6 +163,7 @@ public static class DependencyInjection
         // Provider-agnostic sync engine + EasyProject adapter that feeds it.
         services.AddTransient<SyncEngine>();
         services.AddScoped<IIntegrationConnectionWriter, IntegrationConnectionWriter>();
+        services.AddScoped<ExternalSyncRunner>();
         services.AddTransient<IEasyProjectMigrationService, EasyProjectMigrationService>();
         // Provider-agnostic read connector (canonical model). Future systems (Jira,
         // Redmine) register additional ISourceConnector implementations alongside this.

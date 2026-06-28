@@ -29,6 +29,9 @@ public class IntegrationConnection : BaseEntity
     /// <summary>Customer the imported projects belong to (návrh #144 §9).</summary>
     public Guid? TargetCompanyId { get; set; }
 
+    /// <summary>User attributed as initiator of headless scheduled syncs (reporter fallback, PM assignment).</summary>
+    public Guid CreatedByUserId { get; set; }
+
     public ConflictPolicy ConflictPolicy { get; set; } = ConflictPolicy.SourceOwnedWins;
 
     public IntegrationSyncMode Mode { get; set; } = IntegrationSyncMode.Manual;

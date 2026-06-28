@@ -98,7 +98,7 @@ public sealed class StartMigrationCommandHandler(
 
         // Persist a reusable connection (encrypted token + mappings) and link the imported
         // projects to it, so future incremental syncs (milník 3c) can run without the wizard.
-        var connectionId = await connectionWriter.UpsertForEasyProjectAsync(request, cancellationToken);
+        var connectionId = await connectionWriter.UpsertForEasyProjectAsync(request, userId, cancellationToken);
 
         progressTracker.Init(jobId);
 
