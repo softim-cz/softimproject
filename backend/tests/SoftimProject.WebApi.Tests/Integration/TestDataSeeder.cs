@@ -25,6 +25,7 @@ public static class TestDataSeeder
     public static readonly Guid ProjectAId = Guid.Parse("20000000-0000-0000-0000-000000000001");
     public static readonly Guid ProjectBId = Guid.Parse("20000000-0000-0000-0000-000000000002");
     public static readonly Guid ProjectABoardId = Guid.Parse("30000000-0000-0000-0000-000000000001");
+    public static readonly Guid TemplateId = Guid.Parse("40000000-0000-0000-0000-000000000001");
 
     public static async Task SeedAsync(ApplicationDbContext db)
     {
@@ -75,6 +76,13 @@ public static class TestDataSeeder
                 IsActive = true,
             });
 
+        db.ProjectTemplates.Add(new ProjectTemplate
+        {
+            Id = TemplateId,
+            Name = "Test Template",
+            IsActive = true,
+        });
+
         db.Projects.AddRange(
             new Project
             {
@@ -82,6 +90,7 @@ public static class TestDataSeeder
                 Name = "Project A",
                 Code = "PRJA",
                 Status = ProjectStatus.Active,
+                ProjectTemplateId = TemplateId,
             },
             new Project
             {
@@ -89,6 +98,7 @@ public static class TestDataSeeder
                 Name = "Project B",
                 Code = "PRJB",
                 Status = ProjectStatus.Active,
+                ProjectTemplateId = TemplateId,
             });
 
         db.ProjectMembers.AddRange(
