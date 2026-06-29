@@ -18,6 +18,7 @@ import { cn } from "@/lib/utils";
 import { useMigrationStore } from "@/stores/migration-store";
 import {
   useTestEpConnection,
+  useRememberConnection,
   useFetchEpProjects,
   useFetchIssueCounts,
   useFetchEpLookups,
@@ -84,6 +85,7 @@ function StepConnection() {
   const { baseUrl, apiKey, connectionTested, setBaseUrl, setApiKey, setConnectionTested, setStep } =
     useMigrationStore();
   const testConnection = useTestEpConnection();
+  const rememberConnection = useRememberConnection();
 
   const handleTest = () => {
     testConnection.mutate(
@@ -91,6 +93,11 @@ function StepConnection() {
       {
         onSuccess: (data) => {
           setConnectionTested(data.success);
+          // Persist the verified connection immediately so it is remembered in Integrace
+          // even if the wizard is abandoned or a later import fails.
+          if (data.success) {
+            rememberConnection.mutate({ baseUrl, apiKey });
+          }
         },
       }
     );

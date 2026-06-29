@@ -23,8 +23,12 @@ public class IntegrationConnection : BaseEntity
     /// <summary>Shared secret used to verify inbound webhook signatures.</summary>
     public string? WebhookSecret { get; set; }
 
-    /// <summary>Template applied to projects created by this connection.</summary>
-    public Guid TargetProjectTemplateId { get; set; }
+    /// <summary>
+    /// Template applied to projects created by this connection. Null until the connection is
+    /// configured by a first import — a connection can be remembered right after a successful
+    /// connection test, before any template/mapping is chosen.
+    /// </summary>
+    public Guid? TargetProjectTemplateId { get; set; }
 
     /// <summary>Customer the imported projects belong to (návrh #144 §9).</summary>
     public Guid? TargetCompanyId { get; set; }
@@ -58,6 +62,6 @@ public class IntegrationConnection : BaseEntity
 
     // Navigation
     public Company? TargetCompany { get; set; }
-    public ProjectTemplate TargetProjectTemplate { get; set; } = null!;
+    public ProjectTemplate? TargetProjectTemplate { get; set; }
     public ICollection<Project> Projects { get; set; } = new List<Project>();
 }

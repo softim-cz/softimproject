@@ -20,6 +20,21 @@ export function useTestEpConnection() {
   });
 }
 
+// Remembers the connection (system + URL + token) right after a successful test, so it is
+// persisted in Integrace even if the wizard is abandoned or a later import fails.
+export function useRememberConnection() {
+  return useMutation({
+    mutationFn: async (params: { baseUrl: string; apiKey: string }) => {
+      const { data } = await apiClient.post<string>("/api/v1/integration/remember-connection", {
+        sourceSystem: "EasyProject",
+        baseUrl: params.baseUrl,
+        apiToken: params.apiKey,
+      });
+      return data;
+    },
+  });
+}
+
 export function useFetchEpProjects() {
   return useMutation({
     mutationFn: async (params: { baseUrl: string; apiKey: string }) => {

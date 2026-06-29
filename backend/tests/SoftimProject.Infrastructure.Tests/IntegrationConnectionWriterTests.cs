@@ -104,6 +104,50 @@ public class IntegrationConnectionWriterTests
     }
 
     [Fact]
+    public async Task Remember_Creates_Minimal_Connection_Without_Template()
+    {
+        var (writer, db, protector) = Build();
+
+        var id = await writer.RememberConnectionAsync(
+            SyncType.EasyProject, "https://ep.example", "secret-token", CreatorId, CancellationToken.None);
+
+        var connection = await db.IntegrationConnections.SingleAsync();
+        connection.Id.Should().Be(id);
+        connection.SourceSystem.Should().Be(SyncType.EasyProject);
+        connection.BaseUrl.Should().Be("https://ep.example");
+        connection.CreatedByUserId.Should().Be(CreatorId);
+        connection.TargetProjectTemplateId.Should().BeNull();
+        connection.Mode.Should().Be(IntegrationSyncMode.Manual);
+        connection.IsEnabled.Should().BeFalse();
+        connection.MappingsJson.Should().BeNull();
+        protector.Unprotect(connection.EncryptedApiToken).Should().Be("secret-token");
+    }
+
+    [Fact]
+    public async Task Remember_On_Existing_Connection_Refreshes_Token_Only()
+    {
+        var (writer, db, protector) = Build();
+
+        // A fully configured connection from a prior import.
+        var importedId = await writer.UpsertForEasyProjectAsync(
+            Command("import-token", enableIncremental: true, interval: 60), CreatorId, CancellationToken.None);
+
+        // Re-testing the same connection (system + baseUrl) must not wipe its config.
+        var rememberedId = await writer.RememberConnectionAsync(
+            SyncType.EasyProject, "https://ep.example", "new-token", CreatorId, CancellationToken.None);
+
+        rememberedId.Should().Be(importedId);
+        (await db.IntegrationConnections.CountAsync()).Should().Be(1);
+
+        var connection = await db.IntegrationConnections.SingleAsync();
+        protector.Unprotect(connection.EncryptedApiToken).Should().Be("new-token"); // refreshed
+        connection.TargetProjectTemplateId.Should().NotBeNull(); // preserved
+        connection.MappingsJson.Should().NotBeNullOrEmpty(); // preserved
+        connection.Mode.Should().Be(IntegrationSyncMode.FullThenIncremental); // preserved
+        connection.IsEnabled.Should().BeTrue(); // preserved
+    }
+
+    [Fact]
     public async Task Upsert_Applies_Wizard_Scheduling()
     {
         var (writer, db, _) = Build();
