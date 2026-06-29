@@ -178,6 +178,26 @@ internal static class LookupMatching
     }
 }
 
+// --- Remember connection (persist after a successful test, before any import) ---
+
+public sealed record RememberSourceConnectionCommand(SourceConnectionInput Input) : IRequest<Guid>, IRequireRole
+{
+    public string RequiredRole => "Admin";
+}
+
+public sealed class RememberSourceConnectionCommandHandler(
+    ICurrentUserService currentUserService,
+    IIntegrationConnectionWriter connectionWriter)
+    : IRequestHandler<RememberSourceConnectionCommand, Guid>
+{
+    public Task<Guid> Handle(RememberSourceConnectionCommand request, CancellationToken cancellationToken)
+    {
+        var userId = currentUserService.UserId ?? throw new UnauthorizedAccessException("User not authenticated.");
+        return connectionWriter.RememberConnectionAsync(
+            request.Input.SourceSystem, request.Input.BaseUrl, request.Input.ApiToken, userId, cancellationToken);
+    }
+}
+
 // --- Start import (creates job + connection, runs the engine in the background) ---
 
 public sealed record StartSourceImportCommand(

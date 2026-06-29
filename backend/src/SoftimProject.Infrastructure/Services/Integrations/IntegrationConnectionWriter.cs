@@ -52,6 +52,42 @@ public sealed class IntegrationConnectionWriter(IApplicationDbContext dbContext,
             command.ProjectExternalIds, mappings, options, createdByUserId, ct);
     }
 
+    // Remember-on-test: persist the bare connection (system + URL + token) the moment it is
+    // verified, independent of any later import. An existing connection only gets its token
+    // refreshed so its template/mappings/scheduling stay intact.
+    public async Task<Guid> RememberConnectionAsync(SyncType system, string baseUrl, string apiKey, Guid createdByUserId, CancellationToken ct)
+    {
+        var encryptedToken = protector.Protect(apiKey);
+
+        var existing = await dbContext.IntegrationConnections
+            .FirstOrDefaultAsync(c => c.SourceSystem == system && c.BaseUrl == baseUrl, ct);
+
+        if (existing != null)
+        {
+            existing.EncryptedApiToken = encryptedToken;
+            await dbContext.SaveChangesAsync(ct);
+            return existing.Id;
+        }
+
+        var connection = new IntegrationConnection
+        {
+            Id = Guid.NewGuid(),
+            Name = $"{system} ({SafeHost(baseUrl)})",
+            SourceSystem = system,
+            BaseUrl = baseUrl,
+            EncryptedApiToken = encryptedToken,
+            TargetProjectTemplateId = null,
+            CreatedByUserId = createdByUserId,
+            ConflictPolicy = ConflictPolicy.SourceOwnedWins,
+            Mode = IntegrationSyncMode.Manual,
+            IsEnabled = false,
+            CreatedAt = DateTime.UtcNow
+        };
+        dbContext.IntegrationConnections.Add(connection);
+        await dbContext.SaveChangesAsync(ct);
+        return connection.Id;
+    }
+
     private async Task<Guid> UpsertCoreAsync(
         SyncType system, string baseUrl, string apiKey, Guid templateId, Guid? companyId,
         bool enableIncremental, int intervalMinutes, List<string> projectExternalIds,

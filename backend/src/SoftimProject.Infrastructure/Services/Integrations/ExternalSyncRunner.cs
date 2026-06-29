@@ -40,6 +40,11 @@ public sealed class ExternalSyncRunner(
         if (connector is null)
             return ExternalSyncOutcome.Fail($"No connector registered for {connection.SourceSystem}.");
 
+        // A connection that was only remembered (no import run yet) has no template/mappings — it
+        // cannot be synced until configured by a first import.
+        if (connection.TargetProjectTemplateId is null || connection.MappingsJson is null)
+            return ExternalSyncOutcome.Fail("Connection is not configured for sync yet (run an import first).");
+
         SyncEngineRequest request;
         try
         {
@@ -90,7 +95,7 @@ public sealed class ExternalSyncRunner(
         var projectIds = Deserialize<List<string>>(connection.ProjectSelectorJson) ?? [];
 
         return new SyncEngineRequest(
-            connection.TargetProjectTemplateId,
+            connection.TargetProjectTemplateId ?? throw new InvalidOperationException("TargetProjectTemplateId missing."),
             projectIds,
             mappings.TrackerMapping,
             mappings.StatusMapping,

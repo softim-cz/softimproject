@@ -12,6 +12,11 @@ public class IntegrationController : ApiControllerBase
     public async Task<ActionResult<ConnectionTestResult>> TestConnection(SourceConnectionInput input)
         => Ok(await Mediator.Send(new TestSourceConnectionQuery(input)));
 
+    /// <summary>Remembers the connection (system + URL + token) after a successful test, before any import.</summary>
+    [HttpPost("remember-connection")]
+    public async Task<ActionResult<Guid>> RememberConnection(SourceConnectionInput input)
+        => Ok(await Mediator.Send(new RememberSourceConnectionCommand(input)));
+
     [HttpPost("projects")]
     public async Task<ActionResult<List<SourceProjectPreviewDto>>> FetchProjects(SourceConnectionInput input)
         => Ok(await Mediator.Send(new FetchSourceProjectsQuery(input)));

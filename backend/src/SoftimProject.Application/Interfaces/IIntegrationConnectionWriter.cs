@@ -1,5 +1,6 @@
 using SoftimProject.Application.Features.Integration;
 using SoftimProject.Application.Features.Migration.EasyProject;
+using SoftimProject.Domain.Enums;
 
 namespace SoftimProject.Application.Interfaces;
 
@@ -16,4 +17,10 @@ public interface IIntegrationConnectionWriter
 
     /// <summary>Upserts a connection for any source system from the provider-agnostic import command.</summary>
     Task<Guid> UpsertForImportAsync(StartSourceImportCommand command, Guid createdByUserId, CancellationToken ct);
+
+    /// <summary>
+    /// Remembers a bare connection (system + URL + token) right after a successful connection test,
+    /// before any import is configured. On an existing connection only the token is refreshed.
+    /// </summary>
+    Task<Guid> RememberConnectionAsync(SyncType system, string baseUrl, string apiKey, Guid createdByUserId, CancellationToken ct);
 }
