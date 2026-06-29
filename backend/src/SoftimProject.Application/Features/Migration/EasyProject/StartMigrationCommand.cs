@@ -35,7 +35,9 @@ public sealed record StartMigrationCommand(
     // whether/how often this source keeps syncing incrementally after the initial import.
     Guid? TargetCompanyId = null,
     bool EnableIncrementalSync = false,
-    int SyncIntervalMinutes = 1440) : IRequest<Guid>;
+    int SyncIntervalMinutes = 1440,
+    // When set, the saved connection's URL + stored token are used (API key not re-entered).
+    Guid? ConnectionId = null) : IRequest<Guid>;
 
 public sealed class StartMigrationCommandValidator : AbstractValidator<StartMigrationCommand>
 {
@@ -64,6 +66,7 @@ public sealed class StartMigrationCommandHandler(
     IMigrationProgressTracker progressTracker,
     IMigrationNotifier notifier,
     IIntegrationConnectionWriter connectionWriter,
+    IMigrationCredentialResolver credentials,
     IServiceScopeFactory scopeFactory) : IRequestHandler<StartMigrationCommand, Guid>
 {
     public async Task<Guid> Handle(StartMigrationCommand request, CancellationToken cancellationToken)
@@ -71,6 +74,11 @@ public sealed class StartMigrationCommandHandler(
         var jobId = Guid.NewGuid();
         var userId = currentUserService.UserId
             ?? throw new UnauthorizedAccessException("User not authenticated.");
+
+        // Resolve credentials up front so a picked saved connection's URL + stored token flow
+        // into the job config, the connection upsert and the background import alike.
+        var (baseUrl, apiKey) = await credentials.ResolveAsync(request.BaseUrl, request.ApiKey, request.ConnectionId, cancellationToken);
+        request = request with { BaseUrl = baseUrl, ApiKey = apiKey };
 
         var job = new MigrationJob
         {

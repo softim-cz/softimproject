@@ -11,6 +11,8 @@ interface MigrationState {
   step: number;
   baseUrl: string;
   apiKey: string;
+  // When set, an existing saved connection is used; the API key lives server-side and is not re-entered.
+  connectionId: string | null;
   connectionTested: boolean;
 
   // Fetched EP data
@@ -51,6 +53,8 @@ interface MigrationState {
   setStep: (step: number) => void;
   setBaseUrl: (url: string) => void;
   setApiKey: (key: string) => void;
+  // Pick a saved connection: prefills URL, clears the typed key (token stays server-side).
+  selectConnection: (connectionId: string, baseUrl: string) => void;
   setConnectionTested: (tested: boolean) => void;
   setProjects: (projects: EpProjectPreview[]) => void;
   setLookups: (
@@ -80,6 +84,7 @@ const initialState = {
   step: 0,
   baseUrl: "",
   apiKey: "",
+  connectionId: null as string | null,
   connectionTested: false,
   projects: [] as EpProjectPreview[],
   trackerMappings: [] as EpTrackerMapping[],
@@ -108,8 +113,11 @@ export const useMigrationStore = create<MigrationState>()((set) => ({
   ...initialState,
 
   setStep: (step) => set({ step }),
-  setBaseUrl: (baseUrl) => set({ baseUrl, connectionTested: false }),
-  setApiKey: (apiKey) => set({ apiKey, connectionTested: false }),
+  // Manual edits clear any picked saved connection — the user is entering their own credentials.
+  setBaseUrl: (baseUrl) => set({ baseUrl, connectionId: null, connectionTested: false }),
+  setApiKey: (apiKey) => set({ apiKey, connectionId: null, connectionTested: false }),
+  selectConnection: (connectionId, baseUrl) =>
+    set({ connectionId, baseUrl, apiKey: "", connectionTested: false }),
   setConnectionTested: (connectionTested) => set({ connectionTested }),
 
   setProjects: (projects) => {

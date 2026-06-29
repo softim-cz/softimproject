@@ -13,17 +13,19 @@ public sealed record FetchEpLookupsResult(
     List<EpStatusMappingDto> Statuses,
     List<EpPriorityMappingDto> Priorities);
 
-public sealed record FetchEpLookupsQuery(string BaseUrl, string ApiKey) : IRequest<FetchEpLookupsResult>;
+public sealed record FetchEpLookupsQuery(string? BaseUrl, string? ApiKey, Guid? ConnectionId = null) : IRequest<FetchEpLookupsResult>;
 
 public sealed class FetchEpLookupsQueryHandler(
     IEasyProjectApiClient apiClient,
+    IMigrationCredentialResolver credentials,
     IApplicationDbContext dbContext) : IRequestHandler<FetchEpLookupsQuery, FetchEpLookupsResult>
 {
     public async Task<FetchEpLookupsResult> Handle(FetchEpLookupsQuery request, CancellationToken cancellationToken)
     {
-        var trackersTask = apiClient.GetTrackersAsync(request.BaseUrl, request.ApiKey, cancellationToken);
-        var statusesTask = apiClient.GetIssueStatusesAsync(request.BaseUrl, request.ApiKey, cancellationToken);
-        var prioritiesTask = apiClient.GetIssuePrioritiesAsync(request.BaseUrl, request.ApiKey, cancellationToken);
+        var (baseUrl, apiKey) = await credentials.ResolveAsync(request.BaseUrl, request.ApiKey, request.ConnectionId, cancellationToken);
+        var trackersTask = apiClient.GetTrackersAsync(baseUrl, apiKey, cancellationToken);
+        var statusesTask = apiClient.GetIssueStatusesAsync(baseUrl, apiKey, cancellationToken);
+        var prioritiesTask = apiClient.GetIssuePrioritiesAsync(baseUrl, apiKey, cancellationToken);
 
         await Task.WhenAll(trackersTask, statusesTask, prioritiesTask);
 

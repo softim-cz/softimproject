@@ -997,6 +997,9 @@
       "urlPlaceholder": "https://your-company.easyproject.com",
       "apiKeyLabel": "API key",
       "apiKeyPlaceholder": "Your Easy Project API key",
+      "apiKeyStored": "Stored key is used by the server",
+      "savedLabel": "Saved connection",
+      "savedNew": "— new connection —",
       "testConnection": "Test connection",
       "connected": "Connected",
       "connectionFailed": "Connection failed"
