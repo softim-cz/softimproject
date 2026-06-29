@@ -1,10 +1,15 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.ChangeTracking;
 using SoftimProject.Domain.Entities;
 
 namespace SoftimProject.Application.Interfaces;
 
 public interface IApplicationDbContext
 {
+    /// <summary>Change tracker — used by the import engine to detach an entity whose save failed,
+    /// so one bad row cannot poison the shared context and cascade into later saves.</summary>
+    ChangeTracker ChangeTracker { get; }
+
     DbSet<User> Users { get; }
     DbSet<ApiKey> ApiKeys { get; }
     DbSet<Project> Projects { get; }

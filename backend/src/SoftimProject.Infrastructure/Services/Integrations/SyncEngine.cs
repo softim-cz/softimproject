@@ -159,11 +159,12 @@ public sealed class SyncEngine(
 
             var ticketMap = new Dictionary<string, Guid>();
             var ticketsMigrated = 0;
-            var batchCount = 0;
 
             foreach (var (epProjectId, issues) in issuesByProject)
             {
                 if (!projectMap.TryGetValue(epProjectId, out var spProjectId)) continue;
+                var spProject = await dbContext.Projects.FirstOrDefaultAsync(p => p.Id == spProjectId, ct);
+                if (spProject is null) continue;
 
                 foreach (var issue in issues)
                 {
@@ -176,21 +177,18 @@ public sealed class SyncEngine(
 
                     try
                     {
-                        var spTicketId = await MigrateTicket(jobId, issue, spProjectId, taskTypeMap, userMap, adminUserId, defaultStateId, defaultPriorityId, mergedStatusMapping, mergedPriorityMapping, request.ConflictPolicy, ct);
+                        var spTicketId = await MigrateTicket(jobId, issue, spProject, taskTypeMap, userMap, adminUserId, defaultStateId, defaultPriorityId, mergedStatusMapping, mergedPriorityMapping, request.ConflictPolicy, ct);
+                        // Save each ticket on its own: one bad row fails alone instead of poisoning the
+                        // shared context and cascading the failure onto every later ticket.
+                        await dbContext.SaveChangesAsync(ct);
                         ticketMap[issue.ExternalId] = spTicketId;
                         ticketsMigrated++;
-                        batchCount++;
                         tracker.UpdateCounts(jobId, "tickets", totalTickets, ticketsMigrated);
-
-                        if (batchCount >= 50)
-                        {
-                            await dbContext.SaveChangesAsync(ct);
-                            batchCount = 0;
-                        }
                     }
                     catch (Exception ex)
                     {
-                        tracker.AddError(jobId, $"Failed to migrate ticket #{issue.ExternalId} '{issue.Title}': {ex.Message}");
+                        DiscardPendingTickets();
+                        tracker.AddError(jobId, $"Failed to migrate ticket #{issue.ExternalId} '{issue.Title}': {InnermostMessage(ex)}");
                         logger.LogError(ex, "Failed to migrate ticket {ExternalId}", issue.ExternalId);
                     }
                 }
@@ -467,10 +465,11 @@ public sealed class SyncEngine(
         tracker.IncrementCreated(jobId); tracker.AddLog(jobId, $"Created project '{project.Name}' ({code})"); return spProject.Id;
     }
 
-    private async Task<Guid> MigrateTicket(Guid jobId, CanonicalIssue issue, Guid spProjectId,
+    private async Task<Guid> MigrateTicket(Guid jobId, CanonicalIssue issue, Project spProject,
         Dictionary<string, Guid> taskTypeMap, Dictionary<string, Guid> userMap, Guid adminUserId, Guid defaultStateId, Guid defaultPriorityId,
         Dictionary<string, Guid> statusMap, Dictionary<string, Guid> priorityMap, ConflictPolicy conflictPolicy, CancellationToken ct)
     {
+        var spProjectId = spProject.Id;
         var externalId = issue.ExternalId;
         var existing = await dbContext.Tickets.FirstOrDefaultAsync(t => t.ProjectId == spProjectId && t.ExternalId == externalId, ct);
         var taskStateId = statusMap.GetValueOrDefault(issue.StatusExternalId ?? string.Empty, defaultStateId);
@@ -501,6 +500,8 @@ public sealed class SyncEngine(
         {
             Id = Guid.NewGuid(),
             ProjectId = spProjectId,
+            // Per-project sequential number (unique index on ProjectId+Number); mirrors CreateTicket.
+            Number = spProject.NextTicketNumber++,
             Title = issue.Title,
             Description = HtmlToMarkdown.Convert(issue.DescriptionHtml),
             TaskStateId = taskStateId,
@@ -519,6 +520,27 @@ public sealed class SyncEngine(
             CreatedAt = DateTime.UtcNow
         };
         dbContext.Tickets.Add(ticket); tracker.IncrementCreated(jobId); return ticket.Id;
+    }
+
+    // After a failed per-ticket SaveChanges the offending entity stays tracked (Added/Modified);
+    // detach pending tickets so the shared context stays clean and the next ticket can save.
+    private void DiscardPendingTickets()
+    {
+        foreach (var entry in dbContext.ChangeTracker.Entries<Ticket>()
+            .Where(e => e.State is EntityState.Added or EntityState.Modified)
+            .ToList())
+        {
+            entry.State = EntityState.Detached;
+        }
+    }
+
+    // DbUpdateException's own message ("An error occurred while saving the entity changes…") hides
+    // the real cause; surface the innermost message (e.g. the SQL constraint violation).
+    private static string InnermostMessage(Exception ex)
+    {
+        var current = ex;
+        while (current.InnerException is not null) current = current.InnerException;
+        return current.Message;
     }
 
     // Conflict policy (návrh #144 §3.5). Source-owned fields are overwritten only per the

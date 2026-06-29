@@ -172,6 +172,42 @@ public class SyncEngineTests
         (await db.Tickets.SingleAsync()).Title.Should().Be("Updated from source");
     }
 
+    [Fact]
+    public async Task Assigns_Distinct_Sequential_Ticket_Numbers()
+    {
+        await using var db = CreateDbContext();
+        var (doneStateId, _) = await SeedAsync(db);
+        var jobId = await SeedJobAsync(db);
+
+        // Two issues in one project: each ticket must get its own per-project Number
+        // (unique index ProjectId+Number). The bug left Number at 0 for all → second insert
+        // collided and cascaded into every later ticket.
+        var connector = new FakeSourceConnector
+        {
+            Projects = [new CanonicalProject("50", "Web Project", null, CanonicalProjectStatus.Active, null, null, null, [])],
+            Issues = [Issue("100", "First"), Issue("101", "Second")],
+        };
+        var engine = BuildEngine(db, out var tracker);
+        tracker.Init(jobId);
+
+        await engine.ExecuteAsync(jobId, AdminId, BuildRequest(doneStateId), connector,
+            new SourceConnectionContext("https://ep.example", "key"), JobSink(db, jobId));
+
+        var numbers = await db.Tickets.Select(t => t.Number).ToListAsync();
+        numbers.Should().HaveCount(2).And.OnlyHaveUniqueItems();
+        numbers.Should().NotContain(0); // bug assigned 0 to every ticket
+        (await db.Projects.SingleAsync()).NextTicketNumber.Should().Be(3); // started at 1, two tickets consumed
+
+        var job = await db.MigrationJobs.SingleAsync();
+        job.TicketsMigrated.Should().Be(2);
+        job.ItemsFailed.Should().Be(0);
+    }
+
+    private static CanonicalIssue Issue(string externalId, string title) => new(
+        externalId, title, null, null, "2", "Done", null, null, null, null, null, null, "50", "Web Project",
+        [], [], [], [])
+    { WebUrl = $"https://ep.example/issues/{externalId}" };
+
     private static CanonicalIssue IssueAt(DateTime sourceUpdatedAt, string title) => new(
         "100", title, null, null, "2", "Done", null, null, null, null, null, null, "50", "Web Project",
         [], [], [], [])
