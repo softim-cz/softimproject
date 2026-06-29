@@ -9,5 +9,6 @@ public sealed record EpCustomFieldDefinition(
     [property: JsonPropertyName("possible_values")] List<EpPossibleValue>? PossibleValues);
 
 public sealed record EpPossibleValue(
-    [property: JsonPropertyName("value")] string? Value,
+    // EasyProject sends `value` as a string OR a number (e.g. user-type fields) — coerce to string.
+    [property: JsonPropertyName("value")][property: JsonConverter(typeof(FlexibleStringJsonConverter))] string? Value,
     [property: JsonPropertyName("label")] string? Label);
