@@ -1,3 +1,4 @@
+using System.Text.Json;
 using FluentAssertions;
 using SoftimProject.Application.Features.Migration.EasyProject.Models;
 using SoftimProject.Application.Integrations;
@@ -7,6 +8,27 @@ namespace SoftimProject.Infrastructure.Tests;
 
 public class EasyProjectCanonicalMapperTests
 {
+    [Fact]
+    public void PossibleValue_Value_Accepts_Number_Or_String()
+    {
+        // EasyProject mixes numeric ("value":82) and string ("value":"90") possible_values.
+        var json = """
+            [{"id":23,"name":"Owner","field_format":"user","possible_values":[
+                {"value":82,"label":"me"},
+                {"value":"90","label":"Acond"},
+                {"value":null,"label":"none"}
+            ]}]
+            """;
+
+        var defs = JsonSerializer.Deserialize<List<EpCustomFieldDefinition>>(json);
+
+        defs.Should().ContainSingle();
+        var pv = defs![0].PossibleValues!;
+        pv[0].Value.Should().Be("82");
+        pv[1].Value.Should().Be("90");
+        pv[2].Value.Should().BeNull();
+    }
+
     [Theory]
     [InlineData(5, CanonicalProjectStatus.Completed)]
     [InlineData(9, CanonicalProjectStatus.Archived)]
