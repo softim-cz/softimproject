@@ -303,8 +303,19 @@ public sealed class SyncEngine(
                 {
                     if (!ticketMap.TryGetValue(issue.ExternalId, out var spTicketId)) continue;
                     if (issue.CustomFields.Count == 0) continue;
-                    try { await MigrateCustomFields(issue.CustomFields, "Ticket", spTicketId, null, ct); }
-                    catch (Exception ex) { tracker.AddError(jobId, $"Failed to migrate custom fields for ticket #{issue.ExternalId}: {ex.Message}"); }
+                    try
+                    {
+                        await MigrateCustomFields(issue.CustomFields, "Ticket", spTicketId, null, ct);
+                        // Save per ticket: one bad row fails alone instead of rolling back (and
+                        // hiding the cause of) every other ticket's custom fields.
+                        await dbContext.SaveChangesAsync(ct);
+                    }
+                    catch (Exception ex)
+                    {
+                        DiscardPending<TicketCustomFieldValue>();
+                        tracker.AddError(jobId, $"Failed to migrate custom fields for ticket #{issue.ExternalId}: {InnermostMessage(ex)}");
+                        logger.LogError(ex, "Failed to migrate custom fields for ticket {ExternalId}", issue.ExternalId);
+                    }
                 }
             }
 
@@ -312,10 +323,18 @@ public sealed class SyncEngine(
             {
                 if (!projectMap.TryGetValue(project.ExternalId, out var spProjectId)) continue;
                 if (project.CustomFields.Count == 0) continue;
-                try { await MigrateCustomFields(project.CustomFields, "Project", null, spProjectId, ct); }
-                catch (Exception ex) { tracker.AddError(jobId, $"Failed to migrate custom fields for project '{project.Name}': {ex.Message}"); }
+                try
+                {
+                    await MigrateCustomFields(project.CustomFields, "Project", null, spProjectId, ct);
+                    await dbContext.SaveChangesAsync(ct);
+                }
+                catch (Exception ex)
+                {
+                    DiscardPending<ProjectCustomFieldValue>();
+                    tracker.AddError(jobId, $"Failed to migrate custom fields for project '{project.Name}': {InnermostMessage(ex)}");
+                    logger.LogError(ex, "Failed to migrate custom fields for project {ExternalId}", project.ExternalId);
+                }
             }
-            await dbContext.SaveChangesAsync(ct);
             await sink.AdvancePhaseAsync(MigrationPhase.CustomFields, ct);
 
             if (request.ImportChecklists)
@@ -657,13 +676,19 @@ public sealed class SyncEngine(
             var definition = await GetOrCreateCustomFieldDefinition(cf, appliesTo, ct);
             if (spTicketId is { } ticketId)
             {
-                var existing = await dbContext.TicketCustomFieldValues.FirstOrDefaultAsync(v => v.TicketId == ticketId && v.CustomFieldDefinitionId == definition.Id, ct);
+                // Check saved rows AND pending (Added) ones: a single source issue can carry two
+                // values that resolve to the same definition (e.g. two fields with the same name),
+                // which would otherwise both insert and violate the unique (TicketId, DefinitionId)
+                // index. The DB query alone misses the not-yet-saved sibling.
+                var existing = await dbContext.TicketCustomFieldValues.FirstOrDefaultAsync(v => v.TicketId == ticketId && v.CustomFieldDefinitionId == definition.Id, ct)
+                    ?? dbContext.TicketCustomFieldValues.Local.FirstOrDefault(v => v.TicketId == ticketId && v.CustomFieldDefinitionId == definition.Id);
                 if (existing != null) existing.Value = cf.Value;
                 else dbContext.TicketCustomFieldValues.Add(new TicketCustomFieldValue { Id = Guid.NewGuid(), TicketId = ticketId, CustomFieldDefinitionId = definition.Id, Value = cf.Value, CreatedAt = DateTime.UtcNow });
             }
             else if (spProjectId is { } projectId)
             {
-                var existing = await dbContext.ProjectCustomFieldValues.FirstOrDefaultAsync(v => v.ProjectId == projectId && v.CustomFieldDefinitionId == definition.Id, ct);
+                var existing = await dbContext.ProjectCustomFieldValues.FirstOrDefaultAsync(v => v.ProjectId == projectId && v.CustomFieldDefinitionId == definition.Id, ct)
+                    ?? dbContext.ProjectCustomFieldValues.Local.FirstOrDefault(v => v.ProjectId == projectId && v.CustomFieldDefinitionId == definition.Id);
                 if (existing != null) existing.Value = cf.Value;
                 else dbContext.ProjectCustomFieldValues.Add(new ProjectCustomFieldValue { Id = Guid.NewGuid(), ProjectId = projectId, CustomFieldDefinitionId = definition.Id, Value = cf.Value, CreatedAt = DateTime.UtcNow });
             }
