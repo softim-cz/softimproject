@@ -13,6 +13,15 @@ export interface ReleaseEntry {
 
 export const releases: ReleaseEntry[] = [
   {
+    version: "0.2.4",
+    date: "30. 6. 2026",
+    headline: "Oprava importu vlastních polí v migraci",
+    fixed: [
+      "Migrace už neselže na duplicitní hodnotě vlastního pole, když má úkol dvě pole stejného názvu – hodnoty se sloučí do jedné.",
+      "Vlastní pole se ukládají po jednom úkolu; jeden vadný řádek neshodí celou dávku a do logu se propíše skutečná příčina.",
+    ],
+  },
+  {
     version: "0.2.3",
     date: "30. 6. 2026",
     headline: "Spolehlivější import komentářů a výkazů v migraci",

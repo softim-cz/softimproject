@@ -233,6 +233,45 @@ public class SyncEngineTests
         job.ItemsFailed.Should().Be(0);
     }
 
+    [Fact]
+    public async Task Duplicate_CustomField_On_Same_Ticket_Collapses_To_One_Value()
+    {
+        await using var db = CreateDbContext();
+        var (doneStateId, _) = await SeedAsync(db);
+        var jobId = await SeedJobAsync(db);
+
+        // Two source values with the same field name resolve to one definition; without pending-aware
+        // dedup both would insert and violate the unique (TicketId, DefinitionId) index. Last wins.
+        var issue = new CanonicalIssue(
+            "100", "Dup fields", null, null, "2", "Done", null, null, null, null, null, null, "50", "Web Project",
+            [
+                new CanonicalCustomFieldValue("9", "Severity", "High", CanonicalFieldFormat.Select, ["Low", "High"]),
+                new CanonicalCustomFieldValue("10", "Severity", "Low", CanonicalFieldFormat.Select, ["Low", "High"]),
+            ],
+            [], [], [])
+        { WebUrl = "https://ep.example/issues/100" };
+
+        var connector = new FakeSourceConnector
+        {
+            Projects = [new CanonicalProject("50", "Web Project", null, CanonicalProjectStatus.Active, null, null, null, [])],
+            Issues = [issue],
+        };
+        var engine = BuildEngine(db, out var tracker);
+        tracker.Init(jobId);
+
+        await engine.ExecuteAsync(jobId, AdminId, BuildRequest(doneStateId), connector,
+            new SourceConnectionContext("https://ep.example", "key"), JobSink(db, jobId));
+
+        (await db.CustomFieldDefinitions.CountAsync()).Should().Be(1);
+        var values = await db.TicketCustomFieldValues.ToListAsync();
+        values.Should().ContainSingle();
+        values[0].Value.Should().Be("Low");
+
+        var job = await db.MigrationJobs.SingleAsync();
+        job.Status.Should().Be(MigrationStatus.Completed);
+        job.ItemsFailed.Should().Be(0);
+    }
+
     private static CanonicalIssue Issue(string externalId, string title) => new(
         externalId, title, null, null, "2", "Done", null, null, null, null, null, null, "50", "Web Project",
         [], [], [], [])
