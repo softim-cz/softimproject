@@ -165,6 +165,7 @@ public static class DependencyInjection
         // Provider-agnostic sync engine + EasyProject adapter that feeds it.
         services.AddTransient<SyncEngine>();
         services.AddScoped<IIntegrationConnectionWriter, IntegrationConnectionWriter>();
+        services.AddScoped<IMigrationCredentialResolver, MigrationCredentialResolver>();
         services.AddTransient<ISourceImportService, SourceImportService>();
         services.AddScoped<ExternalSyncRunner>();
         services.AddScoped<IIntegrationSyncTrigger, IntegrationSyncTrigger>();

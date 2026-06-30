@@ -6,18 +6,21 @@ using SoftimProject.Application.Interfaces;
 namespace SoftimProject.Application.Features.Migration.EasyProject;
 
 public sealed record FetchIssueCountsCommand(
-    string BaseUrl,
-    string ApiKey,
+    string? BaseUrl,
+    string? ApiKey,
     string SessionId,
-    List<int> ProjectIds) : IRequest;
+    List<int> ProjectIds,
+    Guid? ConnectionId = null) : IRequest;
 
 public sealed class FetchIssueCountsCommandHandler(
     IServiceScopeFactory scopeFactory,
+    IMigrationCredentialResolver credentials,
     ILoggerFactory loggerFactory) : IRequestHandler<FetchIssueCountsCommand>
 {
-    public Task Handle(FetchIssueCountsCommand request, CancellationToken cancellationToken)
+    public async Task Handle(FetchIssueCountsCommand request, CancellationToken cancellationToken)
     {
         var logger = loggerFactory.CreateLogger<FetchIssueCountsCommandHandler>();
+        var (baseUrl, apiKey) = await credentials.ResolveAsync(request.BaseUrl, request.ApiKey, request.ConnectionId, cancellationToken);
 
         _ = Task.Run(async () =>
         {
@@ -35,7 +38,7 @@ public sealed class FetchIssueCountsCommandHandler(
                         try
                         {
                             var count = await apiClient.GetProjectIssueCountAsync(
-                                request.BaseUrl, request.ApiKey, projectId, ct);
+                                baseUrl, apiKey, projectId, ct);
                             await notifier.SendIssueCountAsync(request.SessionId, projectId, count);
                         }
                         catch (Exception ex)
@@ -50,7 +53,5 @@ public sealed class FetchIssueCountsCommandHandler(
                 logger.LogError(ex, "Failed to fetch issue counts for session {SessionId}", request.SessionId);
             }
         });
-
-        return Task.CompletedTask;
     }
 }

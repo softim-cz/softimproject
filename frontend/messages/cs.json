@@ -997,6 +997,9 @@
       "urlPlaceholder": "https://vase-firma.easyproject.com",
       "apiKeyLabel": "API klíč",
       "apiKeyPlaceholder": "Váš API klíč z Easy Projectu",
+      "apiKeyStored": "Uložený klíč použije server",
+      "savedLabel": "Uložené připojení",
+      "savedNew": "— nové připojení —",
       "testConnection": "Otestovat připojení",
       "connected": "Připojeno",
       "connectionFailed": "Připojení se nezdařilo"

@@ -30,6 +30,7 @@ import {
   useResumeMigration,
   useNormalizeHtml,
 } from "@/queries/migration";
+import { useIntegrationConnections } from "@/queries/integrations";
 import { toast } from "sonner";
 import {
   useTaskTypes,
@@ -82,20 +83,33 @@ function StepIndicator({ current }: { current: number }) {
 
 function StepConnection() {
   const t = useTranslations("Migration");
-  const { baseUrl, apiKey, connectionTested, setBaseUrl, setApiKey, setConnectionTested, setStep } =
-    useMigrationStore();
+  const {
+    baseUrl,
+    apiKey,
+    connectionId,
+    connectionTested,
+    setBaseUrl,
+    setApiKey,
+    selectConnection,
+    setConnectionTested,
+    setStep,
+  } = useMigrationStore();
   const testConnection = useTestEpConnection();
   const rememberConnection = useRememberConnection();
+  const { data: connections } = useIntegrationConnections();
+  const savedConnections = (connections ?? []).filter(
+    (c) => c.sourceSystem === "EasyProject" && c.hasToken
+  );
 
   const handleTest = () => {
     testConnection.mutate(
-      { baseUrl, apiKey },
+      { baseUrl, apiKey, connectionId },
       {
         onSuccess: (data) => {
           setConnectionTested(data.success);
-          // Persist the verified connection immediately so it is remembered in Integrace
-          // even if the wizard is abandoned or a later import fails.
-          if (data.success) {
+          // Persist a freshly-typed connection so it is remembered in Integrace even if the
+          // wizard is abandoned or a later import fails. A picked saved connection already exists.
+          if (data.success && !connectionId) {
             rememberConnection.mutate({ baseUrl, apiKey });
           }
         },
@@ -111,6 +125,30 @@ function StepConnection() {
       </div>
 
       <div className="space-y-4">
+        {savedConnections.length > 0 && (
+          <div>
+            <label className="block text-sm font-medium text-foreground mb-1">
+              {t("connection.savedLabel")}
+            </label>
+            <select
+              value={connectionId ?? ""}
+              onChange={(e) => {
+                const picked = savedConnections.find((c) => c.id === e.target.value);
+                if (picked) selectConnection(picked.id, picked.baseUrl);
+                else setBaseUrl("");
+              }}
+              className="w-full px-3 py-2 rounded-lg border border-border bg-card text-sm focus:outline-none focus:ring-2 focus:ring-accent-orange"
+            >
+              <option value="">{t("connection.savedNew")}</option>
+              {savedConnections.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name} ({c.baseUrl})
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+
         <div>
           <label className="block text-sm font-medium text-foreground mb-1">
             {t("connection.urlLabel")}
@@ -120,7 +158,8 @@ function StepConnection() {
             value={baseUrl}
             onChange={(e) => setBaseUrl(e.target.value)}
             placeholder={t("connection.urlPlaceholder")}
-            className="w-full px-3 py-2 rounded-lg border border-border bg-card text-sm focus:outline-none focus:ring-2 focus:ring-accent-orange"
+            disabled={!!connectionId}
+            className="w-full px-3 py-2 rounded-lg border border-border bg-card text-sm focus:outline-none focus:ring-2 focus:ring-accent-orange disabled:opacity-60"
           />
         </div>
 
@@ -132,15 +171,18 @@ function StepConnection() {
             type="password"
             value={apiKey}
             onChange={(e) => setApiKey(e.target.value)}
-            placeholder={t("connection.apiKeyPlaceholder")}
-            className="w-full px-3 py-2 rounded-lg border border-border bg-card text-sm focus:outline-none focus:ring-2 focus:ring-accent-orange"
+            placeholder={
+              connectionId ? t("connection.apiKeyStored") : t("connection.apiKeyPlaceholder")
+            }
+            disabled={!!connectionId}
+            className="w-full px-3 py-2 rounded-lg border border-border bg-card text-sm focus:outline-none focus:ring-2 focus:ring-accent-orange disabled:opacity-60"
           />
         </div>
 
         <div className="flex items-center gap-3">
           <button
             onClick={handleTest}
-            disabled={!baseUrl || !apiKey || testConnection.isPending}
+            disabled={(!connectionId && (!baseUrl || !apiKey)) || testConnection.isPending}
             className="px-4 py-2 bg-accent-orange text-white rounded-lg text-sm font-medium hover:bg-accent-orange/90 disabled:opacity-50 flex items-center gap-2"
           >
             {testConnection.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
@@ -189,6 +231,7 @@ function StepProjects() {
   const {
     baseUrl,
     apiKey,
+    connectionId,
     projects,
     selectedProjectIds,
     setProjects,
@@ -211,7 +254,7 @@ function StepProjects() {
     if (projects.length > 0) return;
 
     fetchProjects.mutate(
-      { baseUrl, apiKey },
+      { baseUrl, apiKey, connectionId },
       {
         onSuccess: (data) => {
           setProjects(data);
@@ -238,6 +281,7 @@ function StepProjects() {
               fetchIssueCounts.mutate({
                 baseUrl,
                 apiKey,
+                connectionId,
                 sessionId,
                 projectIds: data.map((p) => p.epId),
               });
@@ -375,6 +419,7 @@ function StepLookups() {
   const {
     baseUrl,
     apiKey,
+    connectionId,
     trackerMappings,
     statusMappings,
     priorityMappings,
@@ -406,7 +451,7 @@ function StepLookups() {
   useEffect(() => {
     if (trackerMappings.length === 0) {
       fetchLookups.mutate(
-        { baseUrl, apiKey },
+        { baseUrl, apiKey, connectionId },
         {
           onSuccess: (data) => setLookups(data.trackers, data.statuses, data.priorities),
         }
@@ -577,6 +622,7 @@ function StepUsers() {
   const {
     baseUrl,
     apiKey,
+    connectionId,
     userMappings,
     userSelections,
     setUserMappings,
@@ -587,7 +633,10 @@ function StepUsers() {
 
   useEffect(() => {
     if (userMappings.length === 0) {
-      fetchUsers.mutate({ baseUrl, apiKey }, { onSuccess: (data) => setUserMappings(data) });
+      fetchUsers.mutate(
+        { baseUrl, apiKey, connectionId },
+        { onSuccess: (data) => setUserMappings(data) }
+      );
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -708,6 +757,7 @@ function StepReview() {
       {
         baseUrl: store.baseUrl,
         apiKey: store.apiKey,
+        connectionId: store.connectionId,
         projectIds: [...store.selectedProjectIds],
         targetProjectTemplateId: store.targetProjectTemplateId,
         trackerMapping,

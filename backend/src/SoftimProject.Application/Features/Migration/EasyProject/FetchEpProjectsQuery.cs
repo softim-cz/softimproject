@@ -5,15 +5,17 @@ using SoftimProject.Application.Interfaces;
 
 namespace SoftimProject.Application.Features.Migration.EasyProject;
 
-public sealed record FetchEpProjectsQuery(string BaseUrl, string ApiKey) : IRequest<List<EpProjectPreviewDto>>;
+public sealed record FetchEpProjectsQuery(string? BaseUrl, string? ApiKey, Guid? ConnectionId = null) : IRequest<List<EpProjectPreviewDto>>;
 
 public sealed class FetchEpProjectsQueryHandler(
     IEasyProjectApiClient apiClient,
+    IMigrationCredentialResolver credentials,
     IApplicationDbContext dbContext) : IRequestHandler<FetchEpProjectsQuery, List<EpProjectPreviewDto>>
 {
     public async Task<List<EpProjectPreviewDto>> Handle(FetchEpProjectsQuery request, CancellationToken cancellationToken)
     {
-        var epProjects = await apiClient.GetProjectsAsync(request.BaseUrl, request.ApiKey, cancellationToken);
+        var (baseUrl, apiKey) = await credentials.ResolveAsync(request.BaseUrl, request.ApiKey, request.ConnectionId, cancellationToken);
+        var epProjects = await apiClient.GetProjectsAsync(baseUrl, apiKey, cancellationToken);
 
         var importedExternalIds = await dbContext.Projects
             .Where(p => p.ExternalSystem == "EasyProject" && p.ExternalProjectId != null)

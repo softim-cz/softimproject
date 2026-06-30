@@ -10,7 +10,11 @@ import type {
 
 export function useTestEpConnection() {
   return useMutation({
-    mutationFn: async (params: { baseUrl: string; apiKey: string }) => {
+    mutationFn: async (params: {
+      baseUrl?: string;
+      apiKey?: string;
+      connectionId?: string | null;
+    }) => {
       const { data } = await apiClient.post<{ success: boolean; error?: string }>(
         "/api/v1/migration/test-connection",
         params
@@ -37,7 +41,11 @@ export function useRememberConnection() {
 
 export function useFetchEpProjects() {
   return useMutation({
-    mutationFn: async (params: { baseUrl: string; apiKey: string }) => {
+    mutationFn: async (params: {
+      baseUrl?: string;
+      apiKey?: string;
+      connectionId?: string | null;
+    }) => {
       const { data } = await apiClient.post<EpProjectPreview[]>(
         "/api/v1/migration/fetch-projects",
         params
@@ -50,8 +58,9 @@ export function useFetchEpProjects() {
 export function useFetchIssueCounts() {
   return useMutation({
     mutationFn: async (params: {
-      baseUrl: string;
-      apiKey: string;
+      baseUrl?: string;
+      apiKey?: string;
+      connectionId?: string | null;
       sessionId: string;
       projectIds: number[];
     }) => {
@@ -62,7 +71,11 @@ export function useFetchIssueCounts() {
 
 export function useFetchEpLookups() {
   return useMutation({
-    mutationFn: async (params: { baseUrl: string; apiKey: string }) => {
+    mutationFn: async (params: {
+      baseUrl?: string;
+      apiKey?: string;
+      connectionId?: string | null;
+    }) => {
       const { data } = await apiClient.post<EpLookupsResult>(
         "/api/v1/migration/fetch-lookups",
         params
@@ -74,7 +87,11 @@ export function useFetchEpLookups() {
 
 export function useFetchEpUsers() {
   return useMutation({
-    mutationFn: async (params: { baseUrl: string; apiKey: string }) => {
+    mutationFn: async (params: {
+      baseUrl?: string;
+      apiKey?: string;
+      connectionId?: string | null;
+    }) => {
       const { data } = await apiClient.post<EpUserMapping[]>(
         "/api/v1/migration/fetch-users",
         params
@@ -87,8 +104,9 @@ export function useFetchEpUsers() {
 export function useStartMigration() {
   return useMutation({
     mutationFn: async (params: {
-      baseUrl: string;
-      apiKey: string;
+      baseUrl?: string;
+      apiKey?: string;
+      connectionId?: string | null;
       projectIds: number[];
       targetProjectTemplateId: string;
       trackerMapping: Record<number, string | null>;

@@ -8,15 +8,17 @@ public sealed record EpUserMappingDto(
     int EpId, string EpName, string? EpEmail,
     Guid? MatchedUserId, string? MatchedUserName);
 
-public sealed record FetchEpUsersQuery(string BaseUrl, string ApiKey) : IRequest<List<EpUserMappingDto>>;
+public sealed record FetchEpUsersQuery(string? BaseUrl, string? ApiKey, Guid? ConnectionId = null) : IRequest<List<EpUserMappingDto>>;
 
 public sealed class FetchEpUsersQueryHandler(
     IEasyProjectApiClient apiClient,
+    IMigrationCredentialResolver credentials,
     IApplicationDbContext dbContext) : IRequestHandler<FetchEpUsersQuery, List<EpUserMappingDto>>
 {
     public async Task<List<EpUserMappingDto>> Handle(FetchEpUsersQuery request, CancellationToken cancellationToken)
     {
-        var epUsers = await apiClient.GetUsersAsync(request.BaseUrl, request.ApiKey, cancellationToken);
+        var (baseUrl, apiKey) = await credentials.ResolveAsync(request.BaseUrl, request.ApiKey, request.ConnectionId, cancellationToken);
+        var epUsers = await apiClient.GetUsersAsync(baseUrl, apiKey, cancellationToken);
         var spUsers = await dbContext.Users.Where(u => u.IsActive).ToListAsync(cancellationToken);
 
         var result = epUsers.Select(ep =>
