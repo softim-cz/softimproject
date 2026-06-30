@@ -13,6 +13,15 @@ export interface ReleaseEntry {
 
 export const releases: ReleaseEntry[] = [
   {
+    version: "0.2.3",
+    date: "30. 6. 2026",
+    headline: "Spolehlivější import komentářů a výkazů v migraci",
+    fixed: [
+      "Migrace ukládá komentáře a výkazy po jednom – jeden vadný řádek už neshodí celou dávku a do logu se propíše skutečná příčina chyby.",
+      "Dlouhá poznámka u výkazu se ořízne na povolenou délku místo selhání importu.",
+    ],
+  },
+  {
     version: "0.2.2",
     date: "30. 6. 2026",
     headline: "Průběžný stav stahování v průvodci migrace",

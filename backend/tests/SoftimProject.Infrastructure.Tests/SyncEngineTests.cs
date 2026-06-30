@@ -203,6 +203,36 @@ public class SyncEngineTests
         job.ItemsFailed.Should().Be(0);
     }
 
+    [Fact]
+    public async Task Worklog_With_Overlong_Note_Is_Truncated_To_Column_Limit()
+    {
+        await using var db = CreateDbContext();
+        var (doneStateId, _) = await SeedAsync(db);
+        var jobId = await SeedJobAsync(db);
+
+        // Worklog.Description is nvarchar(2000); a long source note must be trimmed so the insert
+        // doesn't abort with a truncation error (which previously failed the whole worklog batch).
+        var longNote = "<p>" + new string('x', 5000) + "</p>";
+        var connector = new FakeSourceConnector
+        {
+            Projects = [new CanonicalProject("50", "Web Project", null, CanonicalProjectStatus.Active, null, null, null, [])],
+            Issues = [Issue("100", "First")],
+            Worklogs = [new CanonicalWorklog("200", "100", new CanonicalUserRef("7", "Jane"), "2026-01-05", 2.5m, longNote, IsBillable: true)],
+        };
+        var engine = BuildEngine(db, out var tracker);
+        tracker.Init(jobId);
+
+        await engine.ExecuteAsync(jobId, AdminId, BuildRequest(doneStateId), connector,
+            new SourceConnectionContext("https://ep.example", "key"), JobSink(db, jobId));
+
+        var worklog = await db.Worklogs.SingleAsync();
+        worklog.Description.Length.Should().BeLessThanOrEqualTo(2000);
+
+        var job = await db.MigrationJobs.SingleAsync();
+        job.Status.Should().Be(MigrationStatus.Completed);
+        job.ItemsFailed.Should().Be(0);
+    }
+
     private static CanonicalIssue Issue(string externalId, string title) => new(
         externalId, title, null, null, "2", "Done", null, null, null, null, null, null, "50", "Web Project",
         [], [], [], [])

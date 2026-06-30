@@ -194,7 +194,7 @@ public sealed class SyncEngine(
                     }
                     catch (Exception ex)
                     {
-                        DiscardPendingTickets();
+                        DiscardPending<Ticket>();
                         tracker.AddError(jobId, $"Failed to migrate ticket #{issue.ExternalId} '{issue.Title}': {InnermostMessage(ex)}");
                         logger.LogError(ex, "Failed to migrate ticket {ExternalId}", issue.ExternalId);
                     }
@@ -240,17 +240,21 @@ public sealed class SyncEngine(
                             try
                             {
                                 await MigrateComment(jobId, comment, spTicketId, spProjectId, userMap, adminUserId, commentSource, ct);
+                                // Save each comment on its own: one bad row fails alone instead of
+                                // rolling back (and hiding the cause of) the entire batch.
+                                await dbContext.SaveChangesAsync(ct);
                                 commentsMigrated++;
                                 tracker.UpdateCounts(jobId, "comments", totalComments, commentsMigrated);
                             }
                             catch (Exception ex)
                             {
-                                tracker.AddError(jobId, $"Failed to migrate comment #{comment.ExternalId}: {ex.Message}");
+                                DiscardPending<Comment>();
+                                tracker.AddError(jobId, $"Failed to migrate comment #{comment.ExternalId}: {InnermostMessage(ex)}");
+                                logger.LogError(ex, "Failed to migrate comment {ExternalId}", comment.ExternalId);
                             }
                         }
                     }
                 }
-                await dbContext.SaveChangesAsync(ct);
             }
             await sink.AdvancePhaseAsync(MigrationPhase.Comments, ct);
 
@@ -273,16 +277,20 @@ public sealed class SyncEngine(
                         try
                         {
                             await MigrateWorklog(jobId, worklog, spProjectId, ticketMap, userMap, adminUserId, systemName, ct);
+                            // Save each worklog on its own: one bad row fails alone instead of
+                            // rolling back (and hiding the cause of) the entire batch.
+                            await dbContext.SaveChangesAsync(ct);
                             worklogsMigrated++;
                             tracker.UpdateCounts(jobId, "worklogs", totalWorklogs, worklogsMigrated);
                         }
                         catch (Exception ex)
                         {
-                            tracker.AddError(jobId, $"Failed to migrate time entry #{worklog.ExternalId}: {ex.Message}");
+                            DiscardPending<Worklog>();
+                            tracker.AddError(jobId, $"Failed to migrate time entry #{worklog.ExternalId}: {InnermostMessage(ex)}");
+                            logger.LogError(ex, "Failed to migrate time entry {ExternalId}", worklog.ExternalId);
                         }
                     }
                 }
-                await dbContext.SaveChangesAsync(ct);
             }
             await sink.AdvancePhaseAsync(MigrationPhase.Worklogs, ct);
 
@@ -531,9 +539,11 @@ public sealed class SyncEngine(
 
     // After a failed per-ticket SaveChanges the offending entity stays tracked (Added/Modified);
     // detach pending tickets so the shared context stays clean and the next ticket can save.
-    private void DiscardPendingTickets()
+    // After a failed per-item SaveChanges the offending entity stays tracked as Added/Modified;
+    // detach pending entries of that type so they don't poison the next item's save.
+    private void DiscardPending<TEntity>() where TEntity : class
     {
-        foreach (var entry in dbContext.ChangeTracker.Entries<Ticket>()
+        foreach (var entry in dbContext.ChangeTracker.Entries<TEntity>()
             .Where(e => e.State is EntityState.Added or EntityState.Modified)
             .ToList())
         {
@@ -619,6 +629,10 @@ public sealed class SyncEngine(
         var description = string.IsNullOrWhiteSpace(worklog.CommentHtml)
             ? $"Migrated from {systemName} time entry #{externalId}."
             : HtmlToMarkdown.Convert(worklog.CommentHtml) ?? worklog.CommentHtml!;
+        // Worklog.Description is capped at 2000 chars in the schema; a long source note would
+        // otherwise abort the insert with a truncation error. Trim defensively.
+        if (description.Length > 2000)
+            description = description[..1997] + "...";
         dbContext.Worklogs.Add(new Worklog
         {
             Id = Guid.NewGuid(),
