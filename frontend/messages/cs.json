@@ -72,9 +72,17 @@
       "title": "Uživatelé",
       "description": "Správa uživatelů, rolí, stav systému a fronta chyb."
     },
+    "projects": {
+      "title": "Projekty",
+      "description": "Vytváření a mazání projektů včetně veškerého obsahu."
+    },
+    "companies": {
+      "title": "Firmy",
+      "description": "Správa zákazníků (firem), na které se navazují projekty."
+    },
     "lookups": {
       "title": "Číselníky",
-      "description": "Typy a stavy úkolů, priority, firmy, šablony projektů, custom fieldy."
+      "description": "Typy a stavy úkolů, priority, šablony projektů, custom fieldy."
     },
     "migration": {
       "title": "Migrace",
@@ -84,6 +92,14 @@
       "title": "Integrace",
       "description": "Připojení ke zdrojovým systémům, pravidelná synchronizace a její stav."
     }
+  },
+  "AdminProjects": {
+    "title": "Projekty",
+    "subtitle": "Vytváření a správa projektů."
+  },
+  "AdminCompanies": {
+    "title": "Firmy",
+    "subtitle": "Správa zákazníků (firem)."
   },
   "Integrations": {
     "title": "Integrace",
@@ -245,6 +261,13 @@
     "budgetAmountHelp": "Celkový finanční rozpočet projektu",
     "creating": "Vytvářím...",
     "createButton": "Vytvořit projekt",
+    "externalSystem": "Externí systém",
+    "deleteButton": "Smazat",
+    "deleteConfirm": "Opravdu smazat projekt „{name}“? Smažou se i všechny jeho úkoly, komentáře a výkazy. Tuto akci nelze vrátit.",
+    "deleteSuccess": "Projekt byl smazán",
+    "deleteFailed": "Smazání projektu se nezdařilo",
+    "deletingTitle": "Mažu...",
+    "confirmDeleteTitle": "Smazat projekt",
     "status": {
       "Active": "Aktivní",
       "OnHold": "Pozastaveno",

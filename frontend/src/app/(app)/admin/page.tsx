@@ -2,7 +2,15 @@
 
 import Link from "next/link";
 import { useTranslations } from "next-intl";
-import { Users, BookOpen, Import, Plug, type LucideIcon } from "lucide-react";
+import {
+  Users,
+  BookOpen,
+  Import,
+  Plug,
+  FolderKanban,
+  Building2,
+  type LucideIcon,
+} from "lucide-react";
 
 interface Tile {
   key: string;
@@ -12,6 +20,8 @@ interface Tile {
 
 const tiles: Tile[] = [
   { key: "users", href: "/admin/users", icon: Users },
+  { key: "projects", href: "/admin/projects", icon: FolderKanban },
+  { key: "companies", href: "/admin/companies", icon: Building2 },
   { key: "lookups", href: "/admin/lookups", icon: BookOpen },
   { key: "migration", href: "/admin/migration", icon: Import },
   { key: "integrations", href: "/admin/integrations", icon: Plug },
