@@ -1,10 +1,11 @@
 name: CI
 
+# Běží jen na PR do main — po mergi je kód už ověřený a deploy.yml build stejně provádí.
+# Tím odpadne duplicitní běh (PR + push) a šetří se minuty Actions.
 on:
   pull_request:
     branches: [main]
-  push:
-    branches: [main]
+  workflow_dispatch:
 
 concurrency:
   group: ci-${{ github.ref }}
