@@ -13,6 +13,14 @@ export interface ReleaseEntry {
 
 export const releases: ReleaseEntry[] = [
   {
+    version: "0.2.7",
+    date: "30. 6. 2026",
+    headline: "Vytváření projektů jen v Administraci",
+    changed: [
+      "Z Přehledu (dashboardu) zmizelo tlačítko Nový projekt – projekty se zakládají v Administraci / Projekty.",
+    ],
+  },
+  {
     version: "0.2.6",
     date: "30. 6. 2026",
     headline: "Projekty a Firmy v Administraci",

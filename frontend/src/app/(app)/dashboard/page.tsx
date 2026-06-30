@@ -9,7 +9,6 @@ import { EmptyState } from "@/components/shared/empty-state";
 import {
   FolderKanban,
   Clock,
-  Plus,
   TrendingUp,
   AlertTriangle,
   CheckCircle2,
@@ -61,15 +60,6 @@ function ProjectHealthCards() {
         icon={<FolderKanban className="h-12 w-12" />}
         title={t("noProjectsYet")}
         description={t("createFirstProject")}
-        action={
-          <Link
-            href="/projects"
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:opacity-90 transition-opacity"
-          >
-            <Plus className="h-4 w-4" />
-            {t("newProject")}
-          </Link>
-        }
       />
     );
   }
@@ -172,13 +162,6 @@ function QuickActions() {
   const t = useTranslations("Dashboard");
   return (
     <div className="flex flex-wrap gap-3">
-      <Link
-        href="/projects"
-        className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:opacity-90 transition-opacity"
-      >
-        <Plus className="h-4 w-4" />
-        {t("newProject")}
-      </Link>
       <Link
         href="/worklogs"
         className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-border text-sm font-medium hover:bg-muted transition-colors"
