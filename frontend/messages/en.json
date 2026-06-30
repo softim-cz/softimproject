@@ -72,9 +72,17 @@
       "title": "Users",
       "description": "User and role management, system health and the error queue."
     },
+    "projects": {
+      "title": "Projects",
+      "description": "Create and delete projects, including all their content."
+    },
+    "companies": {
+      "title": "Companies",
+      "description": "Manage customers (companies) that projects are linked to."
+    },
     "lookups": {
       "title": "Lookups",
-      "description": "Task types and states, priorities, companies, project templates, custom fields."
+      "description": "Task types and states, priorities, project templates, custom fields."
     },
     "migration": {
       "title": "Migration",
@@ -84,6 +92,14 @@
       "title": "Integrations",
       "description": "Connections to source systems, scheduled sync and its status."
     }
+  },
+  "AdminProjects": {
+    "title": "Projects",
+    "subtitle": "Create and manage projects."
+  },
+  "AdminCompanies": {
+    "title": "Companies",
+    "subtitle": "Manage customer companies."
   },
   "Integrations": {
     "title": "Integrations",
@@ -245,6 +261,13 @@
     "budgetAmountHelp": "Total financial budget of the project",
     "creating": "Creating...",
     "createButton": "Create Project",
+    "externalSystem": "External system",
+    "deleteButton": "Delete",
+    "deleteConfirm": "Really delete project \"{name}\"? All its tickets, comments and worklogs will be deleted too. This cannot be undone.",
+    "deleteSuccess": "Project deleted",
+    "deleteFailed": "Failed to delete project",
+    "deletingTitle": "Deleting...",
+    "confirmDeleteTitle": "Delete project",
     "status": {
       "Active": "Active",
       "OnHold": "On hold",

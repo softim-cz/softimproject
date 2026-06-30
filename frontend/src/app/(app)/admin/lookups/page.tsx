@@ -7,7 +7,6 @@ import { localizedName } from "@/lib/localized-name";
 import type { Locale } from "@/i18n/config";
 import {
   AlertTriangle,
-  Building2,
   FolderTree,
   CircleDot,
   Tag,
@@ -26,10 +25,6 @@ import {
 import { TableSkeleton } from "@/components/shared/loading-skeleton";
 import { EmptyState } from "@/components/shared/empty-state";
 import {
-  useCompanies,
-  useCreateCompany,
-  useUpdateCompany,
-  useDeleteCompany,
   useProjectTypes,
   useCreateProjectType,
   useUpdateProjectType,
@@ -64,7 +59,6 @@ import {
   useDeleteTicketPriority,
 } from "@/queries/lookups";
 import type {
-  Company,
   ProjectType,
   ProjectState,
   TaskType,
@@ -86,7 +80,6 @@ const inputClass = "w-full px-2 py-1 text-sm border rounded";
 const inputClassXs = "w-full px-2 py-1 text-xs border rounded";
 
 const tabConfig = [
-  { key: "companies", labelKey: "tabCompanies", icon: Building2 },
   { key: "project-types", labelKey: "tabProjectTypes", icon: FolderTree },
   { key: "project-states", labelKey: "tabProjectStates", icon: CircleDot },
   { key: "task-types", labelKey: "tabTaskTypes", icon: Tag },
@@ -99,89 +92,6 @@ const tabConfig = [
 type TabKey = (typeof tabConfig)[number]["key"];
 
 // === Generic inline-edit table for simple lookups ===
-
-type CompanyForm = { name: string; description: string };
-
-function CompaniesTab() {
-  const t = useTranslations("Lookups");
-  const tCommon = useTranslations("Common");
-  const { data, isLoading } = useCompanies();
-  const createMutation = useCreateCompany();
-  const updateMutation = useUpdateCompany();
-  const deleteMutation = useDeleteCompany();
-
-  const crud = useInlineCrudState<Company, CompanyForm>({
-    data,
-    emptyForm: { name: "", description: "" },
-    toForm: (item) => ({ name: item.name, description: item.description || "" }),
-    create: (form) =>
-      createMutation.mutateAsync({ name: form.name, description: form.description || undefined }),
-    update: (item, form) =>
-      updateMutation.mutateAsync({
-        ...item,
-        name: form.name,
-        description: form.description || undefined,
-      }),
-    remove: (id) => deleteMutation.mutate(id),
-    canSave: (form) => !!form.name,
-  });
-
-  const columns: CrudColumn<Company, CompanyForm>[] = [
-    {
-      header: t("common.name"),
-      edit: ({ form, set, mode }) => (
-        <input
-          value={form.name}
-          onChange={(e) => set({ name: e.target.value })}
-          className={inputClass}
-          placeholder={t("common.name")}
-          autoFocus={mode === "add"}
-        />
-      ),
-      display: (item) => <span className="font-medium">{item.name}</span>,
-    },
-    {
-      header: t("common.description"),
-      edit: ({ form, set }) => (
-        <input
-          value={form.description}
-          onChange={(e) => set({ description: e.target.value })}
-          className={inputClass}
-          placeholder={t("common.description")}
-        />
-      ),
-      display: (item) => <span className="text-muted-foreground">{item.description || "—"}</span>,
-    },
-    {
-      header: t("common.isActive"),
-      edit: ({ mode, item }) =>
-        mode === "add" ? (
-          <span className="text-green-600">{tCommon("yes")}</span>
-        ) : (
-          <span>{item?.isActive ? tCommon("yes") : tCommon("no")}</span>
-        ),
-      display: (item) =>
-        item.isActive ? (
-          <span className="text-green-600">{tCommon("yes")}</span>
-        ) : (
-          <span className="text-muted-foreground">{tCommon("no")}</span>
-        ),
-    },
-  ];
-
-  if (isLoading) return <TableSkeleton rows={4} />;
-  if (!data)
-    return <EmptyState icon={<Building2 className="h-10 w-10" />} title={t("common.empty")} />;
-
-  return (
-    <InlineCrudTable
-      crud={crud}
-      columns={columns}
-      addLabel={t("company.newCompany")}
-      actionsLabel={t("common.actions")}
-    />
-  );
-}
 
 type ProjectTypeForm = {
   name: string;
@@ -1834,7 +1744,7 @@ function ProjectTemplatesTab() {
 
 export default function LookupsPage() {
   const t = useTranslations("Lookups");
-  const [activeTab, setActiveTab] = useState<TabKey>("companies");
+  const [activeTab, setActiveTab] = useState<TabKey>("project-types");
 
   return (
     <div className="space-y-6">
@@ -1862,7 +1772,6 @@ export default function LookupsPage() {
       </div>
 
       {/* Tab content */}
-      {activeTab === "companies" && <CompaniesTab />}
       {activeTab === "project-types" && <ProjectTypesTab />}
       {activeTab === "project-states" && <StateTable />}
       {activeTab === "task-types" && <TaskTypesTab />}
