@@ -13,6 +13,14 @@ export interface ReleaseEntry {
 
 export const releases: ReleaseEntry[] = [
   {
+    version: "0.2.2",
+    date: "30. 6. 2026",
+    headline: "Průběžný stav stahování v průvodci migrace",
+    changed: [
+      "Průvodce migrace hlásí průběh stahování (stahuji detaily X/Y úkolů, po projektech) – během dlouhého stahování z EasyProjectu už nevypadá zaseklý.",
+    ],
+  },
+  {
     version: "0.2.1",
     date: "30. 6. 2026",
     headline: "Zprovoznění migrace z EasyProjectu",

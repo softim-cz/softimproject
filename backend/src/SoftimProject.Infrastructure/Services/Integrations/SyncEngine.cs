@@ -34,6 +34,11 @@ public sealed class SyncEngine(
         try
         {
             var ct = tracker.GetCancellationToken(jobId);
+
+            // Live fetch-progress: connectors report coarse "N/total" messages here during long
+            // pulls so the UI keeps moving instead of looking frozen for minutes. Reported lines
+            // land in the in-memory log the wizard already polls (and pushes over SignalR).
+            context = context with { Progress = new InlineProgress(msg => tracker.AddLog(jobId, msg)) };
             // Default TaskState/TicketPriority resolved from the target template's states,
             // not globally — a ticket without an explicit source status must land in a
             // state that actually belongs to its project (and therefore template).
@@ -76,11 +81,13 @@ public sealed class SyncEngine(
                 if (project is null) continue;
                 selectedProjects.Add(project);
 
+                tracker.AddLog(jobId, $"Fetching issues for '{project.Name}'...");
                 var issues = (await connector.GetIssuesAsync(context, project.ExternalId, request.ChangedSince, ct)).ToList();
                 issuesByProject[project.ExternalId] = issues;
 
                 if (request.ImportWorklogs)
                 {
+                    tracker.AddLog(jobId, $"Fetching worklogs for '{project.Name}'...");
                     var worklogs = (await connector.GetWorklogsAsync(context, project.ExternalId, request.ChangedSince, ct)).ToList();
                     worklogsByProject[project.ExternalId] = worklogs;
                 }
@@ -532,6 +539,14 @@ public sealed class SyncEngine(
         {
             entry.State = EntityState.Detached;
         }
+    }
+
+    // Synchronous IProgress<string> adapter for fetch-progress logging. Unlike Progress<T> it does
+    // not capture/marshal to a SynchronizationContext (there is none on the background Task), so
+    // messages reach the tracker inline and in order.
+    private sealed class InlineProgress(Action<string> report) : IProgress<string>
+    {
+        public void Report(string value) => report(value);
     }
 
     // DbUpdateException's own message ("An error occurred while saving the entity changes…") hides
