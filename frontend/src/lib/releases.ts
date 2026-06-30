@@ -13,6 +13,14 @@ export interface ReleaseEntry {
 
 export const releases: ReleaseEntry[] = [
   {
+    version: "0.2.5",
+    date: "30. 6. 2026",
+    headline: "Úplné smazání projektu",
+    fixed: [
+      "Smazání projektu nově odstraní i všechny jeho úkoly, komentáře, výkazy, checklisty a nástěnky – dříve selhalo u projektu s obsahem.",
+    ],
+  },
+  {
     version: "0.2.4",
     date: "30. 6. 2026",
     headline: "Oprava importu vlastních polí v migraci",
