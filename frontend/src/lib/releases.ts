@@ -13,6 +13,19 @@ export interface ReleaseEntry {
 
 export const releases: ReleaseEntry[] = [
   {
+    version: "0.2.1",
+    date: "30. 6. 2026",
+    headline: "Zprovoznění migrace z EasyProjectu",
+    added: [
+      "Výběr dříve uloženého připojení v průvodci migrace – URL a API klíč se po otestování zapamatují.",
+      "Šablona projektu se zobrazuje v detailu projektu (Nastavení).",
+    ],
+    fixed: [
+      "Migrace přiděluje ticketu pořadové číslo a izoluje selhání po jednotlivých ticketech (odstranění hromadných chyb při ukládání).",
+      "Import číselných hodnot vlastních polí z EasyProjectu (possible_values) už nepadá na deserializaci.",
+    ],
+  },
+  {
     version: "0.2.0",
     date: "28. 6. 2026",
     headline: "Patička s verzí a přehled releases",
