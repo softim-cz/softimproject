@@ -49,7 +49,12 @@ public abstract class RedmineFamilyConnector(IEasyProjectApiClient apiClient, IL
         var optionsFor = EasyProjectCanonicalMapper.BuildOptionsResolver(definitions);
 
         var issues = await apiClient.GetProjectIssuesAsync(context.BaseUrl, context.ApiToken, projectId, changedSince, ct);
-        var result = new List<CanonicalIssue>(issues.Count);
+        var total = issues.Count;
+        // The per-issue detail fetch below is the slowest, most opaque step (one rate-limited
+        // request per issue). Report coarse progress so the UI shows steady movement.
+        context.Progress?.Report($"Fetching details of {total} issues...");
+        var result = new List<CanonicalIssue>(total);
+        var done = 0;
         foreach (var issue in issues)
         {
             ct.ThrowIfCancellationRequested();
@@ -67,6 +72,10 @@ public abstract class RedmineFamilyConnector(IEasyProjectApiClient apiClient, IL
                 with
             { WebUrl = $"{context.BaseUrl.TrimEnd('/')}/issues/{detail.Id}" };
             result.Add(canonical);
+
+            done++;
+            if (done % 25 == 0 || done == total)
+                context.Progress?.Report($"Fetched {done}/{total} issue details");
         }
 
         return result;

@@ -34,4 +34,11 @@ public interface ISourceConnector
 }
 
 /// <summary>Connection details for a source system (later sourced from IntegrationConnection).</summary>
-public sealed record SourceConnectionContext(string BaseUrl, string ApiToken);
+/// <param name="BaseUrl">Base URL of the source system instance.</param>
+/// <param name="ApiToken">API token/key used to authenticate against the source system.</param>
+/// <param name="Progress">
+/// Optional sink for human-readable fetch-progress messages. Connectors report coarse progress
+/// here during long pulls (e.g. per-page or every N issue details) so the UI shows live activity
+/// instead of appearing frozen during the fetch phase. Null = no reporting.
+/// </param>
+public sealed record SourceConnectionContext(string BaseUrl, string ApiToken, IProgress<string>? Progress = null);
