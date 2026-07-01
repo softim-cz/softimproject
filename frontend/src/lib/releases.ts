@@ -13,6 +13,14 @@ export interface ReleaseEntry {
 
 export const releases: ReleaseEntry[] = [
   {
+    version: "0.2.8",
+    date: "1. 7. 2026",
+    headline: "Bezpečnostní aktualizace závislosti",
+    fixed: [
+      "Aktualizace knihovny Microsoft.OpenApi na 2.7.5 (bezpečnostní upozornění CVE-2026-49451).",
+    ],
+  },
+  {
     version: "0.2.7",
     date: "30. 6. 2026",
     headline: "Vytváření projektů jen v Administraci",
