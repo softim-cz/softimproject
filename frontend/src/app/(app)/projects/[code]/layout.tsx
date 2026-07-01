@@ -6,14 +6,13 @@ import { usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useProjectByCode } from "@/queries/projects";
 import { cn } from "@/lib/utils";
-import { LayoutGrid, List, Clock, MessageSquare, Settings } from "lucide-react";
+import { LayoutGrid, List, Clock, MessageSquare } from "lucide-react";
 
 const tabs = [
   { key: "board", icon: LayoutGrid },
   { key: "tasks", icon: List },
   { key: "worklogs", icon: Clock },
   { key: "discussion", icon: MessageSquare },
-  { key: "settings", icon: Settings },
 ] as const;
 
 export default function ProjectLayout({

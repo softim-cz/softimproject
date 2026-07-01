@@ -95,7 +95,8 @@
   },
   "AdminProjects": {
     "title": "Projects",
-    "subtitle": "Create and manage projects."
+    "subtitle": "Create and manage projects.",
+    "backToList": "Back to projects"
   },
   "AdminCompanies": {
     "title": "Companies",
@@ -262,6 +263,7 @@
     "creating": "Creating...",
     "createButton": "Create Project",
     "externalSystem": "External system",
+    "editButton": "Edit",
     "deleteButton": "Delete",
     "deleteConfirm": "Really delete project \"{name}\"? All its tickets, comments and worklogs will be deleted too. This cannot be undone.",
     "deleteSuccess": "Project deleted",

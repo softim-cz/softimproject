@@ -13,6 +13,15 @@ export interface ReleaseEntry {
 
 export const releases: ReleaseEntry[] = [
   {
+    version: "0.2.9",
+    date: "1. 7. 2026",
+    headline: "Editace projektu v Administraci",
+    changed: [
+      "Nastavení projektu (obecné údaje, členové, GitHub, nástěnka, vlastní pole, smazání) se přesunulo do Administrace / Projekty pod akci Upravit.",
+      "Z projektu zmizela záložka Nastavení – správa projektu je nyní v Administraci.",
+    ],
+  },
+  {
     version: "0.2.8",
     date: "1. 7. 2026",
     headline: "Bezpečnostní aktualizace závislosti",
