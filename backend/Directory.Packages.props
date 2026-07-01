@@ -10,6 +10,8 @@
     <PackageVersion Include="Microsoft.AspNetCore.DataProtection" Version="10.0.7" />
     <!-- GHSA-7j59-v9qr-6fq9: Kiota.Abstractions < 1.22.0 leaks sensitive headers on cross-host redirect; pulled transitively by Microsoft.Graph -->
     <PackageVersion Include="Microsoft.Kiota.Abstractions" Version="1.22.0" />
+    <!-- GHSA-v5pm-xwqc-g5wc / CVE-2026-49451: Microsoft.OpenApi <= 2.7.4 stack-overflow on circular schema refs; pulled transitively by Swashbuckle.AspNetCore + Microsoft.AspNetCore.OpenApi -->
+    <PackageVersion Include="Microsoft.OpenApi" Version="2.7.5" />
 
     <!-- EF Core -->
     <PackageVersion Include="Microsoft.EntityFrameworkCore" Version="10.0.0" />
