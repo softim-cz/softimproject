@@ -10,11 +10,12 @@ import {
   useRevokeClientAccess,
 } from "@/queries/projects";
 import { Skeleton } from "@/components/shared/loading-skeleton";
-import { Settings, AlertTriangle } from "lucide-react";
+import { Settings, AlertTriangle, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 import { useTranslations } from "next-intl";
 import { ProjectStatus } from "@/types";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { ClientPortalLink } from "./_components/client-portal-link";
 import { CustomFieldsSection } from "./_components/custom-fields-section";
 import { AllowedTaskTypesSection } from "./_components/allowed-task-types-section";
@@ -25,6 +26,7 @@ import { BoardConfigSection } from "./_components/board-config-section";
 export default function ProjectSettingsPage({ params }: { params: Promise<{ code: string }> }) {
   const t = useTranslations("ProjectSettings");
   const tProjects = useTranslations("Projects");
+  const tAdmin = useTranslations("AdminProjects");
   const { code } = use(params);
   const router = useRouter();
   const { data: project, isLoading, error } = useProjectByCode(code);
@@ -88,7 +90,7 @@ export default function ProjectSettingsPage({ params }: { params: Promise<{ code
       toast.success(t("settingsSaved"));
       setGeneralDirty(false);
       if (codeChanged) {
-        router.push(`/projects/${editCode}/settings`);
+        router.push(`/admin/projects/${editCode}/settings`);
       }
     } catch {
       toast.error(t("settingsSaveFailed"));
@@ -134,7 +136,17 @@ export default function ProjectSettingsPage({ params }: { params: Promise<{ code
 
   return (
     <div className="space-y-8 max-w-3xl">
-      <p className="text-sm text-muted-foreground">{t("subtitle")}</p>
+      <div>
+        <Link
+          href="/admin/projects"
+          className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-2"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          {tAdmin("backToList")}
+        </Link>
+        <h1 className="text-2xl font-bold text-foreground">{project.name}</h1>
+        <p className="text-sm text-muted-foreground mt-1">{t("subtitle")}</p>
+      </div>
 
       <section className="rounded-lg border border-border bg-card p-6 space-y-4">
         <div className="flex items-center gap-2 mb-2">
@@ -290,7 +302,7 @@ export default function ProjectSettingsPage({ params }: { params: Promise<{ code
               try {
                 await deleteProject.mutateAsync(projectId);
                 toast.success(t("deleted"));
-                router.push("/projects");
+                router.push("/admin/projects");
               } catch {
                 toast.error(t("deleteFailed"));
               }

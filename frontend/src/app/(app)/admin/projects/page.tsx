@@ -1,11 +1,12 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Link from "next/link";
 import { useProjects, useCreateProject, useDeleteProject } from "@/queries/projects";
 import { useProjectTemplates } from "@/queries/lookups";
 import { TableSkeleton } from "@/components/shared/loading-skeleton";
 import { EmptyState } from "@/components/shared/empty-state";
-import { FolderKanban, Plus, Trash2, X } from "lucide-react";
+import { FolderKanban, Plus, Pencil, Trash2, X } from "lucide-react";
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { createProjectSchema, type CreateProjectInput } from "@/schemas/project";
@@ -441,13 +442,22 @@ export default function AdminProjectsPage() {
                     </span>
                   </td>
                   <td className="px-4 py-3 text-right">
-                    <button
-                      onClick={() => setProjectToDelete(project)}
-                      className="p-1 text-muted-foreground hover:text-red-600 hover:bg-red-50 rounded"
-                      title={t("deleteButton")}
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </button>
+                    <div className="flex items-center justify-end gap-1">
+                      <Link
+                        href={`/admin/projects/${project.code}/settings`}
+                        className="p-1 text-muted-foreground hover:text-foreground hover:bg-muted rounded"
+                        title={t("editButton")}
+                      >
+                        <Pencil className="h-3.5 w-3.5" />
+                      </Link>
+                      <button
+                        onClick={() => setProjectToDelete(project)}
+                        className="p-1 text-muted-foreground hover:text-red-600 hover:bg-red-50 rounded"
+                        title={t("deleteButton")}
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}

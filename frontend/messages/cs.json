@@ -95,7 +95,8 @@
   },
   "AdminProjects": {
     "title": "Projekty",
-    "subtitle": "Vytváření a správa projektů."
+    "subtitle": "Vytváření a správa projektů.",
+    "backToList": "Zpět na projekty"
   },
   "AdminCompanies": {
     "title": "Firmy",
@@ -262,6 +263,7 @@
     "creating": "Vytvářím...",
     "createButton": "Vytvořit projekt",
     "externalSystem": "Externí systém",
+    "editButton": "Upravit",
     "deleteButton": "Smazat",
     "deleteConfirm": "Opravdu smazat projekt „{name}“? Smažou se i všechny jeho úkoly, komentáře a výkazy. Tuto akci nelze vrátit.",
     "deleteSuccess": "Projekt byl smazán",
