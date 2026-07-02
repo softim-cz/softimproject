@@ -16,6 +16,8 @@ public sealed class BlobStorageService : IBlobStorageService
             _blobServiceClient = new BlobServiceClient(connectionString);
     }
 
+    public bool IsConfigured => _blobServiceClient is not null;
+
     public async Task<string> UploadAsync(string containerName, string blobName, Stream content, string contentType, CancellationToken cancellationToken = default)
     {
         var client = GetClientOrThrow();
