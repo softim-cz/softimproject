@@ -9,11 +9,12 @@ import {
   useGenerateClientAccessToken,
   useRevokeClientAccess,
 } from "@/queries/projects";
+import { useCompanies } from "@/queries/lookups";
 import { Skeleton } from "@/components/shared/loading-skeleton";
 import { Settings, AlertTriangle, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 import { useTranslations } from "next-intl";
-import { ProjectStatus } from "@/types";
+import { ProjectStatus, type Project } from "@/types";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ClientPortalLink } from "./_components/client-portal-link";
@@ -30,6 +31,7 @@ export default function ProjectSettingsPage({ params }: { params: Promise<{ code
   const { code } = use(params);
   const router = useRouter();
   const { data: project, isLoading, error } = useProjectByCode(code);
+  const { data: companies } = useCompanies();
   const projectId = project?.id ?? "";
   const updateProject = useUpdateProject();
   const deleteProject = useDeleteProject();
@@ -37,6 +39,7 @@ export default function ProjectSettingsPage({ params }: { params: Promise<{ code
   const revokeToken = useRevokeClientAccess();
   const [editName, setEditName] = useState("");
   const [editCode, setEditCode] = useState("");
+  const [editCompanyId, setEditCompanyId] = useState<string>("");
   const [confirmDelete, setConfirmDelete] = useState("");
   const [generalDirty, setGeneralDirty] = useState(false);
 
@@ -44,6 +47,7 @@ export default function ProjectSettingsPage({ params }: { params: Promise<{ code
     if (project) {
       setEditName(project.name);
       setEditCode(project.code);
+      setEditCompanyId(project.companyId ?? "");
       setGeneralDirty(false);
     }
   }, [project]);
@@ -66,9 +70,27 @@ export default function ProjectSettingsPage({ params }: { params: Promise<{ code
     );
   }
 
+  const buildUpdatePayload = (overrides: Partial<Project>): Partial<Project> & { id: string } => ({
+    id: projectId,
+    name: project.name,
+    code: project.code,
+    description: project.description ?? undefined,
+    status: project.status,
+    companyId: editCompanyId || undefined,
+    projectTypeId: project.projectTypeId ?? undefined,
+    projectStateId: project.projectStateId ?? undefined,
+    parentProjectId: project.parentProjectId ?? undefined,
+    budgetHours: project.budgetHours ?? undefined,
+    budgetAmount: project.budgetAmount ?? undefined,
+    startDate: project.startDate ?? undefined,
+    endDate: project.endDate ?? undefined,
+    deadlineDate: project.deadlineDate ?? undefined,
+    ...overrides,
+  });
+
   const handleStatusChange = async (status: ProjectStatus) => {
     try {
-      await updateProject.mutateAsync({ id: projectId, status });
+      await updateProject.mutateAsync(buildUpdatePayload({ status }));
       toast.success(t("statusUpdated"));
     } catch {
       toast.error(t("statusUpdateFailed"));
@@ -82,11 +104,13 @@ export default function ProjectSettingsPage({ params }: { params: Promise<{ code
     if (!nameValid || !codeValid) return;
     try {
       const codeChanged = editCode !== project.code;
-      await updateProject.mutateAsync({
-        id: projectId,
-        name: editName.trim(),
-        code: editCode,
-      });
+      await updateProject.mutateAsync(
+        buildUpdatePayload({
+          name: editName.trim(),
+          code: editCode,
+          companyId: editCompanyId || undefined,
+        })
+      );
       toast.success(t("settingsSaved"));
       setGeneralDirty(false);
       if (codeChanged) {
@@ -99,10 +123,9 @@ export default function ProjectSettingsPage({ params }: { params: Promise<{ code
 
   const handleClientAccessToggle = async () => {
     try {
-      await updateProject.mutateAsync({
-        id: projectId,
-        clientAccessEnabled: !project.clientAccessEnabled,
-      });
+      await updateProject.mutateAsync(
+        buildUpdatePayload({ clientAccessEnabled: !project.clientAccessEnabled })
+      );
       toast.success(
         project.clientAccessEnabled ? t("clientAccessDisabled") : t("clientAccessEnabled")
       );
@@ -216,6 +239,29 @@ export default function ProjectSettingsPage({ params }: { params: Promise<{ code
                 {tProjects(`status.${status}` as "status.Active")}
               </option>
             ))}
+          </select>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-card-foreground mb-1">
+            {t("company")}
+          </label>
+          <select
+            value={editCompanyId}
+            onChange={(e) => {
+              setEditCompanyId(e.target.value);
+              setGeneralDirty(true);
+            }}
+            className="rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+          >
+            <option value="">{t("companyNone")}</option>
+            {companies
+              ?.filter((c) => c.isActive)
+              .map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
           </select>
         </div>
 

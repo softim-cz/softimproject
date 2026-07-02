@@ -395,6 +395,8 @@
     "statusUpdated": "Stav projektu byl změněn",
     "statusUpdateFailed": "Změna stavu se nezdařila",
     "status": "Stav",
+    "company": "Firma",
+    "companyNone": "— bez firmy —",
     "template": "Šablona",
     "clientPortalEnabled": "Přístup klientského portálu povolen",
     "clientAccessEnabled": "Přístup klientského portálu povolen",

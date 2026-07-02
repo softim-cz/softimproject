@@ -395,6 +395,8 @@
     "statusUpdated": "Project status updated",
     "statusUpdateFailed": "Failed to update status",
     "status": "Status",
+    "company": "Company",
+    "companyNone": "— no company —",
     "template": "Template",
     "clientPortalEnabled": "Client portal access enabled",
     "clientAccessEnabled": "Client portal access enabled",

@@ -32,7 +32,9 @@ public sealed record ProjectDto(
     bool IsOverBudget,
     bool IsOverDeadline,
     int MemberCount,
-    int TicketCount);
+    int TicketCount,
+    string? ExternalSystem,
+    string? ExternalProjectId);
 
 public sealed record GetProjectsQuery(int Page = 1, int PageSize = 50) : IRequest<PagedResult<ProjectDto>>;
 
@@ -90,7 +92,9 @@ public sealed class GetProjectsQueryHandler(
                 p.IsOverBudget,
                 p.IsOverDeadline,
                 p.Members.Count,
-                p.Tickets.Count))
+                p.Tickets.Count,
+                p.ExternalSystem,
+                p.ExternalProjectId))
             .ToListAsync(cancellationToken);
 
         return new PagedResult<ProjectDto>(items, totalCount, page, pageSize);
