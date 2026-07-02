@@ -387,7 +387,7 @@
     "name": "Name",
     "code": "Code",
     "nameRequired": "Name is required",
-    "codeValidation": "2–6 uppercase letters",
+    "codeValidation": "2–6 uppercase letters or digits",
     "saving": "Saving...",
     "save": "Save",
     "settingsSaved": "Project settings saved",
