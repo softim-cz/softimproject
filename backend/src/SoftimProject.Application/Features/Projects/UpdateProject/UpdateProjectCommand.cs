@@ -22,10 +22,6 @@ public sealed record UpdateProjectCommand(
     Guid? ProjectTypeId = null,
     Guid? ProjectStateId = null,
     Guid? ParentProjectId = null,
-    string? ExternalSystem = null,
-    string? ExternalProjectId = null,
-    string? ExternalApiToken = null,
-    string? WebhookSecret = null,
     bool? ClientAccessEnabled = null) : IRequest, IRequireProjectRole
 {
     public Guid ProjectId => Id;
@@ -67,10 +63,10 @@ public sealed class UpdateProjectCommandHandler(
         project.ProjectTypeId = request.ProjectTypeId;
         project.ProjectStateId = request.ProjectStateId;
         project.ParentProjectId = request.ParentProjectId;
-        project.ExternalSystem = request.ExternalSystem;
-        project.ExternalProjectId = request.ExternalProjectId;
-        project.ExternalApiToken = request.ExternalApiToken;
-        project.WebhookSecret = request.WebhookSecret;
+        // ExternalSystem/ExternalProjectId/ExternalApiToken/WebhookSecret are integration-managed
+        // (set by migration / GitHub linking), never edited via the project form. Leaving them
+        // untouched here prevents a partial edit from wiping the source link — which would also
+        // stop the migration from matching the project and spawn a duplicate on re-import.
 
         if (!string.IsNullOrEmpty(request.Code) && request.Code != project.Code)
         {

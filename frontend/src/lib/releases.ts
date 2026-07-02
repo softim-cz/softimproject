@@ -13,6 +13,18 @@ export interface ReleaseEntry {
 
 export const releases: ReleaseEntry[] = [
   {
+    version: "0.2.13",
+    date: "2. 7. 2026",
+    headline: "Oprava editace projektu (mazání údajů) a doplnění firmy",
+    fixed: [
+      "Editace projektu už nevymaže ostatní údaje (firmu, stav, rozpočty, termíny) ani napojení na zdrojový systém – dřív se při uložení názvu/kódu vynulovaly.",
+      "V přehledu projektů se zobrazuje sloupec Externí systém.",
+    ],
+    changed: [
+      "V editaci projektu lze nastavit/změnit firmu (i když se na propojení při migraci zapomnělo).",
+    ],
+  },
+  {
     version: "0.2.12",
     date: "2. 7. 2026",
     headline: "Migrace bez chyb, když nejsou přílohy nakonfigurované",
