@@ -150,6 +150,7 @@ public class ExternalSyncRunnerTests
 
     private sealed class FakeBlobStorage : IBlobStorageService
     {
+        public bool IsConfigured => true;
         public Task<string> UploadAsync(string containerName, string blobName, Stream content, string contentType, CancellationToken cancellationToken = default) => Task.FromResult("https://blob/x");
         public Task<Stream> DownloadAsync(string containerName, string blobName, CancellationToken cancellationToken = default) => throw new NotSupportedException();
         public Task DeleteAsync(string containerName, string blobName, CancellationToken cancellationToken = default) => Task.CompletedTask;

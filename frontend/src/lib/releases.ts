@@ -13,6 +13,14 @@ export interface ReleaseEntry {
 
 export const releases: ReleaseEntry[] = [
   {
+    version: "0.2.12",
+    date: "2. 7. 2026",
+    headline: "Migrace bez chyb, když nejsou přílohy nakonfigurované",
+    fixed: [
+      "Když není nastavené úložiště příloh (Azure Blob Storage), migrace přílohy automaticky přeskočí s jednou hláškou místo chyby u každé přílohy.",
+    ],
+  },
+  {
     version: "0.2.11",
     date: "2. 7. 2026",
     headline: "Alfanumerický kód projektu a převzetí kódu z migrace",

@@ -273,6 +273,41 @@ public class SyncEngineTests
     }
 
     [Fact]
+    public async Task Skips_Attachments_When_Blob_Storage_Not_Configured()
+    {
+        await using var db = CreateDbContext();
+        var (doneStateId, _) = await SeedAsync(db);
+        var jobId = await SeedJobAsync(db);
+
+        // Attachments are enabled (SkipAttachments = false) and the issue has one, but blob storage
+        // is off — the phase must skip cleanly instead of erroring per attachment.
+        var issue = new CanonicalIssue(
+            "100", "Has attachment", null, null, "2", "Done", null, null, null, null, null, null, "50", "Web Project",
+            CustomFields: [], Comments: [],
+            Attachments: [new CanonicalAttachment("1", "image.png", 100, "image/png", "https://ep.example/att/1", null)],
+            ChecklistItems: [])
+        { WebUrl = "https://ep.example/issues/100" };
+
+        var connector = new FakeSourceConnector
+        {
+            Projects = [new CanonicalProject("50", "Web Project", null, CanonicalProjectStatus.Active, null, null, null, [])],
+            Issues = [issue],
+        };
+        var tracker = new MigrationProgressTracker();
+        tracker.Init(jobId);
+        var engine = new SyncEngine(db, tracker, new FakeBlobStorage { IsConfigured = false }, NullLogger<SyncEngine>.Instance);
+
+        await engine.ExecuteAsync(jobId, AdminId, BuildRequest(doneStateId), connector,
+            new SourceConnectionContext("https://ep.example", "key"), JobSink(db, jobId));
+
+        (await db.Tickets.CountAsync()).Should().Be(1);
+        (await db.TicketAttachments.CountAsync()).Should().Be(0);
+        var job = await db.MigrationJobs.SingleAsync();
+        job.Status.Should().Be(MigrationStatus.Completed);
+        job.ItemsFailed.Should().Be(0);
+    }
+
+    [Fact]
     public async Task Uses_Source_Project_Code_When_Available()
     {
         await using var db = CreateDbContext();
@@ -440,6 +475,7 @@ public class SyncEngineTests
 
     private sealed class FakeBlobStorage : IBlobStorageService
     {
+        public bool IsConfigured { get; init; } = true;
         public Task<string> UploadAsync(string containerName, string blobName, Stream content, string contentType, CancellationToken cancellationToken = default)
             => Task.FromResult($"https://blob/{containerName}/{blobName}");
         public Task<Stream> DownloadAsync(string containerName, string blobName, CancellationToken cancellationToken = default)

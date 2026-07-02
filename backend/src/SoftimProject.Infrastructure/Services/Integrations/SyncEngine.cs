@@ -360,7 +360,14 @@ public sealed class SyncEngine(
             }
             await sink.AdvancePhaseAsync(MigrationPhase.Checklists, ct);
 
-            if (!request.SkipAttachments)
+            // Attachments need blob storage; if it isn't configured, skip the whole phase with a
+            // single clear note instead of downloading every file and failing per attachment
+            // (which would flood the run with errors and mark it CompletedWithErrors).
+            if (!request.SkipAttachments && !blobStorage.IsConfigured)
+            {
+                tracker.AddLog(jobId, "Skipping attachments: Azure Blob Storage is not configured.");
+            }
+            else if (!request.SkipAttachments)
             {
                 tracker.UpdatePhase(jobId, "Migrating attachments");
                 await sink.NotifyAsync(tracker.GetProgress(jobId));
