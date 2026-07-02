@@ -2,11 +2,11 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { useProjects, useCreateProject, useDeleteProject } from "@/queries/projects";
+import { useProjects, useCreateProject } from "@/queries/projects";
 import { useProjectTemplates } from "@/queries/lookups";
 import { TableSkeleton } from "@/components/shared/loading-skeleton";
 import { EmptyState } from "@/components/shared/empty-state";
-import { FolderKanban, Plus, Pencil, Trash2, X } from "lucide-react";
+import { FolderKanban, Plus, Pencil, X } from "lucide-react";
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { createProjectSchema, type CreateProjectInput } from "@/schemas/project";
@@ -294,73 +294,12 @@ function CreateProjectDialog({ open, onClose }: { open: boolean; onClose: () => 
   );
 }
 
-function DeleteProjectDialog({
-  project,
-  onClose,
-}: {
-  project: Project | null;
-  onClose: () => void;
-}) {
-  const t = useTranslations("Projects");
-  const tCommon = useTranslations("Common");
-  const deleteProject = useDeleteProject();
-
-  if (!project) return null;
-
-  const handleDelete = async () => {
-    try {
-      await deleteProject.mutateAsync(project.id);
-      toast.success(t("deleteSuccess"));
-      onClose();
-    } catch {
-      toast.error(t("deleteFailed"));
-    }
-  };
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
-      <div className="absolute inset-0 bg-black/50" onClick={onClose} />
-      <div className="relative bg-card rounded-xl shadow-xl border border-border w-full max-w-md mx-4 p-6">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold text-card-foreground">{t("confirmDeleteTitle")}</h2>
-          <button onClick={onClose} className="p-1 rounded hover:bg-muted transition-colors">
-            <X className="h-5 w-5 text-muted-foreground" />
-          </button>
-        </div>
-
-        <p className="text-sm text-muted-foreground">
-          {t("deleteConfirm", { name: project.name })}
-        </p>
-
-        <div className="flex justify-end gap-3 pt-6">
-          <button
-            type="button"
-            onClick={onClose}
-            className="px-4 py-2 rounded-lg border border-border text-sm font-medium hover:bg-muted transition-colors"
-          >
-            {tCommon("cancel")}
-          </button>
-          <button
-            type="button"
-            onClick={handleDelete}
-            disabled={deleteProject.isPending}
-            className="px-4 py-2 rounded-lg bg-destructive text-destructive-foreground text-sm font-medium hover:opacity-90 transition-opacity disabled:opacity-50"
-          >
-            {deleteProject.isPending ? t("deletingTitle") : t("deleteButton")}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 export default function AdminProjectsPage() {
   const t = useTranslations("Projects");
   const tCommon = useTranslations("Common");
   const tPage = useTranslations("AdminProjects");
   const { data: projects, isLoading, error } = useProjects();
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [projectToDelete, setProjectToDelete] = useState<Project | null>(null);
 
   return (
     <div className="space-y-6">
@@ -445,18 +384,12 @@ export default function AdminProjectsPage() {
                     <div className="flex items-center justify-end gap-1">
                       <Link
                         href={`/admin/projects/${project.code}/settings`}
-                        className="p-1 text-muted-foreground hover:text-foreground hover:bg-muted rounded"
+                        className="inline-flex items-center gap-1.5 px-2 py-1 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted rounded"
                         title={t("editButton")}
                       >
                         <Pencil className="h-3.5 w-3.5" />
+                        {t("editButton")}
                       </Link>
-                      <button
-                        onClick={() => setProjectToDelete(project)}
-                        className="p-1 text-muted-foreground hover:text-red-600 hover:bg-red-50 rounded"
-                        title={t("deleteButton")}
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </button>
                     </div>
                   </td>
                 </tr>
@@ -467,7 +400,6 @@ export default function AdminProjectsPage() {
       )}
 
       <CreateProjectDialog open={dialogOpen} onClose={() => setDialogOpen(false)} />
-      <DeleteProjectDialog project={projectToDelete} onClose={() => setProjectToDelete(null)} />
     </div>
   );
 }

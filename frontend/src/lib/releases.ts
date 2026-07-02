@@ -13,6 +13,14 @@ export interface ReleaseEntry {
 
 export const releases: ReleaseEntry[] = [
   {
+    version: "0.2.10",
+    date: "2. 7. 2026",
+    headline: "Mazání projektu jen přes Nebezpečnou zónu",
+    changed: [
+      "Ze seznamu Administrace / Projekty zmizelo přímé tlačítko Smazat; projekt lze smazat jen v jeho editaci v Nebezpečné zóně po zadání kódu a potvrzení.",
+    ],
+  },
+  {
     version: "0.2.9",
     date: "1. 7. 2026",
     headline: "Editace projektu v Administraci",
