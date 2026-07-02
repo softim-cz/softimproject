@@ -89,7 +89,8 @@ public static class EasyProjectCanonicalMapper
         project.Parent?.Id.ToString(),
         project.StartDate,
         project.DueDate,
-        MapCustomFields(project.CustomFields, optionsFor));
+        MapCustomFields(project.CustomFields, optionsFor),
+        SourceCode: project.Identifier);
 
     public static CanonicalIssue MapIssue(EpIssue issue, Func<int, IReadOnlyList<string>?> optionsFor) => new(
         issue.Id.ToString(),

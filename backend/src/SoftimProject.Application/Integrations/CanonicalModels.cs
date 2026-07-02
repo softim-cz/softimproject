@@ -57,7 +57,10 @@ public sealed record CanonicalProject(
     string? ParentExternalId,
     string? StartDate,
     string? DueDate,
-    IReadOnlyList<CanonicalCustomFieldValue> CustomFields);
+    IReadOnlyList<CanonicalCustomFieldValue> CustomFields,
+    // Source-system project code/slug/key (EP identifier, Jira key, ...). Preferred base for the
+    // ProjectMan project code on import; null → the code is derived from the name.
+    string? SourceCode = null);
 
 public sealed record CanonicalComment(
     string ExternalId,

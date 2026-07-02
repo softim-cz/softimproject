@@ -272,6 +272,28 @@ public class SyncEngineTests
         job.ItemsFailed.Should().Be(0);
     }
 
+    [Fact]
+    public async Task Uses_Source_Project_Code_When_Available()
+    {
+        await using var db = CreateDbContext();
+        var (doneStateId, _) = await SeedAsync(db);
+        var jobId = await SeedJobAsync(db);
+
+        // EP identifier "unitegra" → sanitized uppercase, truncated to the 6-char code column.
+        var connector = new FakeSourceConnector
+        {
+            Projects = [new CanonicalProject("50", "Web Project", null, CanonicalProjectStatus.Active, null, null, null, [], SourceCode: "unitegra")],
+            Issues = [],
+        };
+        var engine = BuildEngine(db, out var tracker);
+        tracker.Init(jobId);
+
+        await engine.ExecuteAsync(jobId, AdminId, BuildRequest(doneStateId), connector,
+            new SourceConnectionContext("https://ep.example", "key"), JobSink(db, jobId));
+
+        (await db.Projects.SingleAsync()).Code.Should().Be("UNITEG");
+    }
+
     private static CanonicalIssue Issue(string externalId, string title) => new(
         externalId, title, null, null, "2", "Done", null, null, null, null, null, null, "50", "Web Project",
         [], [], [], [])

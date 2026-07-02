@@ -38,7 +38,7 @@ public sealed class UpdateProjectCommandValidator : AbstractValidator<UpdateProj
     {
         RuleFor(x => x.Name).NotEmpty().MaximumLength(200);
         RuleFor(x => x.Code).MinimumLength(2).MaximumLength(6)
-            .Matches("^[A-Z]+$").WithMessage("Code must be uppercase letters only.")
+            .Matches("^[A-Z0-9]+$").WithMessage("Code must be uppercase alphanumeric.")
             .When(x => !string.IsNullOrEmpty(x.Code));
         RuleFor(x => x.Description).MaximumLength(2000);
         RuleFor(x => x.BudgetHours).GreaterThan(0).When(x => x.BudgetHours.HasValue);

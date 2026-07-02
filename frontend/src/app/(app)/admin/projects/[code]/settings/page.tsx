@@ -75,7 +75,7 @@ export default function ProjectSettingsPage({ params }: { params: Promise<{ code
     }
   };
 
-  const codeValid = /^[A-Z]{2,6}$/.test(editCode);
+  const codeValid = /^[A-Z0-9]{2,6}$/.test(editCode);
   const nameValid = editName.trim().length > 0;
 
   const handleSaveGeneral = async () => {

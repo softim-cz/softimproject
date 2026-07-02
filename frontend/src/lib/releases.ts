@@ -13,6 +13,15 @@ export interface ReleaseEntry {
 
 export const releases: ReleaseEntry[] = [
   {
+    version: "0.2.11",
+    date: "2. 7. 2026",
+    headline: "Alfanumerický kód projektu a převzetí kódu z migrace",
+    changed: [
+      "Kód projektu smí obsahovat velká písmena i číslice (dříve jen písmena).",
+      "Migrace primárně přebírá kód projektu z původního systému (identifikátor); kód lze následně změnit v editaci projektu.",
+    ],
+  },
+  {
     version: "0.2.10",
     date: "2. 7. 2026",
     headline: "Mazání projektu jen přes Nebezpečnou zónu",

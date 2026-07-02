@@ -387,7 +387,7 @@
     "name": "Název",
     "code": "Kód",
     "nameRequired": "Název je povinný",
-    "codeValidation": "2–6 velkých písmen",
+    "codeValidation": "2–6 velkých písmen nebo číslic",
     "saving": "Ukládám...",
     "save": "Uložit",
     "settingsSaved": "Nastavení projektu uloženo",

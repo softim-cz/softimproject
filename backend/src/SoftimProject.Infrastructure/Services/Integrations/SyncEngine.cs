@@ -458,7 +458,7 @@ public sealed class SyncEngine(
             tracker.IncrementUpdated(jobId); tracker.AddLog(jobId, $"Updated project '{project.Name}'"); return existing.Id;
         }
 
-        var code = GenerateProjectCode(project.Name);
+        var code = BuildProjectCode(project.SourceCode, project.Name);
         code = await EnsureUniqueCode(code, ct);
         var spProject = new Project
         {
@@ -917,6 +917,21 @@ public sealed class SyncEngine(
 
     private static DateOnly? ParseDateOnly(string? date) { if (string.IsNullOrWhiteSpace(date)) return null; return DateOnly.TryParse(date, System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out var d) ? d : null; }
     private static string GenerateProjectCode(string name) { var words = name.Split(' ', StringSplitOptions.RemoveEmptyEntries); if (words.Length == 1) return words[0][..Math.Min(3, words[0].Length)].ToUpperInvariant(); return string.Concat(words.Take(6).Select(w => char.ToUpperInvariant(w[0]))); }
+
+    // Prefer the source system's project code (EP identifier / Jira key), sanitized to the
+    // uppercase-alphanumeric, max-6 shape the ProjectMan code column requires; fall back to a
+    // code derived from the name when the source has none or it sanitizes to fewer than 2 chars.
+    private static string BuildProjectCode(string? sourceCode, string name)
+    {
+        if (!string.IsNullOrWhiteSpace(sourceCode))
+        {
+            var cleaned = new string(sourceCode
+                .Where(c => c is (>= 'A' and <= 'Z') or (>= 'a' and <= 'z') or (>= '0' and <= '9'))
+                .ToArray()).ToUpperInvariant();
+            if (cleaned.Length >= 2) return cleaned[..Math.Min(6, cleaned.Length)];
+        }
+        return GenerateProjectCode(name);
+    }
     private async Task<string> EnsureUniqueCode(string baseCode, CancellationToken ct)
     {
         if (!await dbContext.Projects.AnyAsync(p => p.Code == baseCode, ct)) return baseCode;
